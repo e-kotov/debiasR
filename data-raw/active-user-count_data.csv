@@ -1,0 +1,375 @@
+name,origin_users,destination_users,source_mpd
+Aberdeen City,2791,1618,x/twitter
+Aberdeenshire,1425,933,x/twitter
+Adur,698,456,x/twitter
+Allerdale,1146,578,x/twitter
+Amber Valley,962,510,x/twitter
+Angus,799,483,x/twitter
+Antrim and Newtownabbey,1455,855,x/twitter
+Ards and North Down,1515,928,x/twitter
+Argyll and Bute,887,506,x/twitter
+"Armagh City, Banbridge and Craigavon",880,575,x/twitter
+Arun,956,571,x/twitter
+Ashfield,762,414,x/twitter
+Ashford,1015,500,x/twitter
+Babergh,296,165,x/twitter
+Barking and Dagenham,1229,611,x/twitter
+Barnet,3815,1891,x/twitter
+Barnsley,1744,1103,x/twitter
+Barrow-in-Furness,416,249,x/twitter
+Basildon,1305,624,x/twitter
+Basingstoke and Deane,1193,609,x/twitter
+Bassetlaw,1045,554,x/twitter
+Bath and North East Somerset,2411,1213,x/twitter
+Bedford,1083,575,x/twitter
+Belfast,5979,3158,x/twitter
+Bexley,1914,1003,x/twitter
+Birmingham,12134,5684,x/twitter
+Blaby,748,401,x/twitter
+Blackburn with Darwen,196,78,x/twitter
+Blackpool,1971,1003,x/twitter
+Blaenau Gwent,469,253,x/twitter
+Bolsover,496,273,x/twitter
+Bolton,2532,1414,x/twitter
+Boston,342,211,x/twitter
+"Bournemouth, Christchurch and Poole",3224,1805,x/twitter
+Bracknell Forest,921,472,x/twitter
+Bradford,3533,1979,x/twitter
+Braintree,541,315,x/twitter
+Breckland,648,382,x/twitter
+Brent,4326,1751,x/twitter
+Brentwood,781,373,x/twitter
+Bridgend,1441,813,x/twitter
+Brighton and Hove,4891,2714,x/twitter
+"Bristol, City of",6841,3582,x/twitter
+Broadland,1173,615,x/twitter
+Bromley,4031,2171,x/twitter
+Bromsgrove,994,549,x/twitter
+Broxbourne,775,396,x/twitter
+Broxtowe,976,519,x/twitter
+Buckinghamshire,3619,1944,x/twitter
+Burnley,791,453,x/twitter
+Bury,1603,894,x/twitter
+Caerphilly,1698,940,x/twitter
+Calderdale,1775,978,x/twitter
+Cambridge,2989,1392,x/twitter
+Camden,10134,3057,x/twitter
+Cannock Chase,754,366,x/twitter
+Canterbury,1447,849,x/twitter
+Cardiff,8144,4122,x/twitter
+Carlisle,945,462,x/twitter
+Carmarthenshire,1331,719,x/twitter
+Castle Point,170,114,x/twitter
+Causeway Coast and Glens,805,523,x/twitter
+Central Bedfordshire,1658,943,x/twitter
+Ceredigion,605,318,x/twitter
+Charnwood,1469,786,x/twitter
+Chelmsford,1448,753,x/twitter
+Cheltenham,1843,863,x/twitter
+Cherwell,1222,631,x/twitter
+Cheshire East,1848,872,x/twitter
+Cheshire West and Chester,6665,3441,x/twitter
+Chesterfield,1475,772,x/twitter
+Chichester,971,474,x/twitter
+Chorley,869,456,x/twitter
+City of Edinburgh,10944,5574,x/twitter
+City of London,5005,5700,x/twitter
+Clackmannanshire,445,289,x/twitter
+Colchester,1565,835,x/twitter
+Conwy,1191,593,x/twitter
+Copeland,411,237,x/twitter
+Cornwall,3602,2189,x/twitter
+Cotswold,916,512,x/twitter
+County Durham,2964,1698,x/twitter
+Coventry,3901,1853,x/twitter
+Craven,527,266,x/twitter
+Crawley,1860,530,x/twitter
+Croydon,3710,1893,x/twitter
+Dacorum,1389,767,x/twitter
+Darlington,914,463,x/twitter
+Dartford,898,521,x/twitter
+Denbighshire,807,448,x/twitter
+Derby,2542,1204,x/twitter
+Derbyshire Dales,623,313,x/twitter
+Derry City and Strabane,951,526,x/twitter
+Doncaster,2501,1218,x/twitter
+Dorset,2921,1680,x/twitter
+Dover,846,552,x/twitter
+Dudley,1912,968,x/twitter
+Dumfries and Galloway,864,575,x/twitter
+Dundee City,1997,1069,x/twitter
+Ealing,3581,1804,x/twitter
+East Ayrshire,941,568,x/twitter
+East Cambridgeshire,437,232,x/twitter
+East Devon,776,464,x/twitter
+East Dunbartonshire,1113,634,x/twitter
+East Hampshire,513,287,x/twitter
+East Hertfordshire,914,497,x/twitter
+East Lindsey,797,441,x/twitter
+East Lothian,1213,711,x/twitter
+East Renfrewshire,1019,623,x/twitter
+East Riding of Yorkshire,1870,1026,x/twitter
+East Staffordshire,917,482,x/twitter
+East Suffolk,1663,892,x/twitter
+Eastbourne,828,466,x/twitter
+Eastleigh,1082,592,x/twitter
+Eden,524,316,x/twitter
+Elmbridge,1571,818,x/twitter
+Enfield,2661,1402,x/twitter
+Epping Forest,1224,690,x/twitter
+Epsom and Ewell,1103,649,x/twitter
+Erewash,945,487,x/twitter
+Exeter,1722,831,x/twitter
+Falkirk,1429,762,x/twitter
+Fareham,926,531,x/twitter
+Fenland,451,264,x/twitter
+Fermanagh and Omagh,514,264,x/twitter
+Fife,2944,1743,x/twitter
+Flintshire,1265,668,x/twitter
+Folkestone and Hythe,923,514,x/twitter
+Forest of Dean,410,235,x/twitter
+Fylde,738,444,x/twitter
+Gateshead,1789,938,x/twitter
+Gedling,1640,920,x/twitter
+Glasgow City,17188,9086,x/twitter
+Gloucester,1089,642,x/twitter
+Gosport,566,332,x/twitter
+Gravesham,660,398,x/twitter
+Great Yarmouth,602,363,x/twitter
+Greenwich,4366,1954,x/twitter
+Guildford,1397,690,x/twitter
+Gwynedd,928,530,x/twitter
+Hackney,5960,2595,x/twitter
+Halton,1160,591,x/twitter
+Hambleton,742,378,x/twitter
+Hammersmith and Fulham,4809,1821,x/twitter
+Harborough,776,406,x/twitter
+Haringey,4226,1830,x/twitter
+Harlow,673,357,x/twitter
+Harrogate,1689,899,x/twitter
+Harrow,1836,905,x/twitter
+Hart,345,190,x/twitter
+Hartlepool,761,436,x/twitter
+Hastings,735,443,x/twitter
+Havant,861,454,x/twitter
+Havering,2051,1057,x/twitter
+"Herefordshire, County of",1104,632,x/twitter
+Hertsmere,960,468,x/twitter
+High Peak,630,383,x/twitter
+Highland,3700,2057,x/twitter
+Hillingdon,4786,1432,x/twitter
+Hinckley and Bosworth,652,391,x/twitter
+Horsham,904,528,x/twitter
+Hounslow,3575,1530,x/twitter
+Huntingdonshire,1527,854,x/twitter
+Hyndburn,454,252,x/twitter
+Inverclyde,801,561,x/twitter
+Ipswich,1437,709,x/twitter
+Isle of Anglesey,480,236,x/twitter
+Isle of Wight,600,332,x/twitter
+Isles of Scilly,22,18,x/twitter
+Islington,5945,2369,x/twitter
+Kensington and Chelsea,966,479,x/twitter
+King's Lynn and West Norfolk,986,501,x/twitter
+"Kingston upon Hull, City of",2911,1495,x/twitter
+Kingston upon Thames,2620,1285,x/twitter
+Kirklees,3726,1958,x/twitter
+Knowsley,1036,576,x/twitter
+Lambeth,8059,3622,x/twitter
+Lancaster,850,376,x/twitter
+Leeds,10592,5217,x/twitter
+Leicester,3287,1521,x/twitter
+Lewes,834,457,x/twitter
+Lewisham,4580,2219,x/twitter
+Lichfield,851,455,x/twitter
+Lincoln,1685,822,x/twitter
+Lisburn and Castlereagh,1514,957,x/twitter
+Liverpool,15035,6571,x/twitter
+Luton,1260,673,x/twitter
+Maidstone,1132,615,x/twitter
+Maldon,405,272,x/twitter
+Malvern Hills,669,326,x/twitter
+Manchester,15774,6499,x/twitter
+Mansfield,1036,557,x/twitter
+Medway,1273,676,x/twitter
+Melton,569,290,x/twitter
+Mendip,877,439,x/twitter
+Merthyr Tydfil,612,350,x/twitter
+Merton,2658,1291,x/twitter
+Mid Devon,386,222,x/twitter
+Mid Suffolk,595,352,x/twitter
+Mid Sussex,1166,609,x/twitter
+Mid Ulster,512,273,x/twitter
+Mid and East Antrim,877,540,x/twitter
+Middlesbrough,1323,598,x/twitter
+Midlothian,744,453,x/twitter
+Milton Keynes,2701,1354,x/twitter
+Mole Valley,704,328,x/twitter
+Monmouthshire,1003,582,x/twitter
+Moray,669,396,x/twitter
+Na h-Eileanan Siar,218,164,x/twitter
+Neath Port Talbot,1182,660,x/twitter
+New Forest,1178,696,x/twitter
+Newark and Sherwood,919,495,x/twitter
+Newcastle upon Tyne,4559,2132,x/twitter
+Newcastle-under-Lyme,870,444,x/twitter
+Newham,4490,1824,x/twitter
+Newport,2121,1119,x/twitter
+"Newry, Mourne and Down",856,549,x/twitter
+North Ayrshire,1205,782,x/twitter
+North Devon,594,346,x/twitter
+North East Derbyshire,577,280,x/twitter
+North East Lincolnshire,944,586,x/twitter
+North Hertfordshire,1129,542,x/twitter
+North Kesteven,831,497,x/twitter
+North Lanarkshire,3023,1695,x/twitter
+North Lincolnshire,871,446,x/twitter
+North Norfolk,723,388,x/twitter
+North Northamptonshire,2726,1472,x/twitter
+North Somerset,1457,920,x/twitter
+North Tyneside,1985,1166,x/twitter
+North Warwickshire,437,237,x/twitter
+North West Leicestershire,796,428,x/twitter
+Northumberland,2241,1258,x/twitter
+Norwich,2192,1103,x/twitter
+Nottingham,4483,1993,x/twitter
+Nuneaton and Bedworth,942,485,x/twitter
+Oadby and Wigston,374,199,x/twitter
+Oldham,2074,1147,x/twitter
+Orkney Islands,135,87,x/twitter
+Oxford,2741,1378,x/twitter
+Pembrokeshire,810,472,x/twitter
+Pendle,410,241,x/twitter
+Perth and Kinross,1384,806,x/twitter
+Peterborough,1446,752,x/twitter
+Plymouth,2324,1430,x/twitter
+Portsmouth,2290,1229,x/twitter
+Powys,910,483,x/twitter
+Preston,1819,888,x/twitter
+Reading,2667,1355,x/twitter
+Redbridge,2660,1356,x/twitter
+Redcar and Cleveland,796,484,x/twitter
+Redditch,563,359,x/twitter
+Reigate and Banstead,906,436,x/twitter
+Renfrewshire,2106,1199,x/twitter
+Rhondda Cynon Taf,2251,1308,x/twitter
+Ribble Valley,547,257,x/twitter
+Richmond upon Thames,328,180,x/twitter
+Richmondshire,271,151,x/twitter
+Rochdale,1354,812,x/twitter
+Rochford,476,285,x/twitter
+Rossendale,694,423,x/twitter
+Rother,565,300,x/twitter
+Rotherham,1226,651,x/twitter
+Rugby,902,449,x/twitter
+Runnymede,745,396,x/twitter
+Rushcliffe,1246,658,x/twitter
+Rushmoor,677,345,x/twitter
+Rutland,396,179,x/twitter
+Ryedale,329,202,x/twitter
+Salford,5138,2417,x/twitter
+Sandwell,2068,1124,x/twitter
+Scarborough,1324,749,x/twitter
+Scottish Borders,853,523,x/twitter
+Sedgemoor,765,408,x/twitter
+Sefton,773,405,x/twitter
+Selby,637,323,x/twitter
+Sevenoaks,1118,601,x/twitter
+Sheffield,10746,5730,x/twitter
+Shetland Islands,139,90,x/twitter
+Shropshire,2131,1126,x/twitter
+Slough,1395,621,x/twitter
+Solihull,2558,1086,x/twitter
+Somerset West and Taunton,1197,620,x/twitter
+South Ayrshire,1195,721,x/twitter
+South Cambridgeshire,1045,541,x/twitter
+South Derbyshire,678,326,x/twitter
+South Gloucestershire,1191,565,x/twitter
+South Hams,513,281,x/twitter
+South Holland,695,399,x/twitter
+South Kesteven,732,357,x/twitter
+South Lakeland,1245,595,x/twitter
+South Lanarkshire,3072,1787,x/twitter
+South Norfolk,734,361,x/twitter
+South Oxfordshire,1252,621,x/twitter
+South Ribble,1090,505,x/twitter
+South Somerset,1125,576,x/twitter
+South Staffordshire,691,363,x/twitter
+South Tyneside,1215,756,x/twitter
+Southampton,2967,1486,x/twitter
+Southend-on-Sea,1853,1025,x/twitter
+Southwark,7955,3654,x/twitter
+Spelthorne,796,407,x/twitter
+St Albans,1568,800,x/twitter
+St. Helens,1946,1063,x/twitter
+Stafford,1075,596,x/twitter
+Staffordshire Moorlands,656,379,x/twitter
+Stevenage,900,489,x/twitter
+Stirling,1471,784,x/twitter
+Stockport,4026,2130,x/twitter
+Stockton-on-Tees,1374,802,x/twitter
+Stoke-on-Trent,1867,1017,x/twitter
+Stratford-on-Avon,1264,675,x/twitter
+Stroud,862,500,x/twitter
+Sunderland,2111,1246,x/twitter
+Surrey Heath,689,395,x/twitter
+Sutton,1782,970,x/twitter
+Swale,774,434,x/twitter
+Swansea,2533,1344,x/twitter
+Swindon,1782,911,x/twitter
+Tameside,2099,1000,x/twitter
+Tamworth,574,333,x/twitter
+Tandridge,632,340,x/twitter
+Teignbridge,778,447,x/twitter
+Telford and Wrekin,1008,596,x/twitter
+Tendring,738,480,x/twitter
+Test Valley,590,329,x/twitter
+Tewkesbury,587,333,x/twitter
+Thanet,981,636,x/twitter
+Three Rivers,567,292,x/twitter
+Thurrock,1071,518,x/twitter
+Tonbridge and Malling,995,459,x/twitter
+Torbay,993,577,x/twitter
+Torfaen,723,411,x/twitter
+Torridge,311,186,x/twitter
+Tower Hamlets,6754,2714,x/twitter
+Trafford,4286,2016,x/twitter
+Tunbridge Wells,939,468,x/twitter
+Uttlesford,642,321,x/twitter
+Vale of Glamorgan,1795,1080,x/twitter
+Vale of White Horse,753,377,x/twitter
+Wakefield,2639,1489,x/twitter
+Walsall,1197,631,x/twitter
+Waltham Forest,2949,1501,x/twitter
+Wandsworth,6055,2863,x/twitter
+Warrington,3003,1381,x/twitter
+Warwick,1541,869,x/twitter
+Watford,1414,666,x/twitter
+Waverley,510,302,x/twitter
+Wealden,838,462,x/twitter
+Welwyn Hatfield,729,326,x/twitter
+West Berkshire,641,331,x/twitter
+West Devon,296,197,x/twitter
+West Dunbartonshire,706,435,x/twitter
+West Lancashire,954,555,x/twitter
+West Lindsey,541,300,x/twitter
+West Lothian,3594,2079,x/twitter
+West Northamptonshire,3283,1765,x/twitter
+West Oxfordshire,858,498,x/twitter
+West Suffolk,1329,807,x/twitter
+Westminster,7995,2375,x/twitter
+Wigan,2272,1183,x/twitter
+Wiltshire,3041,1702,x/twitter
+Winchester,1060,533,x/twitter
+Windsor and Maidenhead,1215,603,x/twitter
+Wirral,3046,1777,x/twitter
+Woking,1041,523,x/twitter
+Wokingham,872,466,x/twitter
+Wolverhampton,2022,905,x/twitter
+Worcester,1217,656,x/twitter
+Worthing,970,539,x/twitter
+Wrexham,1279,743,x/twitter
+Wychavon,818,456,x/twitter
+Wyre,894,480,x/twitter
+Wyre Forest,691,369,x/twitter
+York,3077,1579,x/twitter

@@ -1,0 +1,29 @@
+Package: debiasR
+Title: Bias Correction for Mobile-Phone-Derived Mobility Data
+Version: 0.0.0.9000
+Authors@R:
+    c(
+      person("Francisco", "Rowe", email = "fcorowe@liverpool.ac.uk", role = c("aut","cre")),
+      person("Carmen", "Cabrera", email = "c.cabrera@liverpool.ac.uk", role = "aut")
+    )
+Description: Tools to correct biases in origin-destination mobility data derived from mobile phone sources. Implements a range of bias-adjustment methods.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends: R (>= 4.2)
+Imports:
+    dplyr,
+    tidyr,
+    tibble,
+    rlang,
+    stats
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.2.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+LazyData: true
+URL: https://github.com/de-bias/debiasR
+BugReports: https://github.com/de-bias/debiasR/issues

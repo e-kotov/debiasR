@@ -1,0 +1,466 @@
+#' Selection-rate weighting (Method 2, Chi et al. with r_t calibration)
+#'
+#' Implements the Chi et al.-style selection weights:
+#'
+#'   W = 1 / ( Income * (U / P) + (1 - Income) * r_t )
+#'
+#' with flexible income covariates and optional calibration of r_t
+#' against benchmark OD flows.
+#'
+#' Coverage formats:
+#'   NEW:
+#'     origin, origin_population, origin_user_count,
+#'     destination, destination_population, destination_user_count, mpd_source
+#'   LEGACY:
+#'     origin, population, user_count, mpd_source
+#'
+#' Optional covariates:
+#'   covariates_df with:
+#'     area,
+#'     an income-like column (specified via `income_col` or auto-detected),
+#'     optional mpd_source.
+#'
+#' r_t handling:
+#'   - If `r_global` is provided: use it directly.
+#'   - Else if `benchmark_od_df` is provided: calibrate r_t by grid search
+#'     to minimize the sum of absolute errors, reproducing Chi et al.'s idea.
+#'     By default aggregates by origin:
+#'       r_t* = argmin_r sum_o | Mig_hat_o(r) - Mig_bench_o |
+#'   - Else: fall back to descriptive r_t = sum(U) / sum(P) (transparent).
+#'
+#' @param mpd_od_df Data frame with: origin, destination, flow, mpd_source.
+#' @param coverage_df Data frame in NEW or LEGACY schema.
+#' @param covariates_df Optional data frame with columns:
+#'   - area
+#'   - income-like column
+#'   - optional mpd_source
+#' @param income_col Optional name of income column in `covariates_df`.
+#'   If NULL, auto-detect among:
+#'   `income_norm, gni_pc, income, inc, gni, income_2000, income_2010`.
+#' @param weight_by "origin", "destination", or "both".
+#' @param r_global Optional scalar r_t. Overrides calibration if given.
+#' @param benchmark_od_df Optional OD benchmark for calibrating r_t.
+#'   Must contain: origin, destination, and a flow column.
+#' @param flow_col_bench Name of benchmark flow column in `benchmark_od_df`.
+#'   Default "flow".
+#' @param r_grid Numeric vector of candidate r_t values for calibration.
+#'   Default `seq(0, 3, by = 0.01)` as in Chi et al.
+#' @param calibration_aggregate "origin" (default, Chi et al. style) or "od".
+#' @param clip_min,clip_max Clamp weights into [clip_min, clip_max].
+#' @param keep_cols Extra columns from `mpd_od_df` to keep.
+#'
+#' @return Tibble with:
+#'   origin, destination, mpd_source, flow,
+#'   weight_origin, weight_destination, weight_missing, flow_adj.
+#'   Attributes:
+#'     - "r_global": numeric r_t used.
+#'     - "r_calibration": data.frame of (r, loss) if calibration was run.
+#' @export
+method2_selection_rate <- function(mpd_od_df,
+                                   coverage_df,
+                                   covariates_df = NULL,
+                                   income_col = NULL,
+                                   weight_by = c("origin", "destination", "both"),
+                                   r_global = NULL,
+                                   benchmark_od_df = NULL,
+                                   flow_col_bench = "flow",
+                                   r_grid = seq(0, 3, by = 0.01),
+                                   calibration_aggregate = c("origin", "od"),
+                                   clip_min = 0,
+                                   clip_max = Inf,
+                                   keep_cols = character()) {
+  weight_by <- match.arg(weight_by)
+  calibration_aggregate <- match.arg(calibration_aggregate)
+
+  # -------- basic checks --------
+  req_mpd <- c("origin", "destination", "flow", "mpd_source")
+  if (!all(req_mpd %in% names(mpd_od_df))) {
+    stop("`mpd_od_df` must contain: ", paste(req_mpd, collapse = ", "))
+  }
+
+  nms_cov <- names(coverage_df)
+  has_new <- all(c(
+    "origin",
+    "origin_population", "origin_user_count",
+    "destination", "destination_population", "destination_user_count",
+    "mpd_source"
+  ) %in% nms_cov)
+  has_legacy <- all(c("origin", "population", "user_count", "mpd_source") %in% nms_cov)
+
+  if (!has_new && !has_legacy) {
+    stop(
+      "`coverage_df` does not match a supported schema.\n",
+      "New:    {origin, origin_population, origin_user_count, ",
+      "destination, destination_population, destination_user_count, mpd_source}\n",
+      "Legacy: {origin, population, user_count, mpd_source}\n",
+      "Got: {", paste(nms_cov, collapse = ", "), "}"
+    )
+  }
+
+  # -------- small helpers --------
+  clamp_weight <- function(w) {
+    w <- suppressWarnings(as.numeric(w))
+    w[!(is.finite(w) & w > 0)] <- NA_real_
+    w <- pmax(clip_min, pmin(w, clip_max), na.rm = FALSE)
+    w
+  }
+
+  normalize01 <- function(v) {
+    v <- suppressWarnings(as.numeric(v))
+    v[!is.finite(v)] <- NA_real_
+    if (!any(is.finite(v))) return(rep(NA_real_, length(v)))
+    v_min <- min(v, na.rm = TRUE)
+    v_max <- max(v, na.rm = TRUE)
+    if (v_min >= 0 && v_max <= 1) return(v)
+    if (v_max > v_min) (v - v_min) / (v_max - v_min) else rep(NA_real_, length(v))
+  }
+
+  infer_income_from_coverage <- function(df, prefix = NULL) {
+    cand <- c(
+      if (!is.null(prefix)) paste0(prefix, c("income", "gni_pc", "gni")),
+      "income", "gni_pc", "gni"
+    )
+    cand <- cand[cand %in% names(df)]
+    if (length(cand) == 0) return(rep(1, nrow(df)))
+    inc <- normalize01(df[[cand[1]]])
+    ifelse(is.finite(inc), inc, 1)
+  }
+
+  # -------- build covariate income_norm (if provided) --------
+  cov_income <- NULL
+  if (!is.null(covariates_df)) {
+    if (!"area" %in% names(covariates_df)) {
+      stop("`covariates_df` must contain column `area`.")
+    }
+
+    if (!is.null(income_col)) {
+      if (!income_col %in% names(covariates_df)) {
+        stop("`income_col` = '", income_col, "' not found in `covariates_df`.")
+      }
+      income_col_use <- income_col
+    } else {
+      cand_auto <- c("income_norm", "gni_pc", "income", "inc", "gni",
+                     "income_2000", "income_2010")
+      income_col_use <- cand_auto[cand_auto %in% names(covariates_df)][1]
+      if (is.na(income_col_use)) income_col_use <- NULL
+    }
+
+    if (!is.null(income_col_use)) {
+      inc_norm <- normalize01(covariates_df[[income_col_use]])
+      cov_income <- covariates_df %>%
+        dplyr::transmute(
+          area = as.character(.data$area),
+          mpd_source = if ("mpd_source" %in% names(covariates_df))
+            .data$mpd_source else NA_character_,
+          income_norm = inc_norm
+        )
+    }
+  }
+
+  # =====================================================================
+  # Precompute side-specific quantities that do not depend on r_t
+  # =====================================================================
+
+  if (has_new) {
+    # ORIGIN side
+    cov_o_pre <- coverage_df %>%
+      dplyr::transmute(
+        origin     = as.character(.data$origin),
+        mpd_source = .data$mpd_source,
+        P_o        = as.numeric(.data$origin_population),
+        U_o        = as.numeric(.data$origin_user_count)
+      ) %>%
+      dplyr::filter(is.finite(P_o), P_o > 0, is.finite(U_o), U_o > 0)
+
+    if (!is.null(cov_income)) {
+      if ("mpd_source" %in% names(cov_income)) {
+        cov_o_pre <- cov_o_pre %>%
+          dplyr::left_join(cov_income,
+                           by = c("origin" = "area", "mpd_source"))
+      } else {
+        cov_o_pre <- cov_o_pre %>%
+          dplyr::left_join(cov_income, by = c("origin" = "area"))
+      }
+      Income_o <- ifelse(is.finite(cov_o_pre$income_norm),
+                         cov_o_pre$income_norm, NA_real_)
+    } else {
+      Income_o <- infer_income_from_coverage(cov_o_pre, prefix = "origin_")
+    }
+    Income_o[!is.finite(Income_o)] <- 1
+    cov_o_pre$Income_o <- Income_o
+    cov_o_pre$pen_o <- cov_o_pre$U_o / cov_o_pre$P_o
+
+    # DESTINATION side
+    cov_d_pre <- coverage_df %>%
+      dplyr::transmute(
+        destination = as.character(.data$destination),
+        mpd_source  = .data$mpd_source,
+        P_d         = as.numeric(.data$destination_population),
+        U_d         = as.numeric(.data$destination_user_count)
+      ) %>%
+      dplyr::filter(is.finite(P_d), P_d > 0, is.finite(U_d), U_d > 0)
+
+    if (!is.null(cov_income)) {
+      if ("mpd_source" %in% names(cov_income)) {
+        cov_d_pre <- cov_d_pre %>%
+          dplyr::left_join(cov_income,
+                           by = c("destination" = "area", "mpd_source"))
+      } else {
+        cov_d_pre <- cov_d_pre %>%
+          dplyr::left_join(cov_income, by = c("destination" = "area"))
+      }
+      Income_d <- ifelse(is.finite(cov_d_pre$income_norm),
+                         cov_d_pre$income_norm, NA_real_)
+    } else {
+      Income_d <- infer_income_from_coverage(cov_d_pre, prefix = "destination_")
+    }
+    Income_d[!is.finite(Income_d)] <- 1
+    cov_d_pre$Income_d <- Income_d
+    cov_d_pre$pen_d <- cov_d_pre$U_d / cov_d_pre$P_d
+
+  } else {
+    # LEGACY schema
+    cov_base_pre <- coverage_df %>%
+      dplyr::transmute(
+        area       = as.character(.data$origin),
+        mpd_source = .data$mpd_source,
+        P          = as.numeric(.data$population),
+        U          = as.numeric(.data$user_count)
+      ) %>%
+      dplyr::filter(is.finite(P), P > 0, is.finite(U), U > 0)
+
+    if (!is.null(cov_income)) {
+      if ("mpd_source" %in% names(cov_income)) {
+        cov_base_pre <- cov_base_pre %>%
+          dplyr::left_join(cov_income, by = c("area", "mpd_source"))
+      } else {
+        cov_base_pre <- cov_base_pre %>%
+          dplyr::left_join(cov_income, by = "area")
+      }
+      Income <- ifelse(is.finite(cov_base_pre$income_norm),
+                       cov_base_pre$income_norm, NA_real_)
+    } else {
+      Income <- infer_income_from_coverage(cov_base_pre, prefix = NULL)
+    }
+    Income[!is.finite(Income)] <- 1
+    cov_base_pre$Income <- Income
+    cov_base_pre$pen <- cov_base_pre$U / cov_base_pre$P
+  }
+
+  # =====================================================================
+  # Internal helper to compute adjusted flows for a given r_t
+  # =====================================================================
+
+  compute_with_r <- function(r_val) {
+    r_val <- as.numeric(r_val)[1]
+
+    if (has_new) {
+      cov_o <- NULL
+      cov_d <- NULL
+
+      if (weight_by %in% c("origin", "both")) {
+        cov_o <- cov_o_pre %>%
+          dplyr::mutate(
+            weight_origin = clamp_weight(
+              1 / (Income_o * pen_o + (1 - Income_o) * r_val)
+            )
+          ) %>%
+          dplyr::select(origin, mpd_source, weight_origin)
+      }
+
+      if (weight_by %in% c("destination", "both")) {
+        cov_d <- cov_d_pre %>%
+          dplyr::mutate(
+            weight_destination = clamp_weight(
+              1 / (Income_d * pen_d + (1 - Income_d) * r_val)
+            )
+          ) %>%
+          dplyr::select(destination, mpd_source, weight_destination)
+      }
+
+    } else {
+      # legacy: same weights for origin/destination from cov_base_pre
+      cov_o <- NULL
+      cov_d <- NULL
+
+      if (weight_by %in% c("origin", "both", "destination")) {
+        cov_w <- cov_base_pre %>%
+          dplyr::mutate(
+            w_sel = clamp_weight(
+              1 / (Income * pen + (1 - Income) * r_val)
+            )
+          )
+      }
+
+      if (weight_by %in% c("origin", "both")) {
+        cov_o <- cov_w %>%
+          dplyr::transmute(
+            origin = area,
+            mpd_source,
+            weight_origin = w_sel
+          ) %>%
+          dplyr::distinct(origin, mpd_source, .keep_all = TRUE)
+      }
+
+      if (weight_by %in% c("destination", "both")) {
+        cov_d <- cov_w %>%
+          dplyr::transmute(
+            destination = area,
+            mpd_source,
+            weight_destination = w_sel
+          ) %>%
+          dplyr::distinct(destination, mpd_source, .keep_all = TRUE)
+      }
+    }
+
+    out <- mpd_od_df
+    if (length(keep_cols)) {
+      keep_cols_local <- keep_cols[keep_cols %in% names(out)]
+    } else keep_cols_local <- character()
+
+    if (!is.null(cov_o)) {
+      out <- dplyr::left_join(out, cov_o, by = c("origin", "mpd_source"))
+    } else {
+      out$weight_origin <- NA_real_
+    }
+
+    if (!is.null(cov_d)) {
+      out <- dplyr::left_join(out, cov_d, by = c("destination", "mpd_source"))
+    } else {
+      out$weight_destination <- NA_real_
+    }
+
+    final_w <- dplyr::case_when(
+      weight_by == "origin"      ~ out$weight_origin,
+      weight_by == "destination" ~ out$weight_destination,
+      weight_by == "both"        ~ suppressWarnings(
+        sqrt(out$weight_origin * out$weight_destination)
+      )
+    )
+    if (weight_by == "both") {
+      final_w[!is.finite(out$weight_origin) |
+                !is.finite(out$weight_destination)] <- NA_real_
+    }
+
+    out$weight_missing <- !is.finite(final_w)
+    out$flow_adj <- ifelse(is.finite(final_w), out$flow * final_w, NA_real_)
+
+    dplyr::select(
+      out,
+      dplyr::any_of(c("origin", "destination", "mpd_source")),
+      dplyr::any_of(keep_cols_local),
+      flow,
+      weight_origin,
+      weight_destination,
+      weight_missing,
+      flow_adj
+    ) %>%
+      tibble::as_tibble()
+  }
+
+  # =====================================================================
+  # Calibrate or set r_t
+  # =====================================================================
+
+  r_used <- NULL
+  calib_diag <- NULL
+
+  # Case 1: user supplies r_global directly
+  if (!is.null(r_global)) {
+    r_used <- as.numeric(r_global[1])
+
+  } else if (!is.null(benchmark_od_df)) {
+    # Case 2: Chi-style calibration using benchmark flows
+
+    if (!all(c("origin", "destination", flow_col_bench) %in% names(benchmark_od_df))) {
+      stop("`benchmark_od_df` must contain origin, destination, and `flow_col_bench`.")
+    }
+
+    bench_df <- benchmark_od_df %>%
+      dplyr::transmute(
+        origin      = as.character(.data$origin),
+        destination = as.character(.data$destination),
+        flow_bench  = as.numeric(.data[[flow_col_bench]])
+      ) %>%
+      dplyr::filter(is.finite(flow_bench))
+
+    if (nrow(bench_df) == 0L) {
+      stop("`benchmark_od_df` has no valid benchmark flows for calibration.")
+    }
+
+    if (length(r_grid) == 0L) {
+      stop("`r_grid` is empty; provide candidate values for r_t.")
+    }
+
+    losses <- numeric(0)
+    rs     <- numeric(0)
+
+    for (r in r_grid) {
+      adj_r <- compute_with_r(r) %>%
+        dplyr::select(origin, destination, flow_adj)
+
+      joined <- dplyr::inner_join(adj_r, bench_df,
+                                  by = c("origin", "destination"))
+      if (nrow(joined) == 0L) next
+
+      if (calibration_aggregate == "origin") {
+        agg <- joined %>%
+          dplyr::group_by(origin) %>%
+          dplyr::summarise(
+            adj   = sum(flow_adj, na.rm = TRUE),
+            bench = sum(flow_bench, na.rm = TRUE),
+            .groups = "drop"
+          )
+        loss <- sum(abs(agg$adj - agg$bench), na.rm = TRUE)
+      } else { # "od"
+        loss <- sum(abs(joined$flow_adj - joined$flow_bench), na.rm = TRUE)
+      }
+
+      rs     <- c(rs, r)
+      losses <- c(losses, loss)
+    }
+
+    if (length(rs) == 0L) {
+      stop("Calibration failed: no overlap between adjusted and benchmark ODs.")
+    }
+
+    idx_best <- which.min(losses)
+    r_used <- rs[idx_best]
+
+    calib_diag <- data.frame(
+      r = rs,
+      loss = losses
+    )
+  } else {
+    # Case 3: fallback descriptive r_t (transparent)
+    if (has_new) {
+      if (weight_by == "origin") {
+        r_used <- sum(cov_o_pre$U_o, na.rm = TRUE) /
+          sum(cov_o_pre$P_o, na.rm = TRUE)
+      } else if (weight_by == "destination") {
+        r_used <- sum(cov_d_pre$U_d, na.rm = TRUE) /
+          sum(cov_d_pre$P_d, na.rm = TRUE)
+      } else { # both
+        r_used <- (sum(cov_o_pre$U_o, na.rm = TRUE) +
+                     sum(cov_d_pre$U_d, na.rm = TRUE)) /
+          (sum(cov_o_pre$P_o, na.rm = TRUE) +
+             sum(cov_d_pre$P_d, na.rm = TRUE))
+      }
+    } else {
+      r_used <- sum(cov_base_pre$U, na.rm = TRUE) /
+        sum(cov_base_pre$P, na.rm = TRUE)
+    }
+  }
+
+  # =====================================================================
+  # Final run with chosen r_t
+  # =====================================================================
+
+  out_final <- compute_with_r(r_used)
+  attr(out_final, "r_global") <- r_used
+  if (!is.null(calib_diag)) {
+    attr(out_final, "r_calibration") <- calib_diag
+  }
+
+  out_final
+}
