@@ -5,21 +5,27 @@
 
 <img src="assets/logo.png" alt="Imago Logo" width="300"/>
 
-# DEBIAS Template Repository
+# debiasR R Package Repository
 
-Checking if changing the visibility to private still works! It seems it works.
+Welcome to the **debiasR** repository!  
+This package is part of the **DEBIAS** project — an international research initiative dedicated to understanding and correcting biases in human mobility data derived from mobile phone records.  
 
-Welcome to the DEBIAS template repository!  
+The **debiasR** package provides statistical methods and tools to generate **correction factors** for population and mobility estimates, enabling researchers and practitioners to produce **bias-adjusted human mobility data** suitable for demographic, policy and scientific applications.
 
-## 🚀 How to Use This Template
+The package implements a range of approaches including inverse penetration weighting, selection rate models, raking ratio adjustments, coefficient regression, and Bayesian multilevel modelling. 
 
-1. **Click "Use this template"** at the top of the repository page to create your own project based on this template.
-2. **Update project details** such as the title, description, and contact information in this README.
-3. **Review and adapt the [CONTRIBUTING.md](CONTRIBUTING.md)** file to match your project's contribution process.
-4. **Set up repository features**:
-   - Update issue and pull request templates in `.github/ISSUE_TEMPLATE/` and `.github/pull_request_template.md` as needed.
-   - Configure the [All Contributors Bot](https://allcontributors.org/) for contributor recognition.
-5. **Replace or add your own code, data and documentation** in the appropriate folders.
+Our goal is to (1) increase the reliable and ethical use of mobile phone–derived mobility for scientific and policy applications; and, (2) ensure reproducibility, transparency and comparability in the use of mobile phone–derived mobility data across contexts.
+
+---
+
+## 👥 Core Development Team
+
+The core development team consists of **Francisco Rowe** and **Carmen Cabrera** (University of Liverpool).  
+We actively maintain and develop the package and warmly invite contributions from the wider research community — including new methods, bug reports, feature requests, and ideas for improvement.
+
+If you’re interested in collaborating or contributing, please join our growing open-source community.
+
+---
 
 ## 🛠️ Contributing
 
@@ -45,6 +51,8 @@ This repository uses a dual-licensing approach:
 See the [LICENSE](LICENSE) file for full details.
 
 ## 🗂️ Repository Structure
+
+To be updated.
 
 - `assets/` — Images, diagrams, and other media files
 - `.github/` — Community health files (issue/PR templates, workflows)
