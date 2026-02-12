@@ -7,7 +7,7 @@
 
 # DEBIAS Template Repository
 
-Making changes
+Checking if changing the visibility to private still works!
 
 Welcome to the DEBIAS template repository!  
 
