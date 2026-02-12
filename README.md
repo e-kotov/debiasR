@@ -72,7 +72,7 @@ Thank you for helping us build open, collaborative and impactful projects with D
 <table>
   <tbody>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="http://franciscorowe.com"><img src="https://avatars.githubusercontent.com/u/28450210?v=4?s=100" width="100px;" alt="Francisco Rowe"/><br /><sub><b>Francisco Rowe</b></sub></a><br /><a href="https://github.com/fcorowe/TEST2/commits?author=fcorowe" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://franciscorowe.com"><img src="https://avatars.githubusercontent.com/u/28450210?v=4?s=100" width="100px;" alt="Francisco Rowe"/><br /><sub><b>Francisco Rowe</b></sub></a><br /><a href="https://github.com/fcorowe/TEST2/commits?author=fcorowe" title="Documentation">📖</a> <a href="https://github.com/fcorowe/TEST2/commits?author=fcorowe" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
