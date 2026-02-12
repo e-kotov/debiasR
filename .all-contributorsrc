@@ -14,7 +14,20 @@
       "profile": "http://franciscorowe.com",
       "contributions": [
         "doc",
-        "code"
+        "code",
+        "bug",
+        "content",
+        "design",
+        "example",
+        "ideas",
+        "infra",
+        "maintenance",
+        "platform",
+        "projectManagement",
+        "research",
+        "review",
+        "tool",
+        "test"
       ]
     }
   ],
