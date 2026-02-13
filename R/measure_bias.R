@@ -1,8 +1,12 @@
 #' @title Measure Coverage Bias
 #'
 #' @description
-#' Computes **coverage bias** by area: the ratio of mobile-phone–derived active users
-#' to benchmark population, i.e. \code{user_count / population}.
+#' Computes area-level coverage quantities from active users and population.
+#' The primary bias measure is defined as:
+#' \deqn{coverage\_bias_i = 1 - \frac{U_i}{P_i}}
+#' where \eqn{U_i} is user count and \eqn{P_i} is population in area \eqn{i}.
+#' The function also returns:
+#' \deqn{coverage\_score_i = \frac{U_i}{P_i}}
 #'
 #' @param coverage_df A data frame with one row per area, containing the following columns:
 #'   \itemize{
@@ -13,20 +17,27 @@
 #' @return
 #' The input \code{coverage_df} with an added column:
 #' \itemize{
-#'   \item \code{bias} — Coverage bias (coverage ratio) defined as
-#'         \code{user_count / population}. Values near 1 imply full coverage,
-#'         < 1 imply under-coverage, and > 1 imply over-coverage relative to the benchmark.
+#'   \item \code{coverage_bias} — Defined as \code{1 - user_count / population}.
+#'   \item \code{coverage_score} — Defined as \code{user_count / population}
+#'         (1 indicates full coverage, 0 indicates no coverage).
+#'   \item \code{bias} — Backward-compatible alias of \code{coverage_bias}.
 #' }
 #'
 #' @details
-#' This function treats "bias" as **coverage bias**. It does not rescale or cap values.
-#' If \code{bias > 1}, a warning is issued, as this indicates user counts exceeding
+#' This function does not rescale or cap values.
+#' If \code{coverage_score > 1}, a warning is issued, as this indicates user counts exceeding
 #' benchmark population for that area (possible if benchmarks are not accurate, users are
 #' overcounted or definitions differ).
 #'
 #' @examples
-#' data(toy_coverage_df)
-#' measure_bias(toy_coverage_df)
+#' data(simulated_active.users)
+#' data(simulated_pop)
+#' coverage_df <- merge(
+#'   simulated_pop,
+#'   simulated_active.users[c("origin", "user_count")],
+#'   by = "origin"
+#' )
+#' measure_bias(coverage_df)
 #'
 #' @export
 measure_bias <- function(coverage_df) {
@@ -47,16 +58,16 @@ measure_bias <- function(coverage_df) {
     stop("user_count must be non-negative.")
   }
 
-  # ---- Compute coverage bias ----
-  coverage_df$bias <- coverage_df$user_count / coverage_df$population
+  # ---- Compute coverage quantities ----
+  coverage_df$coverage_score <- coverage_df$user_count / coverage_df$population
+  coverage_df$coverage_bias <- 1 - coverage_df$coverage_score
+  coverage_df$bias <- coverage_df$coverage_bias
 
   # Warn if coverage exceeds 100%
-  if (any(coverage_df$bias > 1, na.rm = TRUE)) {
-    warning("One or more areas have bias > 1 (user_count exceeds population). Check inputs or definitions.")
+  if (any(coverage_df$coverage_score > 1, na.rm = TRUE)) {
+    warning("One or more areas have coverage_score > 1 (user_count exceeds population). Check inputs or definitions.")
   }
 
   return(coverage_df)
 }
-
-
 
