@@ -1,0 +1,281 @@
+---
+title: "debiasR: Simulated Methods Walkthrough"
+format:
+  html:
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Purpose
+
+This walkthrough runs and visualizes the implemented `debiasR` correction methods using simulated package datasets.
+
+## Setup
+
+```{r}
+pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+
+if (!requireNamespace("debiasR", quietly = TRUE)) {
+  if (!requireNamespace("devtools", quietly = TRUE)) {
+    stop("Install either `debiasR` or `devtools` to load the local package.")
+  }
+  devtools::load_all(pkg_root, quiet = TRUE)
+}
+
+library(debiasR)
+library(tidyverse)
+source(file.path(pkg_root, "style", "data-visualisation_theme.R"))
+```
+
+```{r}
+data("simulated_mpd.od", package = "debiasR")
+data("simulated_benchmark.od", package = "debiasR")
+data("simulated_coverage", package = "debiasR")
+data("simulated_covariates", package = "debiasR")
+data("simulated_active.users", package = "debiasR")
+data("simulated_pop", package = "debiasR")
+
+tibble(
+  dataset = c(
+    "simulated_mpd.od",
+    "simulated_benchmark.od",
+    "simulated_coverage",
+    "simulated_covariates",
+    "simulated_active.users",
+    "simulated_pop"
+  ),
+  rows = c(
+    nrow(simulated_mpd.od),
+    nrow(simulated_benchmark.od),
+    nrow(simulated_coverage),
+    nrow(simulated_covariates),
+    nrow(simulated_active.users),
+    nrow(simulated_pop)
+  )
+)
+```
+
+## Plot Helpers
+
+```{r}
+plot_origin_totals <- function(df, flow_col = "flow", title_text) {
+  df |>
+    group_by(origin) |>
+    summarise(total_flow = sum(.data[[flow_col]], na.rm = TRUE), .groups = "drop") |>
+    ggplot(aes(x = reorder(origin, total_flow), y = total_flow)) +
+    geom_col(fill = "#121282", alpha = 0.9) +
+    coord_flip() +
+    labs(
+      title = title_text,
+      x = "Origin",
+      y = "Total flow"
+    ) +
+    theme_plot_tufte()
+}
+
+plot_adj_vs_benchmark <- function(adj_df, benchmark_df, title_text) {
+  cmp <- adj_df |>
+    select(origin, destination, flow_adj) |>
+    inner_join(
+      benchmark_df |>
+        select(origin, destination, flow_bench = flow),
+      by = c("origin", "destination")
+    )
+
+  ggplot(cmp, aes(x = flow_bench, y = flow_adj)) +
+    geom_point(color = "#121282", alpha = 0.75, size = 2) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "#FE7105") +
+    labs(
+      title = title_text,
+      x = "Benchmark flow",
+      y = "Adjusted flow"
+    ) +
+    theme_plot_tufte()
+}
+
+collect_metrics <- function(method_name, adj_df) {
+  v <- validate_flows(
+    adj_df = adj_df,
+    benchmark_od_df = simulated_benchmark.od,
+    method_name = method_name,
+    return_joined = FALSE
+  )
+
+  tibble(
+    method = v$method,
+    n = v$n,
+    pearson_r = v$pearson_r,
+    spearman_rho = v$spearman_rho,
+    rmse = v$rmse,
+    mae = v$mae,
+    mape = v$mape,
+    r_squared = v$r_squared
+  )
+}
+```
+
+## Baseline Visuals
+
+```{r}
+plot_origin_totals(simulated_mpd.od, "flow", "Observed MPD Flows by Origin")
+```
+
+```{r}
+plot_origin_totals(simulated_benchmark.od, "flow", "Benchmark Flows by Origin")
+```
+
+## 1) `adjust_inverse_penetration`
+
+```{r}
+adj_m1 <- adjust_inverse_penetration(
+  mpd_od_df = simulated_mpd.od,
+  coverage_df = simulated_coverage,
+  weight_by = "both"
+)
+
+collect_metrics("adjust_inverse_penetration", adj_m1)
+```
+
+```{r}
+plot_adj_vs_benchmark(adj_m1, simulated_benchmark.od, "Method 1: Adjusted vs Benchmark")
+```
+
+## 2) `adjust_selection_rate`
+
+```{r}
+adj_m2 <- adjust_selection_rate(
+  mpd_od_df = simulated_mpd.od,
+  coverage_df = simulated_coverage,
+  covariates_df = simulated_covariates,
+  income_col = "income_norm",
+  weight_by = "origin",
+  benchmark_od_df = simulated_benchmark.od,
+  calibration_aggregate = "origin"
+)
+
+list(r_global = attr(adj_m2, "r_global"))
+```
+
+```{r}
+plot_adj_vs_benchmark(adj_m2, simulated_benchmark.od, "Method 2: Adjusted vs Benchmark")
+```
+
+## 3) `adjust_selection_rate2`
+
+```{r}
+adj_m3 <- adjust_selection_rate2(
+  mpd_od_df = simulated_mpd.od,
+  coverage_df = simulated_coverage,
+  weight_by = "origin",
+  benchmark_od_df = simulated_benchmark.od,
+  calibration_aggregate = "origin"
+)
+
+list(k = attr(adj_m3, "k"))
+```
+
+```{r}
+plot_adj_vs_benchmark(adj_m3, simulated_benchmark.od, "Method 3: Adjusted vs Benchmark")
+```
+
+## 4) `adjust_raking_ratio`
+
+```{r}
+adj_m4 <- adjust_raking_ratio(
+  mpd_od_df = simulated_mpd.od,
+  benchmark_od_df = simulated_benchmark.od
+)
+
+list(
+  ipf_converged = attr(adj_m4, "ipf_converged"),
+  ipf_iterations = attr(adj_m4, "ipf_iterations")
+)
+```
+
+```{r}
+plot_adj_vs_benchmark(adj_m4, simulated_benchmark.od, "Method 4: Adjusted vs Benchmark")
+```
+
+## 5) `adjust_coefficient`
+
+```{r}
+adj_m5 <- adjust_coefficient(
+  mpd_od_df = simulated_mpd.od,
+  benchmark_od_df = simulated_benchmark.od,
+  model_family = "ols",
+  level = "od"
+)
+
+list(coef = attr(adj_m5, "coef"))
+```
+
+```{r}
+plot_adj_vs_benchmark(adj_m5, simulated_benchmark.od, "Method 5: Adjusted vs Benchmark")
+```
+
+## Compare Validation Metrics Across Methods
+
+```{r}
+metrics_tbl <- bind_rows(
+  collect_metrics("adjust_inverse_penetration", adj_m1),
+  collect_metrics("adjust_selection_rate", adj_m2),
+  collect_metrics("adjust_selection_rate2", adj_m3),
+  collect_metrics("adjust_raking_ratio", adj_m4),
+  collect_metrics("adjust_coefficient", adj_m5)
+) |>
+  arrange(desc(pearson_r))
+
+metrics_tbl
+```
+
+```{r}
+metrics_tbl |>
+  mutate(method = fct_reorder(method, pearson_r)) |>
+  ggplot(aes(x = method, y = pearson_r)) +
+  geom_col(fill = "#41AE76", alpha = 0.9) +
+  coord_flip() +
+  labs(
+    title = "Pearson Correlation by Method",
+    x = "Method",
+    y = "Pearson r"
+  ) +
+  theme_plot_tufte()
+```
+
+## `measure_bias` Example
+
+```{r}
+coverage_for_bias <- simulated_pop |>
+  inner_join(
+    simulated_active.users |>
+      select(origin, user_count),
+    by = "origin"
+  )
+
+bias_df <- measure_bias(coverage_for_bias)
+bias_df
+```
+
+```{r}
+bias_df |>
+  ggplot(aes(x = reorder(origin, coverage_score), y = coverage_score)) +
+  geom_col(fill = "#2B8CBE", alpha = 0.9) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "#D95F0E") +
+  coord_flip() +
+  labs(
+    title = "Coverage Score by Origin",
+    x = "Origin",
+    y = "coverage_score = user_count / population"
+  ) +
+  theme_plot_tufte()
+```
+
+## Render
+
+```bash
+quarto render vignettes/simulated-methods-walkthrough.qmd
+```

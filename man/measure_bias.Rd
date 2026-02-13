@@ -16,23 +16,34 @@ measure_bias(coverage_df)
 \value{
 The input \code{coverage_df} with an added column:
 \itemize{
-\item \code{bias} — Coverage bias (coverage ratio) defined as
-\code{user_count / population}. Values near 1 imply full coverage,
-< 1 imply under-coverage, and > 1 imply over-coverage relative to the benchmark.
+\item \code{coverage_bias} — Defined as \code{1 - user_count / population}.
+\item \code{coverage_score} — Defined as \code{user_count / population}
+(1 indicates full coverage, 0 indicates no coverage).
+\item \code{bias} — Backward-compatible alias of \code{coverage_bias}.
 }
 }
 \description{
-Computes \strong{coverage bias} by area: the ratio of mobile-phone–derived active users
-to benchmark population, i.e. \code{user_count / population}.
+Computes area-level coverage quantities from active users and population.
+The primary bias measure is defined as:
+\deqn{coverage\_bias_i = 1 - \frac{U_i}{P_i}}
+where \eqn{U_i} is user count and \eqn{P_i} is population in area \eqn{i}.
+The function also returns:
+\deqn{coverage\_score_i = \frac{U_i}{P_i}}
 }
 \details{
-This function treats "bias" as \strong{coverage bias}. It does not rescale or cap values.
-If \code{bias > 1}, a warning is issued, as this indicates user counts exceeding
+This function does not rescale or cap values.
+If \code{coverage_score > 1}, a warning is issued, as this indicates user counts exceeding
 benchmark population for that area (possible if benchmarks are not accurate, users are
 overcounted or definitions differ).
 }
 \examples{
-data(toy_coverage_df)
-measure_bias(toy_coverage_df)
+data(simulated_active.users)
+data(simulated_pop)
+coverage_df <- merge(
+  simulated_pop,
+  simulated_active.users[c("origin", "user_count")],
+  by = "origin"
+)
+measure_bias(coverage_df)
 
 }
