@@ -24,8 +24,9 @@ Thank you for your interest in contributing to this project! We welcome all kind
    ```
 
 4. **Run the relevant tests**  
-   ```r
-   testthat::test_dir("tests/testthat")
+   For the fast deterministic tier, use the curated runner documented in [notes/project-management/TEST_HEALTH.md](notes/project-management/TEST_HEALTH.md):
+   ```bash
+   Rscript scripts/run_fast_tests.R
    ```
 
 5. **Commit your changes**  
@@ -48,6 +49,12 @@ Thank you for your interest in contributing to this project! We welcome all kind
 
 - When reporting a bug or requesting a feature, please use the issue template in `.github/ISSUE_TEMPLATE/`.
 - When submitting a pull request, fill out the PR template to describe your changes and link related issues.
+
+## 🧭 Naming Guide
+
+- Use the current exported API in examples and docs: `adjust_*`, `validate_flow_benchmark()`, `validate_flow_all()`, and `simulated_*`.
+- If you need to mention older names for migration context, keep them in [notes/project-management/MIGRATION_MAP.md](notes/project-management/MIGRATION_MAP.md) rather than in user-facing instructions.
+- Prefer the current vignette/file naming too, for example `adjust-inverse-penetration` rather than legacy `debias-method1`.
 
 
 ## ✨ Acknowledging Contributors with All Contributors Bot

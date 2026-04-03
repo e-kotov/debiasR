@@ -81,7 +81,7 @@ See the [LICENSE](LICENSE) file for full details.
 - `data-raw/` - scripts for rebuilding the simulated datasets
 - `man/` - generated documentation for exported objects
 - `tests/` - `testthat` tests
-- `vignettes/` - walkthroughs and method comparison notebooks
+- `vignettes/` - walkthroughs and comparison notebooks
 - `notes/` - project briefs, migration notes, and status tracking
 - `style/` - plotting and Quarto styling helpers
 - `.github/` - issue and pull request templates
@@ -93,7 +93,9 @@ See the [LICENSE](LICENSE) file for full details.
 
 ### Stable vs Prototype
 
-Most of the package is intended for regular use. `adjust_multilevel_bayes()` is still a stage-1 prototype and does not yet implement stage-2 missing-OD imputation. For this Bayesian path, we recommend `rstanarm` for standard Poisson / negative-binomial models because it is lighter and easier to fit in a package workflow, and `brms` when you need extra flexibility, especially zero-inflated or more complex Bayesian specifications. For the current stability summary, see [notes/project-management/STATUS.md](notes/project-management/STATUS.md).
+Most of the package is intended for regular use. `adjust_multilevel_bayes()` is still a stage-1 prototype and does not yet implement stage-2 missing-OD imputation. For the current stability summary, see [notes/project-management/STATUS.md](notes/project-management/STATUS.md).
+
+The repository now separates the main deterministic workflow from the Bayesian prototype so that contributors can focus on the stable API first and treat the Bayesian path as experimental until it is fully hardened.
 
 ## 🎉 Acknowledging Contributors
 
@@ -114,7 +116,7 @@ Thank you for helping us build open, collaborative and impactful projects with D
 <table>
   <tbody>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="http://franciscorowe.com"><img src="https://avatars.githubusercontent.com/u/28450210?v=4?s=100" width="100px;" alt="Francisco Rowe"/><br /><sub><b>Francisco Rowe</b></sub></a><br /><a href="https://github.com/fcorowe/TEST2/commits?author=fcorowe" title="Documentation">📖</a> <a href="https://github.com/fcorowe/TEST2/commits?author=fcorowe" title="Code">💻</a> <a href="https://github.com/fcorowe/TEST2/issues?q=author%3Afcorowe" title="Bug reports">🐛</a> <a href="#content-fcorowe" title="Content">🖋</a> <a href="#design-fcorowe" title="Design">🎨</a> <a href="#example-fcorowe" title="Examples">💡</a> <a href="#ideas-fcorowe" title="Ideas, Planning, & Feedback">🤔</a> <a href="#infra-fcorowe" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#maintenance-fcorowe" title="Maintenance">🚧</a> <a href="#platform-fcorowe" title="Packaging/porting to new platform">📦</a> <a href="#projectManagement-fcorowe" title="Project Management">📆</a> <a href="#research-fcorowe" title="Research">🔬</a> <a href="https://github.com/fcorowe/TEST2/pulls?q=is%3Apr+reviewed-by%3Afcorowe" title="Reviewed Pull Requests">👀</a> <a href="#tool-fcorowe" title="Tools">🔧</a> <a href="https://github.com/fcorowe/TEST2/commits?author=fcorowe" title="Tests">⚠️</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://franciscorowe.com"><img src="https://avatars.githubusercontent.com/u/28450210?v=4?s=100" width="100px;" alt="Francisco Rowe"/><br /><sub><b>Francisco Rowe</b></sub></a><br /><a href="https://github.com/de-bias/debiasR/commits?author=fcorowe" title="Documentation">📖</a> <a href="https://github.com/de-bias/debiasR/commits?author=fcorowe" title="Code">💻</a> <a href="https://github.com/de-bias/debiasR/issues?q=author%3Afcorowe" title="Bug reports">🐛</a> <a href="#content-fcorowe" title="Content">🖋</a> <a href="#design-fcorowe" title="Design">🎨</a> <a href="#example-fcorowe" title="Examples">💡</a> <a href="#ideas-fcorowe" title="Ideas, Planning, & Feedback">🤔</a> <a href="#infra-fcorowe" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#maintenance-fcorowe" title="Maintenance">🚧</a> <a href="#platform-fcorowe" title="Packaging/porting to new platform">📦</a> <a href="#projectManagement-fcorowe" title="Project Management">📆</a> <a href="#research-fcorowe" title="Research">🔬</a> <a href="https://github.com/de-bias/debiasR/pulls?q=is%3Apr+reviewed-by%3Afcorowe" title="Reviewed Pull Requests">👀</a> <a href="#tool-fcorowe" title="Tools">🔧</a> <a href="https://github.com/de-bias/debiasR/commits?author=fcorowe" title="Tests">⚠️</a></td>
     </tr>
   </tbody>
 </table>

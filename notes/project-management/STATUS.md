@@ -6,12 +6,13 @@ Last updated: 2026-04-02
 
 - Project stage: active development (`0.0.0.9000`)
 - Package scope: OD mobility bias correction methods + validation toolkit
-- API direction: new `adjust_*` and `validate_flow_*` naming is in place
-- Bayesian component: `adjust_multilevel_bayes()` is available as stage-1 prototype
+- API direction: stable deterministic methods use `adjust_*` and `validate_flow_*`
+- Bayesian component: `adjust_multilevel_bayes()` remains a stage-1 prototype only
+- Current execution board: see [TASK_BOARD.md](TASK_BOARD.md)
 
 ## Stable vs Experimental
 
-### Stable (working API and docs present)
+### Stable deterministic API
 
 - `measure_bias()`
 - `adjust_inverse_penetration()`
@@ -22,12 +23,12 @@ Last updated: 2026-04-02
 - `validate_flow_benchmark()`
 - `validate_flow_all()`
 
-### Experimental / Prototype
+### Experimental Bayesian prototype
 
 - `adjust_multilevel_bayes()`
   - stage-1 correction implemented
   - stage-2 missing-OD imputation not implemented yet
-  - performance and dependency footprint are heavy relative to other methods
+  - performance and dependency footprint are heavy relative to deterministic methods
   - backend guidance: prefer `rstanarm` for standard Poisson / negative-binomial models because it is lighter and easier to fit in a package workflow; use `brms` when you need extra flexibility, especially zero-inflated or more complex Bayesian specifications
 
 ## What Changed Recently
@@ -35,6 +36,8 @@ Last updated: 2026-04-02
 - Function naming migrated from `method*` to `adjust_*`
 - Validation API migrated from `validate_flows()` to `validate_flow_benchmark()` and `validate_flow_all()`
 - Data assets migrated from toy datasets to simulated datasets
+- Stable deterministic work is the default support path; Bayesian work is explicitly prototype-only
+- CI scaffolding now includes a fast deterministic workflow plus a separate manual Bayesian workflow
 - Bias metric updated to:
   - `coverage_bias = 1 - user_count/population`
   - `coverage_score = user_count/population`
@@ -52,14 +55,14 @@ Last updated: 2026-04-02
 
 ## Current Risks / Blockers
 
-1. Documentation mismatch risk across old/new naming during migration.
-2. Test suite reliability varies by execution mode (direct `test_dir()` vs `devtools::load_all()` workflow).
+1. Documentation mismatch risk persists in archival migration materials and older scaffolds.
+2. Test suite reliability still depends on using the curated runner rather than raw `test_dir()` calls.
 3. Bayesian tests are slower and environment-sensitive due to optional dependencies.
-4. Large in-progress working tree changes increase integration risk until consolidated.
+4. CI has been scaffolded but still needs live validation in GitHub Actions after merge.
 
 ## Immediate Priorities
 
-1. Keep top-level docs synchronized with exported API (`NAMESPACE`).
-2. Finalize migration map and deprecation timeline.
-3. Split CI/testing into fast deterministic tier and optional heavy Bayesian tier.
-4. Close known issues listed in `KNOWN_ISSUES.md`.
+1. Validate the new GitHub Actions workflows on the next PR.
+2. Keep top-level docs synchronized with exported API (`NAMESPACE`).
+3. Finalize migration map and deprecation timeline.
+4. Keep the Bayesian path explicitly scoped as prototype-only until a hardening plan is approved.

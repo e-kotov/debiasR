@@ -19,7 +19,7 @@ usethis::use_mit_license("Francisco Rowe & Carmen Cabrera")
 # 3. Add supporting folders
 usethis::use_package_doc()      # will create man/
 usethis::use_testthat()         # creates tests/
-usethis::use_vignette("debias-method1")  # creates vignettes/
+usethis::use_vignette("adjust-inverse-penetration")  # creates vignettes/
 usethis::use_data_raw()         # creates data-raw/
 
 # 4. Create simulated package data
@@ -31,17 +31,17 @@ data(package = "debiasR")
 devtools::document()
 devtools::test()     # if you already added a test
 
-# 5 Implement Method 1 function: create a R file in R/ and then run
+# 5 Implement the inverse-penetration adjustment: create an R file in R/ and then run
 
 adj <- adjust_inverse_penetration(simulated_mpd.od, simulated_coverage, clip_max = 200)
 head(adj)
 
 
-# If this returns: `Error in `test_dir()`:`, run:
+# If this returns `Error in test_dir():`, run:
 # 1) Ensure testthat is wired up (safe to run again)
 usethis::use_testthat()
 
-# 2) Create a test file for Method 1
+# 2) Create a test file for the inverse-penetration adjustment
 usethis::use_test("adjust_inverse_penetration")
 devtools::test()
 devtools::check()
@@ -66,7 +66,7 @@ val_b <- validate_flow_benchmark(adj_both, simulated_benchmark.od, by_source = T
 str(val_o)
 
 
-# 6 Implement Method 2 function: create a R file in R/ and then run
+# 6 Implement selection-rate adjustment: create an R file in R/ and then run
 devtools::document()
 devtools::load_all()
 
@@ -90,7 +90,7 @@ attr(res, "r_global")        # calibrated r_t*
 attr(res, "r_calibration")   # grid search diagnostics
 
 
-# 7 Implement Method 3 function: create a R file in R/ and then run
+# 7 Implement the second selection-rate variant: create an R file in R/ and then run
 devtools::document()
 devtools::load_all()
 
@@ -123,7 +123,7 @@ val_m3.1 <- validate_flow_benchmark(adj_m3.1, simulated_benchmark.od, by_source 
 # )
 
 
-# 8 Implement Method 4 function (raking_ratio): create a R file in R/ and then run
+# 8 Implement the raking-ratio adjustment: create an R file in R/ and then run
 devtools::document()
 devtools::load_all()
 
@@ -156,7 +156,7 @@ attr(res_rake_loc, "ipf_converged")
 attr(res_rake_loc, "ipf_iterations")
 
 
-# 9 Implement Method 5 function (regression coefficient): create a R file in R/ and then run
+# 9 Implement the coefficient adjustment: create an R file in R/ and then run
   # implementing four options (ols, poisson, negbin, zinb)
 devtools::document()
 devtools::load_all()

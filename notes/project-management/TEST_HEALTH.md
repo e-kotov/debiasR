@@ -4,60 +4,54 @@ Last updated: 2026-04-02
 
 ## Summary
 
-- Recommended test invocation in development:
-  - `devtools::load_all('.')` before running tests directly.
-- Full suite includes deterministic method tests and heavier Bayesian tests.
+- Recommended fast-tier entry point:
+  - `Rscript scripts/run_fast_tests.R`
+- The runner loads the package with `devtools::load_all(".")` before executing targeted tests.
+- Full suite still includes a slower Bayesian test file with optional dependencies.
 - Observed behavior today:
-  - targeted tests for `measure_bias`, `validate_flow_all`, and smoke tests pass under `load_all`.
+  - targeted tests for `measure_bias`, `validate_flow_all`, and the raking smoke test pass under `load_all`.
   - running `test_dir()` without loading package can produce false failures (`function not found`, data object not found).
 
 ## Test Tiers (Recommended)
 
 ### Tier 1: Fast deterministic (run on every commit)
 
-- `test-measure_bias.R`
-- `test-adjust_inverse_penetration.R`
-- `test-adjust-selection-rate.R`
-- `test-adjust-selection-rate2.R`
-- `test-adjust-raking-ratio.R`
-- `test-adjust-coefficient.R`
-- `test-validate-flow-all.R`
-- `test-adjust_raking_ratio-smoke.R` (can be removed once replaced with meaningful tests)
+- `tests/testthat/test-measure_bias.R`
+- `tests/testthat/test-adjust_inverse_penetration.R`
+- `tests/testthat/test-adjust-selection-rate.R`
+- `tests/testthat/test-adjust-selection-rate2.R`
+- `tests/testthat/test-adjust-raking-ratio.R`
+- `tests/testthat/test-adjust-coefficient.R`
+- `tests/testthat/test-validate-flow-all.R`
+- `tests/testthat/test-adjust_raking_ratio-smoke.R`
 
 ### Tier 2: Bayesian / slow / dependency-sensitive
 
-- `test-adjust-multilevel-bayes.R`
+- `tests/testthat/test-adjust-multilevel-bayes.R`
 - Requires optional packages and longer runtime.
 
 ## Current Known Test Issues
 
-1. Direct `testthat::test_dir('tests/testthat')` without package load context may fail.
-2. A placeholder smoke test exists (`2 * 2 == 4`) and does not validate package behavior.
+1. Direct `testthat::test_dir("tests/testthat")` without package load context may fail.
+2. Bayesian tests are slower and environment-sensitive because of optional dependencies.
 3. Some warnings are locale-related (`LC_ALL='C.UTF-8'`) and mostly non-blocking.
 
 ## Recommended CI Strategy
 
 1. Job A (required): fast deterministic tests only.
-2. Job B (optional/allowed-to-fail at first): Bayesian tests with explicit dependency install.
+2. Job B (manual / optional): Bayesian tests with explicit dependency install.
 3. Ensure CI runs from package root and loads package context before test execution.
+4. Keep the fast lane lightweight by installing hard dependencies plus the explicit test runner packages rather than the full optional stack.
 
 ## Canonical Commands
+
+```r
+# Local fast tier
+Rscript scripts/run_fast_tests.R
+```
 
 ```r
 # Local all-tests (dev context)
 devtools::load_all(".", quiet = TRUE)
 testthat::test_dir("tests/testthat", reporter = "summary")
 ```
-
-```r
-# Local fast tier
-devtools::load_all(".", quiet = TRUE)
-testthat::test_file("tests/testthat/test-measure_bias.R")
-testthat::test_file("tests/testthat/test-adjust_inverse_penetration.R")
-testthat::test_file("tests/testthat/test-adjust-selection-rate.R")
-testthat::test_file("tests/testthat/test-adjust-selection-rate2.R")
-testthat::test_file("tests/testthat/test-adjust-raking-ratio.R")
-testthat::test_file("tests/testthat/test-adjust-coefficient.R")
-testthat::test_file("tests/testthat/test-validate-flow-all.R")
-```
-

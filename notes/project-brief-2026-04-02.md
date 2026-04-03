@@ -33,7 +33,7 @@ The package currently supports this working sequence:
 - `adjust_selection_rate2()`
 - `adjust_raking_ratio()`
 - `adjust_coefficient()`
-- `adjust_multilevel_bayes()` (prototype, stage-1)
+- `adjust_multilevel_bayes()` (stage-1 Bayesian prototype only)
 
 4. Validate outputs:
 - `validate_flow_benchmark()` for summary metrics (correlation/error/regression diagnostics),
@@ -41,6 +41,8 @@ The package currently supports this working sequence:
 
 5. Compare methods and inspect fit:
 - Use `vignettes/simulated-methods-walkthrough.qmd` and related vignette material to compare model behavior and benchmark alignment.
+
+The deterministic methods above are the default support path. Bayesian work remains separate and experimental until stage-2 imputation and dependency/runtime expectations are clearly defined.
 
 ## 4) Summary of Latest Updates
 
@@ -140,9 +142,28 @@ Current project status appears to be:
 
 ## 7) Recommended Immediate Next Actions
 
-1. Finalise and publish a migration map (`method*` -> `adjust_*`, `validate_flows` -> `validate_flow_*`).
-2. Update README to reflect current exported API and simulated datasets only.
-3. Add a concise `STATUS.md` in repo root to track stability, blockers, and next milestones.
-4. Split tests into:
-- fast deterministic CI tier,
-- optional heavy Bayesian tier.
+1. Validate the new fast deterministic GitHub Actions workflow on the next PR.
+2. Run the manual Bayesian workflow once in GitHub Actions and record any hosted-runner dependency issues.
+3. Keep top-level docs synchronized with the exported API and the task board.
+4. Use [notes/project-management/TASK_BOARD.md](notes/project-management/TASK_BOARD.md) as the execution order for remaining stabilization work.
+
+## 8) Execution Board
+
+The current work is organized as a small execution board:
+
+### Now
+
+- Lock down testing and CI.
+- Finish migration cleanup.
+
+### Next
+
+- Clarify Bayesian scope.
+- Close the documentation loop.
+
+### Later
+
+- Harden the Bayesian path.
+- Prepare a release-ready maintenance pass.
+
+See [notes/project-management/TASK_BOARD.md](notes/project-management/TASK_BOARD.md) for the effort estimates and concrete deliverables.

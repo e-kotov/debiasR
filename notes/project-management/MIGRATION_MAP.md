@@ -6,6 +6,8 @@ Last updated: 2026-04-02
 
 This file tracks migration from legacy function/data naming to current package naming.
 
+The tables below are archival references for contributors and reviewers. User-facing docs should prefer the current names only.
+
 ## Function Mapping
 
 | Legacy | Current | Status | Notes |
@@ -41,13 +43,12 @@ This file tracks migration from legacy function/data naming to current package n
 
 - [x] `NAMESPACE` exports new API names.
 - [x] New roxygen docs in `man/` exist for `adjust_*` and `validate_flow_*`.
-- [ ] `README.md` fully aligned with new API and simulated data naming.
-- [ ] Remove any remaining references to deleted `method*` functions in all non-archival docs.
-- [ ] Confirm vignettes use current names only.
+- [x] `README.md` aligned with new API and simulated data naming.
+- [x] Non-archival docs now avoid deleted `method*` names.
+- [x] Vignettes use current names or clearly label legacy scaffolding.
 
 ## Suggested Deprecation Policy
 
 1. Keep migration aliases only if needed for external users.
 2. If aliases are added, mark with explicit lifecycle message and removal release.
 3. If aliases are not added, keep this map prominently linked from `README.md` and `NEWS.md`.
-

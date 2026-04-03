@@ -5,36 +5,36 @@ Last updated: 2026-04-02
 ## High Priority
 
 1. API/docs drift during migration
-- Description: some materials still mention pre-migration names or old dataset terms.
-- Impact: user confusion and onboarding friction.
-- Suggested fix: align README + all top-level docs with `adjust_*` and `validate_flow_*` exports.
+- Description: most user-facing docs are aligned, but the migration map still documents the legacy names for reference and a few older scaffold files remain in the repo.
+- Impact: minor onboarding friction if contributors land on archival materials first.
+- Suggested fix: keep top-level docs pointed at the current API and clearly label archival migration references.
 
 2. Test execution context sensitivity
 - Description: running tests without first loading package context can cause false negatives.
 - Impact: unreliable signal in local and CI usage.
-- Suggested fix: standardize test runner workflow and CI scripts around `devtools::load_all('.')` or `R CMD check`.
+- Suggested fix: keep contributors and CI on `Rscript scripts/run_fast_tests.R` for the fast tier, and reserve raw `test_dir()` runs for explicit development/debugging.
 
 3. Prototype Bayesian pathway not clearly bounded in all docs
 - Description: `adjust_multilevel_bayes()` is stage-1 only; stage-2 imputation pending.
 - Impact: users may over-interpret readiness/scope.
-- Suggested fix: add explicit prototype badge/section in README and function docs summary.
+- Suggested fix: keep the README and status page explicit that the Bayesian path is experimental.
 
 ## Medium Priority
 
-1. Placeholder smoke test
-- Description: `tests/testthat/test-adjust_raking_ratio-smoke.R` currently validates only trivial arithmetic.
-- Impact: minimal quality assurance value.
-- Suggested fix: replace with lightweight functional assertions on real package functions.
+1. Bayesian CI lane is still unproven in GitHub Actions
+- Description: a manual Bayesian workflow now exists, but it has not yet been validated on the hosted runner.
+- Impact: dependency/runtime surprises may still show up the first time it is used remotely.
+- Suggested fix: run the manual workflow once after merge and record any environment fixes that are needed.
 
 2. Working tree transition volume
-- Description: many renames/deletions/additions are currently in flight.
-- Impact: increased merge/review risk and difficult change auditing.
-- Suggested fix: consolidate migration in focused PRs (API rename, data migration, docs alignment, tests alignment).
+- Description: the large migration has landed, but archival notes and older scaffolds still need occasional cleanup.
+- Impact: some review and onboarding friction remains.
+- Suggested fix: keep follow-up cleanup small and focused, using the task board to prioritize only active work.
 
 3. README structure section is not fully descriptive
-- Description: repository structure section is incomplete.
-- Impact: slower onboarding.
-- Suggested fix: update with current folders (`R`, `data`, `data-raw`, `vignettes`, `notes/project-management`, `tests`).
+- Description: top-level docs are much better aligned now, but they still need periodic checks against the exported API and workflow files.
+- Impact: drift could reappear as new methods or notes are added.
+- Suggested fix: review README/CONTRIBUTING/STATUS whenever exported functions or CI entry points change.
 
 ## Low Priority
 
@@ -55,4 +55,3 @@ Use this mini template for each issue:
 - Decision:
 - Target resolution date:
 - Status:
-
