@@ -67,7 +67,9 @@ If provided, it supersedes auto-formula construction.}
 \pkg{brms} for zero-inflated families.}
 
 \item{flow_adj_summary}{Summary for posterior draw-level adjusted flows:
-\code{"mean"} or \code{"median"}.}
+\code{"mean"} or \code{"median"}. This controls how the draw-level
+Stage-1 adjusted flows are collapsed into the returned \code{flow_adj}
+column after removing the estimated coverage-bias contribution.}
 
 \item{iter}{Number of sampling iterations. Default \code{1000}.}
 
@@ -78,13 +80,17 @@ If provided, it supersedes auto-formula construction.}
 \item{refresh}{Sampler progress refresh. Default \code{0}.}
 
 \item{include_flow_adj_draws}{Logical; if \code{TRUE}, attach posterior draw
-matrix as attribute \code{"flow_adj_draws"}. Default \code{FALSE}.}
+matrix as attribute \code{"flow_adj_draws"}. These are the draw-level
+adjusted observed flows underlying the returned \code{flow_adj} summary.
+Default \code{FALSE}.}
 
 \item{keep_cols}{Optional extra columns from \code{mpd_od_df} to keep.}
 }
 \value{
 A tibble with identifiers, original \code{flow}, adjusted
-\code{flow_adj}, \code{bias_e_origin}, and log-distance helper.
+\code{flow_adj}, \code{bias_e_origin}, and log-distance helper. In this
+Stage-1 prototype, \code{flow_adj} is only returned for observed OD rows in
+\code{mpd_od_df}; missing OD pairs are not imputed.
 Attributes:
 \itemize{
 \item \code{"model"}: fitted model object
@@ -92,7 +98,13 @@ Attributes:
 \item \code{"coefficients"}: fixed-effect summary table
 \item \code{"backend"}: backend used
 \item \code{"model_family"}: fitted family
+\item \code{"stage"}: development stage label
+\item \code{"stage_scope"}: short statement of scope
+\item \code{"result_metadata"}: compact Stage-1 metadata bundle
+\item \code{"random_intercept"}: grouping structure used
+\item \code{"flow_adj_summary"}: posterior summary used for \code{flow_adj}
 \item \code{"distance_source"}: where distance came from
+\item \code{"diagnostics"}: lightweight fit/convergence metadata when available
 \item \code{"prototype_notes"}: stage notes
 }
 }
@@ -108,5 +120,6 @@ where \eqn{e_i} is origin bias from coverage and \eqn{u} is an optional
 random-intercept term (origin, destination, or OD).
 
 The adjusted flow removes the estimated bias contribution from posterior
-linear predictors, then summarizes draw-level adjusted flows by mean or median.
+linear predictors for observed OD pairs only, then summarizes draw-level
+adjusted flows by mean or median.
 }

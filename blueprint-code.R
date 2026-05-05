@@ -51,7 +51,7 @@ adj_o <- debiasR::adjust_inverse_penetration(simulated_mpd.od, simulated_coverag
 adj_d <- debiasR::adjust_inverse_penetration(simulated_mpd.od, simulated_coverage, weight_by = "destination")
 adj_b <- debiasR::adjust_inverse_penetration(simulated_mpd.od, simulated_coverage, weight_by = "both")
 
-# 3) Test validation helpers
+# 3) Test validation functions
 devtools::document()
 devtools::load_all()
 
@@ -60,9 +60,9 @@ adj_o <- adjust_inverse_penetration(simulated_mpd.od, simulated_coverage, weight
 adj_both <- adjust_inverse_penetration(simulated_mpd.od, simulated_coverage, weight_by = "both")
 
 # Validate against benchmark:
-val_o <- validate_flow_benchmark(adj_o, simulated_benchmark.od, by_source = TRUE)
-val_d <- validate_flow_benchmark(adj_d, simulated_benchmark.od, by_source = TRUE)
-val_b <- validate_flow_benchmark(adj_both, simulated_benchmark.od, by_source = TRUE)
+val_o <- validate_flow_overall(adj_o, simulated_benchmark.od, by_source = TRUE)
+val_d <- validate_flow_overall(adj_d, simulated_benchmark.od, by_source = TRUE)
+val_b <- validate_flow_overall(adj_both, simulated_benchmark.od, by_source = TRUE)
 str(val_o)
 
 
@@ -109,7 +109,7 @@ adj_m3.1 <- adjust_selection_rate2(
 )
 attr(adj_m3.1, "k")
 
-val_m3.1 <- validate_flow_benchmark(adj_m3.1, simulated_benchmark.od, by_source = TRUE)
+val_m3.1 <- validate_flow_overall(adj_m3.1, simulated_benchmark.od, by_source = TRUE)
 
 # Case (2) age/sex
 
@@ -140,7 +140,7 @@ res_rake_loc <- adjust_raking_ratio(
 
 attr(res_rake_loc, "ipf_converged")
 
-val_m4.1 <- validate_flow_benchmark(res_rake_loc, simulated_benchmark.od, by_source = TRUE)
+val_m4.1 <- validate_flow_overall(res_rake_loc, simulated_benchmark.od, by_source = TRUE)
 
 # res_rake_strata <- adjust_raking_ratio(
 #   mpd_od_df         = mpd_od_by_age_sex,

@@ -23,7 +23,7 @@ devtools::load_all(".")   # reloads current checkout
 library(debiasR)
 
 # quick check:
-"validate_flow_benchmark" %in% getNamespaceExports("debiasR")
+"validate_flow_overall" %in% getNamespaceExports("debiasR")
 
 ```
 
@@ -137,7 +137,7 @@ plot_adj_vs_benchmark <- function(adj_df, benchmark_df, title_text) {
 }
 
 collect_metrics <- function(method_name, adj_df) {
-  v <- validate_flow_benchmark(
+  v <- validate_flow_overall(
     adj_df = adj_df,
     benchmark_od_df = simulated_benchmark.od,
     method_name = method_name,
@@ -321,10 +321,10 @@ metrics_tbl |>
 
 ## Validation Helper Examples
 
-### `validate_flow_benchmark`
+### `validate_flow_overall`
 
 ```{r}
-val_benchmark_m1 <- validate_flow_benchmark(
+val_benchmark_m1 <- validate_flow_overall(
   adj_df = adj_m1,
   benchmark_od_df = simulated_benchmark.od,
   method_name = "adjust_inverse_penetration",
@@ -334,10 +334,10 @@ val_benchmark_m1 <- validate_flow_benchmark(
 val_benchmark_m1
 ```
 
-### `validate_flow_all`
+### `validate_flow_pairs`
 
 ```{r}
-val_all_m1 <- validate_flow_all(
+val_all_m1 <- validate_flow_pairs(
   adj_df = adj_m1,
   benchmark_od_df = simulated_benchmark.od
 )
@@ -345,6 +345,45 @@ val_all_m1 <- validate_flow_all(
 val_all_m1 |>
   select(origin, destination, mpd_flow, adj_flow, benchmark_flow, diff_mpd_adj, diff_adj_benchmark) |>
   slice_head(n = 10)
+```
+
+### `validate_flow_residuals`
+
+```{r}
+residual_m1 <- validate_flow_residuals(
+  adj_df = adj_m1,
+  benchmark_od_df = simulated_benchmark.od,
+  method_name = "adjust_inverse_penetration"
+)
+
+residual_m1$summary
+```
+
+### `validate_flow_residual_structure`
+
+```{r}
+structure_m1 <- validate_flow_residual_structure(
+  adj_df = adj_m1,
+  benchmark_od_df = simulated_benchmark.od,
+  method_name = "adjust_inverse_penetration",
+  covariate_df = simulated_covariates,
+  covariate_col = "income_norm"
+)
+
+structure_m1$summary
+```
+
+### `validate_flow_distribution`
+
+```{r}
+distribution_m1 <- validate_flow_distribution(
+  adj_df = adj_m1,
+  benchmark_od_df = simulated_benchmark.od,
+  method_name = "adjust_inverse_penetration",
+  weight_by = "benchmark_origin_total"
+)
+
+distribution_m1$summary
 ```
 
 ## `measure_bias` Example
@@ -369,6 +408,51 @@ bias_df |>
     y = "coverage_score = user_count / population"
   ) +
   theme_plot_tufte()
+```
+
+## Stage 3 Bias Residual Diagnostics
+
+```{r}
+areas <- sort(unique(simulated_coverage$origin))
+
+area_neighbors <- tibble(
+  area = areas,
+  neighbor = dplyr::lead(areas, default = areas[1])
+) |>
+  bind_rows(tibble(
+    area = areas,
+    neighbor = dplyr::lag(areas, default = areas[length(areas)])
+  ))
+
+bias_structure <- validate_bias_residual_structure(
+  coverage_df = simulated_coverage,
+  benchmark_od_df = simulated_benchmark.od,
+  area_neighbors = area_neighbors,
+  covariate_df = simulated_covariates,
+  covariate_col = "internet_access"
+)
+
+bias_structure$summary
+```
+
+```{r}
+bias_structure$area_level |>
+  select(
+    area,
+    population,
+    user_count,
+    coverage_score,
+    expected_user_count,
+    user_count_residual,
+    coverage_score_residual,
+    selected_residual
+  ) |>
+  arrange(desc(abs(selected_residual))) |>
+  slice_head(n = 10)
+```
+
+```{r}
+bias_structure$benchmark_flow_correlation
 ```
 
 ## Render

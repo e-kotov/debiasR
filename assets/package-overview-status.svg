@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 860" role="img" aria-labelledby="title desc">
+  <title id="title">debiasR package overview and current status</title>
+  <desc id="desc">Overview of debiasR showing inputs, measure bias, adjust bias, and validate adjusted flows, plus currently in-progress areas including Stage 2 and Stage 3 review, Stage 4 OD random effects, empirical data packaging, and Bayesian development.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f6f5ef; }
+      .title { font: 700 38px Georgia, serif; fill: #1f2933; }
+      .subtitle { font: 400 18px Georgia, serif; fill: #52606d; }
+      .section { font: 700 22px Georgia, serif; fill: #102a43; }
+      .body { font: 400 16px Georgia, serif; fill: #243b53; }
+      .small { font: 400 14px Georgia, serif; fill: #486581; }
+      .box { stroke-width: 2.5; rx: 22; ry: 22; }
+      .implemented { fill: #e8f7ee; stroke: #2f855a; }
+      .review { fill: #fff4d6; stroke: #c58b00; }
+      .planned { fill: #fde8e8; stroke: #c53030; stroke-dasharray: 10 8; }
+      .support { fill: #edf2ff; stroke: #4c51bf; }
+      .legend { fill: #ffffff; stroke: #d9e2ec; stroke-width: 1.5; rx: 18; ry: 18; }
+      .arrow { stroke: #334e68; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#334e68"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1400" height="860"/>
+
+  <text class="title" x="70" y="72">debiasR at a glance</text>
+  <text class="subtitle" x="70" y="105">Core package pipeline, current stable areas, and work still in progress</text>
+
+  <rect class="legend" x="1020" y="40" width="310" height="110"/>
+  <text class="section" x="1045" y="74">Status legend</text>
+  <rect class="implemented box" x="1045" y="88" width="74" height="24"/>
+  <text class="small" x="1135" y="106">Implemented / stable path</text>
+  <rect class="review box" x="1045" y="118" width="74" height="24"/>
+  <text class="small" x="1135" y="136">Implemented, under review</text>
+  <rect class="planned box" x="1045" y="148" width="74" height="24"/>
+  <text class="small" x="1135" y="166">Planned / in progress</text>
+
+  <rect class="support box" x="70" y="170" width="260" height="550"/>
+  <text class="section" x="100" y="210">Inputs</text>
+  <text class="body" x="100" y="252">Simulated data shipped now</text>
+  <text class="small" x="100" y="282">- MPD OD flows</text>
+  <text class="small" x="100" y="306">- benchmark OD flows</text>
+  <text class="small" x="100" y="330">- coverage and active users</text>
+  <text class="small" x="100" y="354">- covariates and distance</text>
+
+  <rect class="planned box" x="95" y="405" width="210" height="150"/>
+  <text class="body" x="118" y="440">Empirical data track</text>
+  <text class="small" x="118" y="472">Preferred candidate:</text>
+  <text class="small" x="118" y="496">`msoa_OD_travel2work`</text>
+  <text class="small" x="118" y="528">Current question:</text>
+  <text class="small" x="118" y="552">separate `debiasRdata`</text>
+  <text class="small" x="118" y="576">package or external</text>
+
+  <text class="small" x="100" y="642">Empirical packaging decision is</text>
+  <text class="small" x="100" y="666">still open.</text>
+
+  <rect class="review box" x="390" y="170" width="270" height="250"/>
+  <text class="section" x="425" y="210">1. Measure bias</text>
+  <text class="body" x="425" y="248">Core functions</text>
+  <text class="small" x="425" y="278">- `measure_bias()`</text>
+  <text class="small" x="425" y="302">- `validate_bias_residual_structure()`</text>
+  <text class="body" x="425" y="348">What it does</text>
+  <text class="small" x="425" y="378">Coverage bias and active-user</text>
+  <text class="small" x="425" y="402">residual diagnostics.</text>
+
+  <rect class="review box" x="390" y="445" width="270" height="190"/>
+  <text class="body" x="425" y="480">Current status</text>
+  <text class="small" x="425" y="510">Stage 3 implemented.</text>
+  <text class="small" x="425" y="534">Awaiting maintainer review</text>
+  <text class="small" x="425" y="558">of API and diagnostics.</text>
+
+  <rect class="implemented box" x="710" y="170" width="290" height="250"/>
+  <text class="section" x="745" y="210">2. Adjust bias</text>
+  <text class="body" x="745" y="248">Deterministic methods</text>
+  <text class="small" x="745" y="278">- inverse penetration</text>
+  <text class="small" x="745" y="302">- selection rate</text>
+  <text class="small" x="745" y="326">- selection rate 2</text>
+  <text class="small" x="745" y="350">- raking ratio</text>
+  <text class="small" x="745" y="374">- coefficient calibration</text>
+
+  <rect class="planned box" x="735" y="445" width="240" height="190"/>
+  <text class="body" x="760" y="480">Bayesian path</text>
+  <text class="small" x="760" y="510">`adjust_multilevel_bayes()`</text>
+  <text class="small" x="760" y="534">Stage 1 prototype only.</text>
+  <text class="small" x="760" y="558">Stage 2 imputation and</text>
+  <text class="small" x="760" y="582">hardening still pending.</text>
+
+  <rect class="review box" x="1040" y="170" width="290" height="250"/>
+  <text class="section" x="1075" y="210">3. Validate flows</text>
+  <text class="body" x="1075" y="248">Core functions</text>
+  <text class="small" x="1075" y="278">- `validate_flow_overall()`</text>
+  <text class="small" x="1075" y="302">- `validate_flow_pairs()`</text>
+  <text class="small" x="1075" y="326">- `validate_flow_residuals()`</text>
+  <text class="small" x="1075" y="350">- `validate_flow_residual_structure()`</text>
+  <text class="small" x="1075" y="374">- `validate_flow_distribution()`</text>
+
+  <rect class="review box" x="1040" y="445" width="290" height="190"/>
+  <text class="body" x="1075" y="480">Current status</text>
+  <text class="small" x="1075" y="510">Stage 2 implemented.</text>
+  <text class="small" x="1075" y="534">Awaiting maintainer review</text>
+  <text class="small" x="1075" y="558">of residual and distribution</text>
+  <text class="small" x="1075" y="582">diagnostics.</text>
+
+  <rect class="planned box" x="390" y="690" width="940" height="110"/>
+  <text class="section" x="425" y="730">Currently in progress</text>
+  <text class="small" x="425" y="762">- Stage 2 validation review</text>
+  <text class="small" x="690" y="762">- Stage 3 measure-bias review</text>
+  <text class="small" x="965" y="762">- empirical data packaging decision</text>
+  <text class="small" x="425" y="788">- Stage 4 OD random-effects extension planning</text>
+  <text class="small" x="965" y="788">- Bayesian hardening and imputation design</text>
+
+  <path class="arrow" d="M330 300 C355 300, 360 300, 388 300"/>
+  <path class="arrow" d="M660 300 C685 300, 690 300, 708 300"/>
+  <path class="arrow" d="M1000 300 C1015 300, 1020 300, 1038 300"/>
+  <path class="arrow" d="M525 420 C525 430, 525 438, 525 443"/>
+  <path class="arrow" d="M855 420 C855 430, 855 438, 855 443"/>
+  <path class="arrow" d="M1185 420 C1185 430, 1185 438, 1185 443"/>
+</svg>

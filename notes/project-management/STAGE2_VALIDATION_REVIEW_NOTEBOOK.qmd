@@ -1,0 +1,543 @@
+---
+title: "Stage 2 Validation Review Notebook"
+format:
+  html:
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Purpose
+
+This notebook runs the Stage 2 validation functions on the package's simulated OD data so the implemented behavior can be reviewed in one place.
+
+It covers:
+
+- `validate_flow_overall()`
+- `validate_flow_benchmark()` legacy alias
+- `validate_flow_pairs()`
+- `validate_flow_all()` legacy alias
+- `validate_flow_residuals()`
+- `validate_flow_residual_structure()`
+- `validate_flow_distribution()`
+
+The notebook uses deterministic simulated data and lightweight deterministic adjustment methods. It does not run the Bayesian prototype.
+
+## Setup
+
+```{r}
+find_pkg_root <- function(path = getwd()) {
+  path <- normalizePath(path, mustWork = TRUE)
+
+  repeat {
+    if (file.exists(file.path(path, "DESCRIPTION"))) {
+      return(path)
+    }
+
+    parent <- dirname(path)
+    if (identical(parent, path)) {
+      stop("Could not find package root containing DESCRIPTION.")
+    }
+    path <- parent
+  }
+}
+
+pkg_root <- find_pkg_root()
+setwd(pkg_root)
+
+if (requireNamespace("devtools", quietly = TRUE)) {
+  devtools::load_all(pkg_root, quiet = TRUE)
+} else {
+  library(debiasR)
+}
+
+library(dplyr)
+library(tibble)
+
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+```
+
+```{r}
+data("simulated_mpd.od", package = "debiasR")
+data("simulated_benchmark.od", package = "debiasR")
+data("simulated_coverage", package = "debiasR")
+data("simulated_covariates", package = "debiasR")
+
+tibble(
+  dataset = c(
+    "simulated_mpd.od",
+    "simulated_benchmark.od",
+    "simulated_coverage",
+    "simulated_covariates"
+  ),
+  rows = c(
+    nrow(simulated_mpd.od),
+    nrow(simulated_benchmark.od),
+    nrow(simulated_coverage),
+    nrow(simulated_covariates)
+  ),
+  columns = c(
+    paste(names(simulated_mpd.od), collapse = ", "),
+    paste(names(simulated_benchmark.od), collapse = ", "),
+    paste(names(simulated_coverage), collapse = ", "),
+    paste(names(simulated_covariates), collapse = ", ")
+  )
+)
+```
+
+## Simulated Dataset Overview
+
+The review uses four deterministic simulated datasets shipped with `debiasR`:
+
+- `simulated_mpd.od`: observed mobile-phone-derived OD flows. This is the biased flow table that adjustment methods start from.
+- `simulated_benchmark.od`: benchmark OD flows used as the validation target.
+- `simulated_coverage`: area-level population and active-user counts used by coverage-based adjustment methods.
+- `simulated_covariates`: area-level contextual variables used by model-based adjustment and residual-structure diagnostics.
+
+The flow datasets share the same `origin` and `destination` keys. The validation functions compare the observed MPD flow and each adjusted `flow_adj` against the benchmark `flow`.
+
+```{r}
+flow_overview <- bind_rows(
+  simulated_mpd.od |>
+    transmute(series = "Observed MPD", flow = flow),
+  simulated_benchmark.od |>
+    transmute(series = "Benchmark", flow = flow)
+)
+
+flow_overview |>
+  group_by(series) |>
+  summarise(
+    n = n(),
+    total_flow = sum(flow, na.rm = TRUE),
+    zero_share = mean(flow == 0, na.rm = TRUE),
+    median_flow = median(flow, na.rm = TRUE),
+    mean_flow = mean(flow, na.rm = TRUE),
+    p90_flow = unname(quantile(flow, 0.90, na.rm = TRUE)),
+    p99_flow = unname(quantile(flow, 0.99, na.rm = TRUE)),
+    .groups = "drop"
+  )
+```
+
+```{r}
+if (has_ggplot2) {
+  ggplot2::ggplot(
+    flow_overview,
+    ggplot2::aes(x = log1p(flow), fill = series)
+  ) +
+    ggplot2::geom_histogram(
+      bins = 40,
+      alpha = 0.65,
+      position = "identity",
+      color = "white"
+    ) +
+    ggplot2::facet_wrap(ggplot2::vars(series), ncol = 1) +
+    ggplot2::labs(
+      title = "Distribution of Simulated OD Flows",
+      x = "log1p(flow)",
+      y = "OD pairs",
+      fill = "Series"
+    ) +
+    ggplot2::theme_minimal()
+} else {
+  hist(
+    log1p(simulated_mpd.od$flow),
+    breaks = 40,
+    main = "Observed MPD OD flow distribution",
+    xlab = "log1p(flow)"
+  )
+}
+```
+
+## Build Review Inputs
+
+Create a small set of adjusted-flow outputs. These are not intended to pick a winner; they provide method-labelled inputs for reviewing validation behavior.
+
+```{r}
+adj_inverse <- adjust_inverse_penetration(
+  mpd_od_df = simulated_mpd.od,
+  coverage_df = simulated_coverage,
+  weight_by = "both"
+)
+
+adj_raking <- adjust_raking_ratio(
+  mpd_od_df = simulated_mpd.od,
+  benchmark_od_df = simulated_benchmark.od
+)
+
+adj_coefficient <- adjust_coefficient(
+  mpd_od_df = simulated_mpd.od,
+  benchmark_od_df = simulated_benchmark.od,
+  model_family = "ols",
+  level = "od"
+)
+
+adjusted_outputs <- list(
+  adjust_inverse_penetration = adj_inverse,
+  adjust_raking_ratio = adj_raking,
+  adjust_coefficient = adj_coefficient
+)
+```
+
+```{r}
+bind_rows(lapply(names(adjusted_outputs), function(method_name) {
+  adjusted_outputs[[method_name]] |>
+    summarise(
+      method = method_name,
+      n = n(),
+      total_mpd = sum(flow, na.rm = TRUE),
+      total_adjusted = sum(flow_adj, na.rm = TRUE),
+      min_adjusted = min(flow_adj, na.rm = TRUE),
+      max_adjusted = max(flow_adj, na.rm = TRUE)
+    )
+}))
+```
+
+## Helper Inputs For Residual Structure
+
+`validate_flow_residual_structure()` can compute Moran's I if supplied a plain neighbour-link table. This review notebook creates a deterministic ring-neighbour structure from the simulated area names.
+
+It also creates simple circular coordinates so the optional residual map plot can be inspected without adding spatial dependencies.
+
+```{r}
+areas <- sort(unique(c(simulated_mpd.od$origin, simulated_mpd.od$destination)))
+
+area_neighbors <- tibble(
+  area = areas,
+  neighbor = dplyr::lead(areas, default = areas[1])
+) |>
+  bind_rows(tibble(
+    area = areas,
+    neighbor = dplyr::lag(areas, default = areas[length(areas)])
+  ))
+
+area_coordinates <- tibble(
+  area = areas,
+  angle = seq(0, 2 * pi, length.out = length(areas) + 1)[seq_along(areas)],
+  x = cos(angle),
+  y = sin(angle)
+) |>
+  select(-angle)
+
+area_neighbors |> slice_head(n = 10)
+```
+
+## 1. `validate_flow_overall()`
+
+Review method-level fit summaries.
+
+```{r}
+overall_results <- bind_rows(lapply(names(adjusted_outputs), function(method_name) {
+  res <- validate_flow_overall(
+    adj_df = adjusted_outputs[[method_name]],
+    benchmark_od_df = simulated_benchmark.od,
+    method_name = method_name,
+    return_joined = FALSE
+  )
+
+  tibble(
+    method = res$method,
+    n = res$n,
+    pearson_r = res$pearson_r,
+    spearman_rho = res$spearman_rho,
+    rmse = res$rmse,
+    mae = res$mae,
+    mape = res$mape,
+    ols_intercept = res$ols_intercept,
+    ols_slope = res$ols_slope,
+    r_squared = res$r_squared
+  )
+}))
+
+overall_results |>
+  arrange(desc(pearson_r))
+```
+
+## 2. `validate_flow_benchmark()` Legacy Alias
+
+Confirm the legacy alias still delegates to `validate_flow_overall()`.
+
+```{r}
+alias_overall <- validate_flow_benchmark(
+  adj_df = adj_inverse,
+  benchmark_od_df = simulated_benchmark.od,
+  method_name = "alias_check",
+  return_joined = FALSE
+)
+
+tibble(
+  alias_method = alias_overall$method,
+  alias_n = alias_overall$n,
+  alias_pearson_r = alias_overall$pearson_r
+)
+```
+
+## 3. `validate_flow_pairs()`
+
+Review the joined OD-level comparison table.
+
+```{r}
+pairs_inverse <- validate_flow_pairs(
+  adj_df = adj_inverse,
+  benchmark_od_df = simulated_benchmark.od
+)
+
+pairs_inverse |>
+  select(
+    origin,
+    destination,
+    mpd_flow,
+    adj_flow,
+    benchmark_flow,
+    diff_mpd_benchmark,
+    diff_mpd_adj,
+    diff_adj_benchmark
+  ) |>
+  slice_head(n = 12)
+```
+
+## 4. `validate_flow_all()` Legacy Alias
+
+Confirm the legacy row-level alias still delegates to `validate_flow_pairs()`.
+
+```{r}
+alias_pairs <- validate_flow_all(
+  adj_df = adj_inverse,
+  benchmark_od_df = simulated_benchmark.od
+)
+
+tibble(
+  identical_alias_output = identical(alias_pairs, pairs_inverse),
+  alias_rows = nrow(alias_pairs),
+  alias_columns = ncol(alias_pairs)
+)
+```
+
+## 5. `validate_flow_residuals()`
+
+Review OD-level residual reduction, raw-versus-adjusted outlier shares, and top-worst residual rows.
+
+```{r}
+residual_results <- lapply(names(adjusted_outputs), function(method_name) {
+  validate_flow_residuals(
+    adj_df = adjusted_outputs[[method_name]],
+    benchmark_od_df = simulated_benchmark.od,
+    method_name = method_name,
+    top_n = 8
+  )
+})
+names(residual_results) <- names(adjusted_outputs)
+
+residual_summary <- bind_rows(lapply(residual_results, `[[`, "summary"))
+
+residual_summary |>
+  select(
+    method,
+    n,
+    mean_signed_residual_reduction,
+    median_signed_residual_reduction,
+    mean_abs_residual_reduction,
+    median_abs_residual_reduction,
+    share_improved,
+    share_worsened,
+    share_moved_in_benchmark_direction,
+    share_residual_mpd_over_2sd,
+    share_residual_adj_over_2sd,
+    reduction_share_residual_over_2sd
+  ) |>
+  arrange(desc(share_improved))
+```
+
+```{r}
+residual_results$adjust_inverse_penetration$data |>
+  select(
+    method,
+    origin,
+    destination,
+    mpd_flow,
+    adj_flow,
+    benchmark_flow,
+    signed_residual_reduction,
+    abs_residual_reduction,
+    moved_in_benchmark_direction,
+    improvement_flag
+  ) |>
+  slice_head(n = 12)
+```
+
+```{r}
+residual_results$adjust_inverse_penetration$top_worst |>
+  select(
+    method,
+    origin,
+    destination,
+    mpd_flow,
+    adj_flow,
+    benchmark_flow,
+    abs_residual_adj_benchmark,
+    abs_residual_reduction,
+    improvement_flag
+  )
+```
+
+## 6. `validate_flow_residual_structure()`
+
+Review residual structure for one method in detail.
+
+```{r}
+structure_inverse <- validate_flow_residual_structure(
+  adj_df = adj_inverse,
+  benchmark_od_df = simulated_benchmark.od,
+  method_name = "adjust_inverse_penetration",
+  residual_type = "adjusted",
+  spatial_role = "origin",
+  residual_aggregation = "mean",
+  area_neighbors = area_neighbors,
+  covariate_df = simulated_covariates,
+  covariate_col = "income_norm",
+  geometry_df = area_coordinates,
+  x_col = "x",
+  y_col = "y",
+  make_plots = has_ggplot2
+)
+
+structure_inverse$summary
+```
+
+```{r}
+structure_inverse$flow_correlation
+```
+
+```{r}
+structure_inverse$moran_i
+```
+
+```{r}
+structure_inverse$covariate_correlation
+```
+
+```{r}
+structure_inverse$area_level |>
+  arrange(desc(abs(selected_residual))) |>
+  slice_head(n = 12)
+```
+
+```{r}
+structure_inverse$map_data |>
+  arrange(desc(abs(selected_residual))) |>
+  select(area, selected_residual, mean_abs_residual, benchmark_flow_sum, x, y) |>
+  slice_head(n = 12)
+```
+
+### Optional Residual Structure Plots
+
+These chunks show the plots returned by `validate_flow_residual_structure()` when `ggplot2` is installed.
+
+```{r}
+if (has_ggplot2) {
+  structure_inverse$plots$residual_reduction_distribution
+} else {
+  "Install ggplot2 to review the residual-reduction distribution plot."
+}
+```
+
+```{r}
+if (has_ggplot2) {
+  structure_inverse$plots$residual_vs_benchmark
+} else {
+  "Install ggplot2 to review the residual-versus-benchmark plot."
+}
+```
+
+```{r}
+if (has_ggplot2) {
+  structure_inverse$plots$residual_vs_covariate
+} else {
+  "Install ggplot2 to review the residual-versus-covariate plot."
+}
+```
+
+```{r}
+if (has_ggplot2) {
+  structure_inverse$plots$residual_map
+} else {
+  "Install ggplot2 to review the coordinate residual map."
+}
+```
+
+## 7. `validate_flow_distribution()`
+
+Review origin-conditioned destination-share fidelity with KL divergence and Jensen-Shannon divergence.
+
+```{r}
+distribution_results <- lapply(names(adjusted_outputs), function(method_name) {
+  validate_flow_distribution(
+    adj_df = adjusted_outputs[[method_name]],
+    benchmark_od_df = simulated_benchmark.od,
+    method_name = method_name,
+    weight_by = "benchmark_origin_total"
+  )
+})
+names(distribution_results) <- names(adjusted_outputs)
+
+distribution_summary <- bind_rows(lapply(distribution_results, `[[`, "summary"))
+
+distribution_summary |>
+  select(
+    method,
+    n_origins,
+    n_origins_used,
+    weight_by,
+    kl_mean,
+    kl_median,
+    kl_weighted_mean,
+    jsd_mean,
+    jsd_median,
+    jsd_weighted_mean
+  ) |>
+  arrange(jsd_weighted_mean)
+```
+
+```{r}
+distribution_results$adjust_inverse_penetration$origin_level |>
+  arrange(desc(jsd_origin)) |>
+  slice_head(n = 12)
+```
+
+## Combined Review Table
+
+This table joins the main method-level Stage 2 summaries.
+
+```{r}
+combined_review <- overall_results |>
+  select(method, pearson_r, rmse, mae, mape, r_squared) |>
+  left_join(
+    residual_summary |>
+      select(
+        method,
+        mean_abs_residual_reduction,
+        share_improved,
+        reduction_share_residual_over_2sd
+      ),
+    by = "method"
+  ) |>
+  left_join(
+    distribution_summary |>
+      select(method, kl_weighted_mean, jsd_weighted_mean),
+    by = "method"
+  ) |>
+  arrange(desc(pearson_r))
+
+combined_review
+```
+
+## Review Checklist
+
+- Does `signed_residual_reduction` read clearly as directional movement rather than guaranteed improvement?
+- Is `abs_residual_reduction` the right method-comparison field for "positive means better" residual reduction?
+- Are MPD and adjusted outlier shares both useful enough to keep in `validate_flow_residuals()`?
+- Is the plain neighbour-link interface for Moran's I transparent enough?
+- Should optional plots remain inside `validate_flow_residual_structure()`?
+- Are KL divergence and Jensen-Shannon divergence summaries clear enough for method comparison?

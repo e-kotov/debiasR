@@ -1,0 +1,322 @@
+---
+title: "Stage 3 Measure Bias Review Notebook"
+format:
+  html:
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Purpose
+
+This notebook reviews the Stage 3 measure-bias diagnostics implemented in `validate_bias_residual_structure()`.
+
+It uses the package's deterministic simulated data to inspect:
+
+- `measure_bias()` coverage quantities,
+- Stage 3 coverage residual definitions,
+- optional Moran's I from a plain neighbour-link table,
+- benchmark origin-flow and destination-flow correlations,
+- covariate correlations,
+- map-ready and plot-ready outputs.
+
+## Setup
+
+```{r}
+find_pkg_root <- function(path = getwd()) {
+  path <- normalizePath(path, mustWork = TRUE)
+
+  repeat {
+    if (file.exists(file.path(path, "DESCRIPTION"))) {
+      return(path)
+    }
+
+    parent <- dirname(path)
+    if (identical(parent, path)) {
+      stop("Could not find package root containing DESCRIPTION.")
+    }
+    path <- parent
+  }
+}
+
+pkg_root <- find_pkg_root()
+setwd(pkg_root)
+
+if (requireNamespace("devtools", quietly = TRUE)) {
+  devtools::load_all(pkg_root, quiet = TRUE)
+} else {
+  library(debiasR)
+}
+
+library(dplyr)
+library(tibble)
+
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+if (has_ggplot2) {
+  library(ggplot2)
+}
+```
+
+```{r}
+data("simulated_coverage", package = "debiasR")
+data("simulated_benchmark.od", package = "debiasR")
+data("simulated_covariates", package = "debiasR")
+
+tibble(
+  dataset = c(
+    "simulated_coverage",
+    "simulated_benchmark.od",
+    "simulated_covariates"
+  ),
+  rows = c(
+    nrow(simulated_coverage),
+    nrow(simulated_benchmark.od),
+    nrow(simulated_covariates)
+  ),
+  columns = c(
+    paste(names(simulated_coverage), collapse = ", "),
+    paste(names(simulated_benchmark.od), collapse = ", "),
+    paste(names(simulated_covariates), collapse = ", ")
+  )
+)
+```
+
+## Coverage Quantities
+
+`measure_bias()` remains the compact coverage calculator. It returns `coverage_score`, `coverage_bias`, and the backward-compatible `bias` alias.
+
+```{r}
+coverage_measures <- measure_bias(simulated_coverage)
+
+coverage_measures |>
+  select(origin, population, user_count, coverage_score, coverage_bias, bias) |>
+  slice_head(n = 10)
+```
+
+```{r}
+coverage_measures |>
+  summarise(
+    areas = n(),
+    total_population = sum(population, na.rm = TRUE),
+    total_user_count = sum(user_count, na.rm = TRUE),
+    global_coverage_score = sum(user_count, na.rm = TRUE) / sum(population, na.rm = TRUE),
+    mean_area_coverage_score = mean(coverage_score, na.rm = TRUE),
+    sd_area_coverage_score = sd(coverage_score, na.rm = TRUE)
+  )
+```
+
+## Review Inputs
+
+`validate_bias_residual_structure()` can compute Moran's I when supplied with a plain neighbour-link table. This notebook creates a deterministic ring-neighbour structure from the simulated area names.
+
+It also creates simple circular coordinates so optional map-ready output can be inspected without spatial dependencies.
+
+```{r}
+areas <- sort(unique(simulated_coverage$origin))
+
+area_neighbors <- tibble(
+  area = areas,
+  neighbor = dplyr::lead(areas, default = areas[1])
+) |>
+  bind_rows(tibble(
+    area = areas,
+    neighbor = dplyr::lag(areas, default = areas[length(areas)])
+  ))
+
+area_coordinates <- tibble(
+  area = areas,
+  angle = seq(0, 2 * pi, length.out = length(areas) + 1)[seq_along(areas)],
+  x = cos(angle),
+  y = sin(angle)
+) |>
+  select(-angle)
+
+area_neighbors |>
+  slice_head(n = 10)
+```
+
+## Default Stage 3 Diagnostics
+
+The default selected residual is `coverage_score_residual`.
+
+```{r}
+bias_structure <- validate_bias_residual_structure(
+  coverage_df = simulated_coverage,
+  benchmark_od_df = simulated_benchmark.od,
+  area_neighbors = area_neighbors,
+  covariate_df = simulated_covariates,
+  covariate_col = "internet_access",
+  geometry_df = area_coordinates,
+  x_col = "x",
+  y_col = "y",
+  make_plots = has_ggplot2
+)
+
+bias_structure$summary
+```
+
+```{r}
+bias_structure$residual_definitions
+```
+
+## Area-Level Residuals
+
+Positive residuals indicate areas with higher active-user coverage than expected under the global coverage score. Negative residuals indicate lower coverage than expected.
+
+```{r}
+bias_structure$area_level |>
+  select(
+    area,
+    population,
+    user_count,
+    coverage_score,
+    global_coverage_score,
+    expected_user_count,
+    user_count_residual,
+    coverage_score_residual,
+    standardized_user_count_residual,
+    selected_residual
+  ) |>
+  arrange(desc(abs(selected_residual))) |>
+  slice_head(n = 15)
+```
+
+```{r}
+bias_structure$area_level |>
+  summarise(
+    mean_coverage_score_residual = mean(coverage_score_residual, na.rm = TRUE),
+    sd_coverage_score_residual = sd(coverage_score_residual, na.rm = TRUE),
+    min_coverage_score_residual = min(coverage_score_residual, na.rm = TRUE),
+    max_coverage_score_residual = max(coverage_score_residual, na.rm = TRUE),
+    mean_user_count_residual = mean(user_count_residual, na.rm = TRUE),
+    sum_user_count_residual = sum(user_count_residual, na.rm = TRUE)
+  )
+```
+
+## Spatial Randomness
+
+The Moran's I calculation uses only the user-supplied neighbour links.
+
+```{r}
+bias_structure$moran_i
+```
+
+## Benchmark Flow Correlations
+
+Benchmark flows are collapsed separately to origin totals and destination totals before correlation with the selected bias residual.
+
+```{r}
+bias_structure$benchmark_flow_correlation
+```
+
+```{r}
+bias_structure$benchmark_flow_data |>
+  arrange(benchmark_flow_role, desc(abs(selected_residual))) |>
+  group_by(benchmark_flow_role) |>
+  slice_head(n = 8) |>
+  ungroup()
+```
+
+## Covariate Correlation
+
+The covariate interface mirrors `validate_flow_residual_structure()`: pass a plain area-level table and name the area and covariate columns explicitly.
+
+```{r}
+bias_structure$covariate_correlation
+```
+
+```{r}
+bias_structure$covariate_data |>
+  select(area, covariate_value, selected_residual, coverage_score, population, user_count) |>
+  arrange(desc(abs(selected_residual))) |>
+  slice_head(n = 12)
+```
+
+## Alternative Residual Scale
+
+The same helper can use count-scale or standardized count residuals for the selected diagnostic residual.
+
+```{r}
+count_residual_structure <- validate_bias_residual_structure(
+  coverage_df = simulated_coverage,
+  residual_type = "user_count",
+  benchmark_od_df = simulated_benchmark.od,
+  covariate_df = simulated_covariates,
+  covariate_col = "internet_access"
+)
+
+standardized_residual_structure <- validate_bias_residual_structure(
+  coverage_df = simulated_coverage,
+  residual_type = "standardized_user_count",
+  benchmark_od_df = simulated_benchmark.od,
+  covariate_df = simulated_covariates,
+  covariate_col = "internet_access"
+)
+
+bind_rows(
+  bias_structure$summary,
+  count_residual_structure$summary,
+  standardized_residual_structure$summary
+) |>
+  select(
+    residual_type,
+    selected_residual_col,
+    mean_selected_residual,
+    sd_selected_residual,
+    pearson_bias_benchmark_origin_flow,
+    pearson_bias_benchmark_destination_flow,
+    pearson_bias_covariate
+  )
+```
+
+## Optional Plots
+
+Plots are returned only when `ggplot2` is installed and `make_plots = TRUE`.
+
+```{r}
+if (has_ggplot2) {
+  bias_structure$plots$bias_residual_distribution
+}
+```
+
+```{r}
+if (has_ggplot2) {
+  bias_structure$plots$bias_residual_vs_benchmark_flow
+}
+```
+
+```{r}
+if (has_ggplot2) {
+  bias_structure$plots$bias_residual_vs_covariate
+}
+```
+
+```{r}
+if (has_ggplot2) {
+  bias_structure$plots$bias_residual_map
+}
+```
+
+## Review Checklist
+
+```{r}
+tibble(
+  check = c(
+    "coverage residuals sum to zero on the count scale",
+    "default residual is coverage_score_residual",
+    "benchmark origin and destination correlations returned",
+    "covariate correlation returned",
+    "map-ready data contains coordinates"
+  ),
+  passed = c(
+    abs(sum(bias_structure$area_level$user_count_residual, na.rm = TRUE)) < 1e-8,
+    identical(bias_structure$summary$selected_residual_col, "coverage_score_residual"),
+    all(c("origin", "destination") %in% bias_structure$benchmark_flow_correlation$benchmark_flow_role),
+    is.finite(bias_structure$covariate_correlation$pearson_r),
+    all(c("x", "y") %in% names(bias_structure$map_data))
+  )
+)
+```

@@ -17,8 +17,10 @@ The tables below are archival references for contributors and reviewers. User-fa
 | `method3_selection_rateII()` | `adjust_selection_rate2()` | migrated | suffix simplified |
 | `method4_raking_ratio()` | `adjust_raking_ratio()` | migrated | same conceptual method |
 | `method5_coefficient()` | `adjust_coefficient()` | migrated | same conceptual method |
-| `validate_flows()` | `validate_flow_benchmark()` | migrated | summary metrics validator |
-| `validate_flows()` | `validate_flow_all()` | new split | row-level comparison helper |
+| `validate_flows()` | `validate_flow_overall()` | migrated | summary metrics validator |
+| `validate_flows()` | `validate_flow_pairs()` | new split | row-level comparison helper |
+| `validate_flow_benchmark()` | `validate_flow_overall()` | alias retained | temporary compatibility alias |
+| `validate_flow_all()` | `validate_flow_pairs()` | alias retained | temporary compatibility alias |
 
 ## Data Object Mapping
 
@@ -49,6 +51,6 @@ The tables below are archival references for contributors and reviewers. User-fa
 
 ## Suggested Deprecation Policy
 
-1. Keep migration aliases only if needed for external users.
-2. If aliases are added, mark with explicit lifecycle message and removal release.
-3. If aliases are not added, keep this map prominently linked from `README.md` and `NEWS.md`.
+1. Keep migration aliases through the next release cycle to avoid abrupt API churn.
+2. Add soft deprecation messaging only after the new names have settled across docs and examples.
+3. Remove aliases only after `README.md`, `NEWS.md`, and vignettes have used the new names for a full cycle.

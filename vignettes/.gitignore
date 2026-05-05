@@ -3,3 +3,5 @@
 *.knit.md
 *.rmarkdown
 *_files/
+
+/.quarto/

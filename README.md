@@ -20,10 +20,48 @@ Current exported functions:
 - `adjust_raking_ratio()`
 - `adjust_coefficient()`
 - `adjust_multilevel_bayes()`
-- `validate_flow_benchmark()`
-- `validate_flow_all()`
+- `validate_bias_residual_structure()`
+- `validate_flow_overall()`
+- `validate_flow_pairs()`
+- `validate_flow_residuals()`
+- `validate_flow_residual_structure()`
+- `validate_flow_distribution()`
+
+Legacy aliases retained temporarily for compatibility:
+
+- `validate_flow_benchmark()` -> `validate_flow_overall()`
+- `validate_flow_all()` -> `validate_flow_pairs()`
 
 The package supports inverse penetration weighting, selection-rate models, raking ratio adjustment, coefficient calibration, and a Bayesian multilevel prototype.
+
+## Package At A Glance
+
+`debiasR` has three main components:
+
+1. `Measure bias`
+- quantify coverage bias between benchmark population and active-user counts
+- diagnose spatial and covariate structure in bias residuals
+
+2. `Adjust bias`
+- apply deterministic OD-flow correction methods
+- support an experimental Bayesian multilevel path for observed OD pairs
+
+3. `Validate adjusted flows`
+- compare adjusted flows against benchmark OD flows
+- assess residual reduction, residual structure, and destination-allocation fidelity
+
+Current progress:
+
+- deterministic adjustment methods are the main stable path
+- Stage 2 validation diagnostics are implemented and ready for maintainer review
+- Stage 3 measure-bias diagnostics are implemented and ready for maintainer review
+- the Bayesian method remains a stage-1 prototype
+- Stage 4 origin-destination random-effects extension is still planned
+- empirical packaged data is still under a separate-data-package decision
+
+![debiasR package overview and status](assets/package-overview-status.svg)
+
+For a slightly fuller coauthor-oriented summary, see [notes/project-management/COAUTHOR_PACKAGE_OVERVIEW.md](notes/project-management/COAUTHOR_PACKAGE_OVERVIEW.md).
 
 ---
 

@@ -1,0 +1,42 @@
+---
+title: "debiasR Training Workshop"
+format:
+  html:
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Purpose
+
+Introduce the workshop, the running UK Locomizer and Census MSOA example, and the
+practical workflow: measure, explain, adjust, and validate digital trace mobility
+bias.
+
+## Audience
+
+- Policy analysts
+- NGO and humanitarian data teams
+- Company data product teams
+- Researchers working with population or mobility traces
+
+## Workshop Map
+
+1. Why digital trace mobility bias matters
+2. Getting set up with `debiasR`
+3. Measuring coverage bias
+4. Identifying and explaining bias
+5. Adjusting biased population or mobility estimates
+6. Validating adjusted estimates
+
+## Use Cases
+
+- Disaster response and population displacement
+- Urban transport planning
+- Public health exposure and mobility estimates
+- Humanitarian settings with delayed conventional data
+- Bias documentation for company data products
+

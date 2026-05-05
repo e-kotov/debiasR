@@ -1,0 +1,36 @@
+---
+title: "Adjusting Biases in Population or Mobility Estimates"
+format:
+  html:
+    toc: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Timing
+
+25-30 minutes.
+
+## Purpose
+
+Show the practical payoff from measuring and explaining bias.
+
+## Code-Along
+
+- Derive correction factors from measured coverage
+- Apply adjustment to counts or OD flows
+- Use inverse penetration weighting or the relevant `debiasR` adjustment method
+- Compare raw and adjusted estimates
+- Discuss what adjustment can and cannot fix
+
+## Teaching Point
+
+Adjustment is useful, but it rests on assumptions. The workshop should make
+participants more capable and more cautious.
+
+## Exercise
+
+How much do estimates change, and where?
+

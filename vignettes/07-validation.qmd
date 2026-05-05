@@ -1,0 +1,36 @@
+---
+title: "Validation"
+format:
+  html:
+    toc: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Timing
+
+10 minutes.
+
+## Purpose
+
+Close the workshop by showing how to check adjusted estimates against appropriate
+benchmarks and report limitations.
+
+## Topics
+
+- How to validate adjusted estimates
+- Metrics for validation
+- What benchmark data to use
+- Nuances of validation
+
+## Practical Checklist
+
+- What is the benchmark?
+- What population does the digital trace source actually cover?
+- At what geography and time scale is bias measured?
+- Which groups or places are underrepresented?
+- What assumptions does the adjustment make?
+- How should uncertainty and limitations be reported?
+

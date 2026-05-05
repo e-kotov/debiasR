@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.26">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Stage 2 Validation Review Notebook</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/clipboard/clipboard.min.js"></script>
+<script src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/quarto-html/popper.min.js"></script>
+<script src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/quarto-html/anchor.min.js"></script>
+<link href="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/libs/bootstrap/bootstrap-d6a003b94517c951b2d65075d42fb01b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#purpose" id="toc-purpose" class="nav-link active" data-scroll-target="#purpose"><span class="header-section-number">1</span> Purpose</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup"><span class="header-section-number">2</span> Setup</a></li>
+  <li><a href="#simulated-dataset-overview" id="toc-simulated-dataset-overview" class="nav-link" data-scroll-target="#simulated-dataset-overview"><span class="header-section-number">3</span> Simulated Dataset Overview</a></li>
+  <li><a href="#build-review-inputs" id="toc-build-review-inputs" class="nav-link" data-scroll-target="#build-review-inputs"><span class="header-section-number">4</span> Build Review Inputs</a></li>
+  <li><a href="#helper-inputs-for-residual-structure" id="toc-helper-inputs-for-residual-structure" class="nav-link" data-scroll-target="#helper-inputs-for-residual-structure"><span class="header-section-number">5</span> Helper Inputs For Residual Structure</a></li>
+  <li><a href="#validate_flow_overall" id="toc-validate_flow_overall" class="nav-link" data-scroll-target="#validate_flow_overall"><span class="header-section-number">6</span> 1. <code>validate_flow_overall()</code></a></li>
+  <li><a href="#validate_flow_benchmark-legacy-alias" id="toc-validate_flow_benchmark-legacy-alias" class="nav-link" data-scroll-target="#validate_flow_benchmark-legacy-alias"><span class="header-section-number">7</span> 2. <code>validate_flow_benchmark()</code> Legacy Alias</a></li>
+  <li><a href="#validate_flow_pairs" id="toc-validate_flow_pairs" class="nav-link" data-scroll-target="#validate_flow_pairs"><span class="header-section-number">8</span> 3. <code>validate_flow_pairs()</code></a></li>
+  <li><a href="#validate_flow_all-legacy-alias" id="toc-validate_flow_all-legacy-alias" class="nav-link" data-scroll-target="#validate_flow_all-legacy-alias"><span class="header-section-number">9</span> 4. <code>validate_flow_all()</code> Legacy Alias</a></li>
+  <li><a href="#validate_flow_residuals" id="toc-validate_flow_residuals" class="nav-link" data-scroll-target="#validate_flow_residuals"><span class="header-section-number">10</span> 5. <code>validate_flow_residuals()</code></a></li>
+  <li><a href="#validate_flow_residual_structure" id="toc-validate_flow_residual_structure" class="nav-link" data-scroll-target="#validate_flow_residual_structure"><span class="header-section-number">11</span> 6. <code>validate_flow_residual_structure()</code></a>
+  <ul class="collapse">
+  <li><a href="#optional-residual-structure-plots" id="toc-optional-residual-structure-plots" class="nav-link" data-scroll-target="#optional-residual-structure-plots"><span class="header-section-number">11.1</span> Optional Residual Structure Plots</a></li>
+  </ul></li>
+  <li><a href="#validate_flow_distribution" id="toc-validate_flow_distribution" class="nav-link" data-scroll-target="#validate_flow_distribution"><span class="header-section-number">12</span> 7. <code>validate_flow_distribution()</code></a></li>
+  <li><a href="#combined-review-table" id="toc-combined-review-table" class="nav-link" data-scroll-target="#combined-review-table"><span class="header-section-number">13</span> Combined Review Table</a></li>
+  <li><a href="#review-checklist" id="toc-review-checklist" class="nav-link" data-scroll-target="#review-checklist"><span class="header-section-number">14</span> Review Checklist</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Stage 2 Validation Review Notebook</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="purpose" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="purpose"><span class="header-section-number">1</span> Purpose</h2>
+<p>This notebook runs the Stage 2 validation functions on the package’s simulated OD data so the implemented behavior can be reviewed in one place.</p>
+<p>It covers:</p>
+<ul>
+<li><code>validate_flow_overall()</code></li>
+<li><code>validate_flow_benchmark()</code> legacy alias</li>
+<li><code>validate_flow_pairs()</code></li>
+<li><code>validate_flow_all()</code> legacy alias</li>
+<li><code>validate_flow_residuals()</code></li>
+<li><code>validate_flow_residual_structure()</code></li>
+<li><code>validate_flow_distribution()</code></li>
+</ul>
+<p>The notebook uses deterministic simulated data and lightweight deterministic adjustment methods. It does not run the Bayesian prototype.</p>
+</section>
+<section id="setup" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="setup"><span class="header-section-number">2</span> Setup</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>find_pkg_root <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">path =</span> <span class="fu">getwd</span>()) {</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  path <span class="ot">&lt;-</span> <span class="fu">normalizePath</span>(path, <span class="at">mustWork =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">repeat</span> {</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">file.exists</span>(<span class="fu">file.path</span>(path, <span class="st">"DESCRIPTION"</span>))) {</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(path)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    parent <span class="ot">&lt;-</span> <span class="fu">dirname</span>(path)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">identical</span>(parent, path)) {</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">"Could not find package root containing DESCRIPTION."</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    path <span class="ot">&lt;-</span> parent</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>pkg_root <span class="ot">&lt;-</span> <span class="fu">find_pkg_root</span>()</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(pkg_root)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">requireNamespace</span>(<span class="st">"devtools"</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  devtools<span class="sc">::</span><span class="fu">load_all</span>(pkg_root, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">library</span>(debiasR)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tibble)</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>has_ggplot2 <span class="ot">&lt;-</span> <span class="fu">requireNamespace</span>(<span class="st">"ggplot2"</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"simulated_mpd.od"</span>, <span class="at">package =</span> <span class="st">"debiasR"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"simulated_benchmark.od"</span>, <span class="at">package =</span> <span class="st">"debiasR"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"simulated_coverage"</span>, <span class="at">package =</span> <span class="st">"debiasR"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"simulated_covariates"</span>, <span class="at">package =</span> <span class="st">"debiasR"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">dataset =</span> <span class="fu">c</span>(</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"simulated_mpd.od"</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"simulated_benchmark.od"</span>,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"simulated_coverage"</span>,</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"simulated_covariates"</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">rows =</span> <span class="fu">c</span>(</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">nrow</span>(simulated_mpd.od),</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">nrow</span>(simulated_benchmark.od),</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">nrow</span>(simulated_coverage),</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">nrow</span>(simulated_covariates)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">columns =</span> <span class="fu">c</span>(</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="fu">names</span>(simulated_mpd.od), <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="fu">names</span>(simulated_benchmark.od), <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="fu">names</span>(simulated_coverage), <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="fu">names</span>(simulated_covariates), <span class="at">collapse =</span> <span class="st">", "</span>)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 3
+  dataset                  rows columns                                         
+  &lt;chr&gt;                   &lt;int&gt; &lt;chr&gt;                                           
+1 simulated_mpd.od       107256 origin, destination, mpd_source, flow           
+2 simulated_benchmark.od 107256 origin, destination, flow                       
+3 simulated_coverage        328 origin, destination, population, user_count, mp…
+4 simulated_covariates      328 area, population, population_origin, population…</code></pre>
+</div>
+</div>
+</section>
+<section id="simulated-dataset-overview" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="simulated-dataset-overview"><span class="header-section-number">3</span> Simulated Dataset Overview</h2>
+<p>The review uses four deterministic simulated datasets shipped with <code>debiasR</code>:</p>
+<ul>
+<li><code>simulated_mpd.od</code>: observed mobile-phone-derived OD flows. This is the biased flow table that adjustment methods start from.</li>
+<li><code>simulated_benchmark.od</code>: benchmark OD flows used as the validation target.</li>
+<li><code>simulated_coverage</code>: area-level population and active-user counts used by coverage-based adjustment methods.</li>
+<li><code>simulated_covariates</code>: area-level contextual variables used by model-based adjustment and residual-structure diagnostics.</li>
+</ul>
+<p>The flow datasets share the same <code>origin</code> and <code>destination</code> keys. The validation functions compare the observed MPD flow and each adjusted <code>flow_adj</code> against the benchmark <code>flow</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>flow_overview <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  simulated_mpd.od <span class="sc">|&gt;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(<span class="at">series =</span> <span class="st">"Observed MPD"</span>, <span class="at">flow =</span> flow),</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  simulated_benchmark.od <span class="sc">|&gt;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(<span class="at">series =</span> <span class="st">"Benchmark"</span>, <span class="at">flow =</span> flow)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>flow_overview <span class="sc">|&gt;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(series) <span class="sc">|&gt;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> <span class="fu">n</span>(),</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_flow =</span> <span class="fu">sum</span>(flow, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">zero_share =</span> <span class="fu">mean</span>(flow <span class="sc">==</span> <span class="dv">0</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_flow =</span> <span class="fu">median</span>(flow, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_flow =</span> <span class="fu">mean</span>(flow, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">p90_flow =</span> <span class="fu">unname</span>(<span class="fu">quantile</span>(flow, <span class="fl">0.90</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">p99_flow =</span> <span class="fu">unname</span>(<span class="fu">quantile</span>(flow, <span class="fl">0.99</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 8
+  series         n total_flow zero_share median_flow mean_flow p90_flow p99_flow
+  &lt;chr&gt;      &lt;int&gt;      &lt;dbl&gt;      &lt;dbl&gt;       &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
+1 Benchmark 107256    2665816      0.188           4    24.9         40      412
+2 Observed… 107256      49709      0.858           0     0.463        1        8</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (has_ggplot2) {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">ggplot</span>(</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    flow_overview,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">log1p</span>(flow), <span class="at">fill =</span> series)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">geom_histogram</span>(</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">bins =</span> <span class="dv">40</span>,</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">alpha =</span> <span class="fl">0.65</span>,</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">position =</span> <span class="st">"identity"</span>,</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">color =</span> <span class="st">"white"</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">facet_wrap</span>(ggplot2<span class="sc">::</span><span class="fu">vars</span>(series), <span class="at">ncol =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">labs</span>(</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">title =</span> <span class="st">"Distribution of Simulated OD Flows"</span>,</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">x =</span> <span class="st">"log1p(flow)"</span>,</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>      <span class="at">y =</span> <span class="st">"OD pairs"</span>,</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>      <span class="at">fill =</span> <span class="st">"Series"</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">theme_minimal</span>()</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">hist</span>(</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">log1p</span>(simulated_mpd.od<span class="sc">$</span>flow),</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="dv">40</span>,</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="st">"Observed MPD OD flow distribution"</span>,</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">xlab =</span> <span class="st">"log1p(flow)"</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="build-review-inputs" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="build-review-inputs"><span class="header-section-number">4</span> Build Review Inputs</h2>
+<p>Create a small set of adjusted-flow outputs. These are not intended to pick a winner; they provide method-labelled inputs for reviewing validation behavior.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>adj_inverse <span class="ot">&lt;-</span> <span class="fu">adjust_inverse_penetration</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">mpd_od_df =</span> simulated_mpd.od,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">coverage_df =</span> simulated_coverage,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">weight_by =</span> <span class="st">"both"</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>adj_raking <span class="ot">&lt;-</span> <span class="fu">adjust_raking_ratio</span>(</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">mpd_od_df =</span> simulated_mpd.od,</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">benchmark_od_df =</span> simulated_benchmark.od</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>adj_coefficient <span class="ot">&lt;-</span> <span class="fu">adjust_coefficient</span>(</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">mpd_od_df =</span> simulated_mpd.od,</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">benchmark_od_df =</span> simulated_benchmark.od,</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">model_family =</span> <span class="st">"ols"</span>,</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">level =</span> <span class="st">"od"</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>adjusted_outputs <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">adjust_inverse_penetration =</span> adj_inverse,</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">adjust_raking_ratio =</span> adj_raking,</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">adjust_coefficient =</span> adj_coefficient</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_rows</span>(<span class="fu">lapply</span>(<span class="fu">names</span>(adjusted_outputs), <span class="cf">function</span>(method_name) {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  adjusted_outputs[[method_name]] <span class="sc">|&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>      <span class="at">method =</span> method_name,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">n =</span> <span class="fu">n</span>(),</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>      <span class="at">total_mpd =</span> <span class="fu">sum</span>(flow, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">total_adjusted =</span> <span class="fu">sum</span>(flow_adj, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">min_adjusted =</span> <span class="fu">min</span>(flow_adj, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">max_adjusted =</span> <span class="fu">max</span>(flow_adj, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>}))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 6
+  method                    n total_mpd total_adjusted min_adjusted max_adjusted
+  &lt;chr&gt;                 &lt;int&gt;     &lt;dbl&gt;          &lt;dbl&gt;        &lt;dbl&gt;        &lt;dbl&gt;
+1 adjust_inverse_pene… 107256     49709        461483.            0        1291.
+2 adjust_raking_ratio  107256     49709       2665816.            0        6171.
+3 adjust_coefficient   107256     49709       1623692.            0        6696.</code></pre>
+</div>
+</div>
+</section>
+<section id="helper-inputs-for-residual-structure" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="helper-inputs-for-residual-structure"><span class="header-section-number">5</span> Helper Inputs For Residual Structure</h2>
+<p><code>validate_flow_residual_structure()</code> can compute Moran’s I if supplied a plain neighbour-link table. This review notebook creates a deterministic ring-neighbour structure from the simulated area names.</p>
+<p>It also creates simple circular coordinates so the optional residual map plot can be inspected without adding spatial dependencies.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>areas <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(<span class="fu">c</span>(simulated_mpd.od<span class="sc">$</span>origin, simulated_mpd.od<span class="sc">$</span>destination)))</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>area_neighbors <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">area =</span> areas,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">neighbor =</span> dplyr<span class="sc">::</span><span class="fu">lead</span>(areas, <span class="at">default =</span> areas[<span class="dv">1</span>])</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(<span class="fu">tibble</span>(</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">area =</span> areas,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">neighbor =</span> dplyr<span class="sc">::</span><span class="fu">lag</span>(areas, <span class="at">default =</span> areas[<span class="fu">length</span>(areas)])</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>area_coordinates <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">area =</span> areas,</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">angle =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">2</span> <span class="sc">*</span> pi, <span class="at">length.out =</span> <span class="fu">length</span>(areas) <span class="sc">+</span> <span class="dv">1</span>)[<span class="fu">seq_along</span>(areas)],</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> <span class="fu">cos</span>(angle),</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> <span class="fu">sin</span>(angle)</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>angle)</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>area_neighbors <span class="sc">|&gt;</span> <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 2
+   area                 neighbor            
+   &lt;chr&gt;                &lt;chr&gt;               
+ 1 Adur                 Allerdale           
+ 2 Allerdale            Amber Valley        
+ 3 Amber Valley         Arun                
+ 4 Arun                 Ashfield            
+ 5 Ashfield             Ashford             
+ 6 Ashford              Babergh             
+ 7 Babergh              Barking and Dagenham
+ 8 Barking and Dagenham Barnet              
+ 9 Barnet               Barnsley            
+10 Barnsley             Barrow-in-Furness   </code></pre>
+</div>
+</div>
+</section>
+<section id="validate_flow_overall" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="validate_flow_overall"><span class="header-section-number">6</span> 1. <code>validate_flow_overall()</code></h2>
+<p>Review method-level fit summaries.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>overall_results <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(<span class="fu">lapply</span>(<span class="fu">names</span>(adjusted_outputs), <span class="cf">function</span>(method_name) {</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">&lt;-</span> <span class="fu">validate_flow_overall</span>(</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">adj_df =</span> adjusted_outputs[[method_name]],</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">benchmark_od_df =</span> simulated_benchmark.od,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">method_name =</span> method_name,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">return_joined =</span> <span class="cn">FALSE</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> res<span class="sc">$</span>method,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> res<span class="sc">$</span>n,</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">pearson_r =</span> res<span class="sc">$</span>pearson_r,</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">spearman_rho =</span> res<span class="sc">$</span>spearman_rho,</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">rmse =</span> res<span class="sc">$</span>rmse,</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">mae =</span> res<span class="sc">$</span>mae,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">mape =</span> res<span class="sc">$</span>mape,</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">ols_intercept =</span> res<span class="sc">$</span>ols_intercept,</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">ols_slope =</span> res<span class="sc">$</span>ols_slope,</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">r_squared =</span> res<span class="sc">$</span>r_squared</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>overall_results <span class="sc">|&gt;</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(pearson_r))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 10
+  method      n pearson_r spearman_rho  rmse   mae  mape ols_intercept ols_slope
+  &lt;chr&gt;   &lt;int&gt;     &lt;dbl&gt;        &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;         &lt;dbl&gt;     &lt;dbl&gt;
+1 adjust… 15006     0.955        0.651  109.  71.5 4.20          -31.0     0.879
+2 adjust… 15006     0.931        0.644  256.  96.3 0.843         -12.5     4.47 
+3 adjust… 15006     0.854        0.717  154.  63.3 2.08           19.5     0.973
+# ℹ 1 more variable: r_squared &lt;dbl&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="validate_flow_benchmark-legacy-alias" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="validate_flow_benchmark-legacy-alias"><span class="header-section-number">7</span> 2. <code>validate_flow_benchmark()</code> Legacy Alias</h2>
+<p>Confirm the legacy alias still delegates to <code>validate_flow_overall()</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>alias_overall <span class="ot">&lt;-</span> <span class="fu">validate_flow_benchmark</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">adj_df =</span> adj_inverse,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">benchmark_od_df =</span> simulated_benchmark.od,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">method_name =</span> <span class="st">"alias_check"</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">return_joined =</span> <span class="cn">FALSE</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">alias_method =</span> alias_overall<span class="sc">$</span>method,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">alias_n =</span> alias_overall<span class="sc">$</span>n,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">alias_pearson_r =</span> alias_overall<span class="sc">$</span>pearson_r</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 3
+  alias_method alias_n alias_pearson_r
+  &lt;chr&gt;          &lt;int&gt;           &lt;dbl&gt;
+1 alias_check    15006           0.931</code></pre>
+</div>
+</div>
+</section>
+<section id="validate_flow_pairs" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="validate_flow_pairs"><span class="header-section-number">8</span> 3. <code>validate_flow_pairs()</code></h2>
+<p>Review the joined OD-level comparison table.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>pairs_inverse <span class="ot">&lt;-</span> <span class="fu">validate_flow_pairs</span>(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">adj_df =</span> adj_inverse,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">benchmark_od_df =</span> simulated_benchmark.od</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>pairs_inverse <span class="sc">|&gt;</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    origin,</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    destination,</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    mpd_flow,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    adj_flow,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    benchmark_flow,</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    diff_mpd_benchmark,</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    diff_mpd_adj,</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    diff_adj_benchmark</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 8
+   origin destination        mpd_flow adj_flow benchmark_flow diff_mpd_benchmark
+   &lt;chr&gt;  &lt;chr&gt;                 &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;              &lt;dbl&gt;
+ 1 Adur   Allerdale                 0      0                2                 -2
+ 2 Adur   Amber Valley              0      0                1                 -1
+ 3 Adur   Arun                      3     27.9            243               -240
+ 4 Adur   Ashfield                  0      0                2                 -2
+ 5 Adur   Ashford                   0      0                0                  0
+ 6 Adur   Babergh                   0      0                0                  0
+ 7 Adur   Barking and Dagen…        0      0                0                  0
+ 8 Adur   Barnet                    0      0                1                 -1
+ 9 Adur   Barnsley                  0      0                5                 -5
+10 Adur   Barrow-in-Furness         0      0                0                  0
+11 Adur   Basildon                  0      0                0                  0
+12 Adur   Basingstoke and D…        0      0                2                 -2
+# ℹ 2 more variables: diff_mpd_adj &lt;dbl&gt;, diff_adj_benchmark &lt;dbl&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="validate_flow_all-legacy-alias" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="validate_flow_all-legacy-alias"><span class="header-section-number">9</span> 4. <code>validate_flow_all()</code> Legacy Alias</h2>
+<p>Confirm the legacy row-level alias still delegates to <code>validate_flow_pairs()</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>alias_pairs <span class="ot">&lt;-</span> <span class="fu">validate_flow_all</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">adj_df =</span> adj_inverse,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">benchmark_od_df =</span> simulated_benchmark.od</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">identical_alias_output =</span> <span class="fu">identical</span>(alias_pairs, pairs_inverse),</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">alias_rows =</span> <span class="fu">nrow</span>(alias_pairs),</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">alias_columns =</span> <span class="fu">ncol</span>(alias_pairs)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 3
+  identical_alias_output alias_rows alias_columns
+  &lt;lgl&gt;                       &lt;int&gt;         &lt;int&gt;
+1 TRUE                       107256             9</code></pre>
+</div>
+</div>
+</section>
+<section id="validate_flow_residuals" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="validate_flow_residuals"><span class="header-section-number">10</span> 5. <code>validate_flow_residuals()</code></h2>
+<p>Review OD-level residual reduction, raw-versus-adjusted outlier shares, and top-worst residual rows.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>residual_results <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="fu">names</span>(adjusted_outputs), <span class="cf">function</span>(method_name) {</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">validate_flow_residuals</span>(</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">adj_df =</span> adjusted_outputs[[method_name]],</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">benchmark_od_df =</span> simulated_benchmark.od,</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">method_name =</span> method_name,</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">top_n =</span> <span class="dv">8</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(residual_results) <span class="ot">&lt;-</span> <span class="fu">names</span>(adjusted_outputs)</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>residual_summary <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(<span class="fu">lapply</span>(residual_results, <span class="st">`</span><span class="at">[[</span><span class="st">`</span>, <span class="st">"summary"</span>))</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>residual_summary <span class="sc">|&gt;</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    method,</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    n,</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>    mean_signed_residual_reduction,</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    median_signed_residual_reduction,</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>    mean_abs_residual_reduction,</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    median_abs_residual_reduction,</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    share_improved,</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>    share_worsened,</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    share_moved_in_benchmark_direction,</span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    share_residual_mpd_over_2sd,</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>    share_residual_adj_over_2sd,</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    reduction_share_residual_over_2sd</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(share_improved))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 12
+  method                         n mean_signed_residual…¹ median_signed_residu…²
+  &lt;chr&gt;                      &lt;int&gt;                  &lt;dbl&gt;                  &lt;dbl&gt;
+1 adjust_inverse_penetrati… 107256                   3.84                      0
+2 adjust_coefficient        107256                  14.7                       0
+3 adjust_raking_ratio       107256                  24.4                       0
+# ℹ abbreviated names: ¹​mean_signed_residual_reduction,
+#   ²​median_signed_residual_reduction
+# ℹ 8 more variables: mean_abs_residual_reduction &lt;dbl&gt;,
+#   median_abs_residual_reduction &lt;dbl&gt;, share_improved &lt;dbl&gt;,
+#   share_worsened &lt;dbl&gt;, share_moved_in_benchmark_direction &lt;dbl&gt;,
+#   share_residual_mpd_over_2sd &lt;dbl&gt;, share_residual_adj_over_2sd &lt;dbl&gt;,
+#   reduction_share_residual_over_2sd &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>residual_results<span class="sc">$</span>adjust_inverse_penetration<span class="sc">$</span>data <span class="sc">|&gt;</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    method,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    origin,</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    destination,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    mpd_flow,</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    adj_flow,</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    benchmark_flow,</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    signed_residual_reduction,</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    abs_residual_reduction,</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    moved_in_benchmark_direction,</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    improvement_flag</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 10
+   method                    origin destination mpd_flow adj_flow benchmark_flow
+   &lt;chr&gt;                     &lt;chr&gt;  &lt;chr&gt;          &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;
+ 1 adjust_inverse_penetrati… Adur   Allerdale          0      0                2
+ 2 adjust_inverse_penetrati… Adur   Amber Vall…        0      0                1
+ 3 adjust_inverse_penetrati… Adur   Arun               3     27.9            243
+ 4 adjust_inverse_penetrati… Adur   Ashfield           0      0                2
+ 5 adjust_inverse_penetrati… Adur   Ashford            0      0                0
+ 6 adjust_inverse_penetrati… Adur   Babergh            0      0                0
+ 7 adjust_inverse_penetrati… Adur   Barking an…        0      0                0
+ 8 adjust_inverse_penetrati… Adur   Barnet             0      0                1
+ 9 adjust_inverse_penetrati… Adur   Barnsley           0      0                5
+10 adjust_inverse_penetrati… Adur   Barrow-in-…        0      0                0
+11 adjust_inverse_penetrati… Adur   Basildon           0      0                0
+12 adjust_inverse_penetrati… Adur   Basingstok…        0      0                2
+# ℹ 4 more variables: signed_residual_reduction &lt;dbl&gt;,
+#   abs_residual_reduction &lt;dbl&gt;, moved_in_benchmark_direction &lt;lgl&gt;,
+#   improvement_flag &lt;chr&gt;</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>residual_results<span class="sc">$</span>adjust_inverse_penetration<span class="sc">$</span>top_worst <span class="sc">|&gt;</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    method,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    origin,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    destination,</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    mpd_flow,</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    adj_flow,</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    benchmark_flow,</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    abs_residual_adj_benchmark,</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    abs_residual_reduction,</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    improvement_flag</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 8 × 9
+  method                     origin destination mpd_flow adj_flow benchmark_flow
+  &lt;chr&gt;                      &lt;chr&gt;  &lt;chr&gt;          &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;
+1 adjust_inverse_penetration Lambe… Wandsworth       121    1105.           5780
+2 adjust_inverse_penetration Wands… Lambeth          126    1151.           5160
+3 adjust_inverse_penetration Manch… Salford          205    1291.           4960
+4 adjust_inverse_penetration Bourn… Dorset            64     553.           4088
+5 adjust_inverse_penetration Birmi… Sandwell          43     486.           3853
+6 adjust_inverse_penetration Lambe… Southwark        136     981.           4289
+7 adjust_inverse_penetration Birmi… Solihull          88     779.           4078
+8 adjust_inverse_penetration South… Lambeth          116     837.           3993
+# ℹ 3 more variables: abs_residual_adj_benchmark &lt;dbl&gt;,
+#   abs_residual_reduction &lt;dbl&gt;, improvement_flag &lt;chr&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="validate_flow_residual_structure" class="level2" data-number="11">
+<h2 data-number="11" class="anchored" data-anchor-id="validate_flow_residual_structure"><span class="header-section-number">11</span> 6. <code>validate_flow_residual_structure()</code></h2>
+<p>Review residual structure for one method in detail.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>structure_inverse <span class="ot">&lt;-</span> <span class="fu">validate_flow_residual_structure</span>(</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">adj_df =</span> adj_inverse,</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">benchmark_od_df =</span> simulated_benchmark.od,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">method_name =</span> <span class="st">"adjust_inverse_penetration"</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">residual_type =</span> <span class="st">"adjusted"</span>,</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">spatial_role =</span> <span class="st">"origin"</span>,</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">residual_aggregation =</span> <span class="st">"mean"</span>,</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">area_neighbors =</span> area_neighbors,</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">covariate_df =</span> simulated_covariates,</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">covariate_col =</span> <span class="st">"income_norm"</span>,</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">geometry_df =</span> area_coordinates,</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">x_col =</span> <span class="st">"x"</span>,</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">y_col =</span> <span class="st">"y"</span>,</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">make_plots =</span> has_ggplot2</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>structure_inverse<span class="sc">$</span>summary</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 9
+  method      residual_type spatial_role residual_aggregation n_od_pairs n_areas
+  &lt;chr&gt;       &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;                     &lt;int&gt;   &lt;int&gt;
+1 adjust_inv… adjusted      origin       mean                     107256     328
+# ℹ 3 more variables: pearson_residual_benchmark_flow &lt;dbl&gt;, moran_i &lt;dbl&gt;,
+#   pearson_residual_covariate &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>structure_inverse<span class="sc">$</span>flow_correlation</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 5
+  method                     residual_type comparison          n pearson_r
+  &lt;chr&gt;                      &lt;chr&gt;         &lt;chr&gt;           &lt;int&gt;     &lt;dbl&gt;
+1 adjust_inverse_penetration adjusted      benchmark_flow 107256    -0.995</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>structure_inverse<span class="sc">$</span>moran_i</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 8
+  method            residual_type spatial_role residual_aggregation n_areas_used
+  &lt;chr&gt;             &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;                       &lt;int&gt;
+1 adjust_inverse_p… adjusted      origin       mean                          328
+# ℹ 3 more variables: n_links_used &lt;int&gt;, weight_sum &lt;dbl&gt;, moran_i &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>structure_inverse<span class="sc">$</span>covariate_correlation</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 6
+  method                    residual_type spatial_role covariate     n pearson_r
+  &lt;chr&gt;                     &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;     &lt;int&gt;     &lt;dbl&gt;
+1 adjust_inverse_penetrati… adjusted      origin       income_n…   328    -0.898</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>structure_inverse<span class="sc">$</span>area_level <span class="sc">|&gt;</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="fu">abs</span>(selected_residual))) <span class="sc">|&gt;</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 13
+   area        method residual_type spatial_role residual_aggregation n_od_pairs
+   &lt;chr&gt;       &lt;chr&gt;  &lt;chr&gt;         &lt;chr&gt;        &lt;chr&gt;                     &lt;int&gt;
+ 1 Birmingham  adjus… adjusted      origin       mean                        327
+ 2 Wandsworth  adjus… adjusted      origin       mean                        327
+ 3 Lambeth     adjus… adjusted      origin       mean                        327
+ 4 Southwark   adjus… adjusted      origin       mean                        327
+ 5 Tower Haml… adjus… adjusted      origin       mean                        327
+ 6 Manchester  adjus… adjusted      origin       mean                        327
+ 7 Brent       adjus… adjusted      origin       mean                        327
+ 8 Newham      adjus… adjusted      origin       mean                        327
+ 9 Leeds       adjus… adjusted      origin       mean                        327
+10 Ealing      adjus… adjusted      origin       mean                        327
+11 Lewisham    adjus… adjusted      origin       mean                        327
+12 Islington   adjus… adjusted      origin       mean                        327
+# ℹ 7 more variables: selected_residual &lt;dbl&gt;, mean_residual &lt;dbl&gt;,
+#   sum_residual &lt;dbl&gt;, mean_abs_residual &lt;dbl&gt;, benchmark_flow_sum &lt;dbl&gt;,
+#   mpd_flow_sum &lt;dbl&gt;, adj_flow_sum &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>structure_inverse<span class="sc">$</span>map_data <span class="sc">|&gt;</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="fu">abs</span>(selected_residual))) <span class="sc">|&gt;</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(area, selected_residual, mean_abs_residual, benchmark_flow_sum, x, y) <span class="sc">|&gt;</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 6
+   area   selected_residual mean_abs_residual benchmark_flow_sum       x       y
+   &lt;chr&gt;              &lt;dbl&gt;             &lt;dbl&gt;              &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+ 1 Birmi…            -108.              108.               42078  0.947   0.320 
+ 2 Wands…            -106.              106.               42588  0.839  -0.544 
+ 3 Lambe…            -105.              105.               42007 -0.959   0.283 
+ 4 South…             -86.3              86.3              36393  0.190  -0.982 
+ 5 Tower…             -85.7              85.7              34278  0.734  -0.680 
+ 6 Manch…             -81.1              81.1              35331 -0.999   0.0383
+ 7 Brent              -77.8              77.8              29603  0.839   0.544 
+ 8 Newham             -76.8              76.8              30801 -0.947  -0.320 
+ 9 Leeds              -72.8              72.8              29576 -0.969   0.246 
+10 Ealing             -72.7              72.7              28345 -0.0383  0.999 
+11 Lewis…             -69.5              69.5              27386 -0.982   0.190 
+12 Islin…             -68.9              68.9              28621 -0.920   0.392 </code></pre>
+</div>
+</div>
+<section id="optional-residual-structure-plots" class="level3" data-number="11.1">
+<h3 data-number="11.1" class="anchored" data-anchor-id="optional-residual-structure-plots"><span class="header-section-number">11.1</span> Optional Residual Structure Plots</h3>
+<p>These chunks show the plots returned by <code>validate_flow_residual_structure()</code> when <code>ggplot2</code> is installed.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (has_ggplot2) {</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  structure_inverse<span class="sc">$</span>plots<span class="sc">$</span>residual_reduction_distribution</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Install ggplot2 to review the residual-reduction distribution plot."</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (has_ggplot2) {</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  structure_inverse<span class="sc">$</span>plots<span class="sc">$</span>residual_vs_benchmark</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Install ggplot2 to review the residual-versus-benchmark plot."</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (has_ggplot2) {</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  structure_inverse<span class="sc">$</span>plots<span class="sc">$</span>residual_vs_covariate</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Install ggplot2 to review the residual-versus-covariate plot."</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (has_ggplot2) {</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  structure_inverse<span class="sc">$</span>plots<span class="sc">$</span>residual_map</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Install ggplot2 to review the coordinate residual map."</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="STAGE2_VALIDATION_REVIEW_NOTEBOOK_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="validate_flow_distribution" class="level2" data-number="12">
+<h2 data-number="12" class="anchored" data-anchor-id="validate_flow_distribution"><span class="header-section-number">12</span> 7. <code>validate_flow_distribution()</code></h2>
+<p>Review origin-conditioned destination-share fidelity with KL divergence and Jensen-Shannon divergence.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>distribution_results <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="fu">names</span>(adjusted_outputs), <span class="cf">function</span>(method_name) {</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">validate_flow_distribution</span>(</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">adj_df =</span> adjusted_outputs[[method_name]],</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">benchmark_od_df =</span> simulated_benchmark.od,</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">method_name =</span> method_name,</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">weight_by =</span> <span class="st">"benchmark_origin_total"</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(distribution_results) <span class="ot">&lt;-</span> <span class="fu">names</span>(adjusted_outputs)</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>distribution_summary <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(<span class="fu">lapply</span>(distribution_results, <span class="st">`</span><span class="at">[[</span><span class="st">`</span>, <span class="st">"summary"</span>))</span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>distribution_summary <span class="sc">|&gt;</span></span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>    method,</span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>    n_origins,</span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>    n_origins_used,</span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a>    weight_by,</span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a>    kl_mean,</span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a>    kl_median,</span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a>    kl_weighted_mean,</span>
+<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>    jsd_mean,</span>
+<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>    jsd_median,</span>
+<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>    jsd_weighted_mean</span>
+<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(jsd_weighted_mean)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 10
+  method   n_origins n_origins_used weight_by kl_mean kl_median kl_weighted_mean
+  &lt;chr&gt;        &lt;int&gt;          &lt;int&gt; &lt;chr&gt;       &lt;dbl&gt;     &lt;dbl&gt;            &lt;dbl&gt;
+1 adjust_…       328            328 benchmar…    7.60      7.49             6.35
+2 adjust_…       328            328 benchmar…    6.94      6.84             5.80
+3 adjust_…       328            328 benchmar…    7.37      7.26             6.16
+# ℹ 3 more variables: jsd_mean &lt;dbl&gt;, jsd_median &lt;dbl&gt;, jsd_weighted_mean &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>distribution_results<span class="sc">$</span>adjust_inverse_penetration<span class="sc">$</span>origin_level <span class="sc">|&gt;</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(jsd_origin)) <span class="sc">|&gt;</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 9
+   origin              method n_destinations bench_origin_total adj_origin_total
+   &lt;chr&gt;               &lt;chr&gt;           &lt;int&gt;              &lt;dbl&gt;            &lt;dbl&gt;
+ 1 Isles of Scilly     adjus…            327                106             37.0
+ 2 Torridge            adjus…            327               2560            268. 
+ 3 North East Lincoln… adjus…            327               2998            449. 
+ 4 Darlington          adjus…            327               2934            338. 
+ 5 Gosport             adjus…            327               3251            372. 
+ 6 Melton              adjus…            327               1971            262. 
+ 7 Eden                adjus…            327               1482            239. 
+ 8 Isle of Wight       adjus…            327               3152            565. 
+ 9 North Devon         adjus…            327               3069            481. 
+10 Rutland             adjus…            327               2400            357. 
+11 Gravesham           adjus…            327               4626            531. 
+12 Boston              adjus…            327               2217            196. 
+# ℹ 4 more variables: zero_benchmark_total &lt;lgl&gt;, zero_adj_total &lt;lgl&gt;,
+#   kl_origin &lt;dbl&gt;, jsd_origin &lt;dbl&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="combined-review-table" class="level2" data-number="13">
+<h2 data-number="13" class="anchored" data-anchor-id="combined-review-table"><span class="header-section-number">13</span> Combined Review Table</h2>
+<p>This table joins the main method-level Stage 2 summaries.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>combined_review <span class="ot">&lt;-</span> overall_results <span class="sc">|&gt;</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(method, pearson_r, rmse, mae, mape, r_squared) <span class="sc">|&gt;</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>    residual_summary <span class="sc">|&gt;</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>        method,</span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>        mean_abs_residual_reduction,</span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>        share_improved,</span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>        reduction_share_residual_over_2sd</span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>      ),</span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="st">"method"</span></span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>    distribution_summary <span class="sc">|&gt;</span></span>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(method, kl_weighted_mean, jsd_weighted_mean),</span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="st">"method"</span></span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(pearson_r))</span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a>combined_review</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 11
+  method            pearson_r  rmse   mae  mape r_squared mean_abs_residual_re…¹
+  &lt;chr&gt;                 &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;                  &lt;dbl&gt;
+1 adjust_raking_ra…     0.955  109.  71.5 4.20      0.912                   6.82
+2 adjust_inverse_p…     0.931  256.  96.3 0.843     0.866                   3.45
+3 adjust_coefficie…     0.854  154.  63.3 2.08      0.730                   8.04
+# ℹ abbreviated name: ¹​mean_abs_residual_reduction
+# ℹ 4 more variables: share_improved &lt;dbl&gt;,
+#   reduction_share_residual_over_2sd &lt;dbl&gt;, kl_weighted_mean &lt;dbl&gt;,
+#   jsd_weighted_mean &lt;dbl&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="review-checklist" class="level2" data-number="14">
+<h2 data-number="14" class="anchored" data-anchor-id="review-checklist"><span class="header-section-number">14</span> Review Checklist</h2>
+<ul>
+<li>Does <code>signed_residual_reduction</code> read clearly as directional movement rather than guaranteed improvement?</li>
+<li>Is <code>abs_residual_reduction</code> the right method-comparison field for “positive means better” residual reduction?</li>
+<li>Are MPD and adjusted outlier shares both useful enough to keep in <code>validate_flow_residuals()</code>?</li>
+<li>Is the plain neighbour-link interface for Moran’s I transparent enough?</li>
+<li>Should optional plots remain inside <code>validate_flow_residual_structure()</code>?</li>
+<li>Are KL divergence and Jensen-Shannon divergence summaries clear enough for method comparison?</li>
+</ul>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

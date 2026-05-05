@@ -1,6 +1,6 @@
 # Test Health
 
-Last updated: 2026-04-02
+Last updated: 2026-04-26
 
 ## Summary
 
@@ -9,7 +9,9 @@ Last updated: 2026-04-02
 - The runner loads the package with `devtools::load_all(".")` before executing targeted tests.
 - Full suite still includes a slower Bayesian test file with optional dependencies.
 - Observed behavior today:
-  - targeted tests for `measure_bias`, `validate_flow_all`, and the raking smoke test pass under `load_all`.
+  - `Rscript scripts/run_fast_tests.R` passes.
+  - targeted tests for `measure_bias`, Stage 3 bias residual diagnostics, deterministic adjustment helpers, Stage 2 validation helpers, and the raking smoke test pass under `load_all`.
+  - `test-adjust-coefficient.R` skips one optional `pscl`-dependent case when `pscl` is not installed.
   - running `test_dir()` without loading package can produce false failures (`function not found`, data object not found).
 
 ## Test Tiers (Recommended)
@@ -17,12 +19,17 @@ Last updated: 2026-04-02
 ### Tier 1: Fast deterministic (run on every commit)
 
 - `tests/testthat/test-measure_bias.R`
+- `tests/testthat/test-validate-bias-residual-structure.R`
 - `tests/testthat/test-adjust_inverse_penetration.R`
 - `tests/testthat/test-adjust-selection-rate.R`
 - `tests/testthat/test-adjust-selection-rate2.R`
 - `tests/testthat/test-adjust-raking-ratio.R`
 - `tests/testthat/test-adjust-coefficient.R`
-- `tests/testthat/test-validate-flow-all.R`
+- `tests/testthat/test-validate-flow-overall.R`
+- `tests/testthat/test-validate-flow-pairs.R`
+- `tests/testthat/test-validate-flow-residuals.R`
+- `tests/testthat/test-validate-flow-residual-structure.R`
+- `tests/testthat/test-validate-flow-distribution.R`
 - `tests/testthat/test-adjust_raking_ratio-smoke.R`
 
 ### Tier 2: Bayesian / slow / dependency-sensitive

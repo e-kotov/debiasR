@@ -1,0 +1,42 @@
+---
+title: "Getting Set Up With debiasR"
+format:
+  html:
+    toc: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Timing
+
+10 minutes.
+
+## Purpose
+
+Get everyone into the same package and data workflow.
+
+## Setup
+
+```{r}
+pkg_root <- if (file.exists("DESCRIPTION")) "." else "../.."
+
+if (!requireNamespace("debiasR", quietly = TRUE)) {
+  if (!requireNamespace("devtools", quietly = TRUE)) {
+    stop("Install either `debiasR` or `devtools` to load the local package.")
+  }
+  devtools::load_all(pkg_root, quiet = TRUE)
+}
+
+library(debiasR)
+```
+
+## Code-Along
+
+- Load `debiasR`
+- Load tidy data and simple mapping packages
+- Load the workshop MSOA dataset
+- Inspect core fields: area ID, census population, observed user or device count,
+  and contextual covariates
+

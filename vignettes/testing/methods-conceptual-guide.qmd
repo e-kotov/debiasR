@@ -1,0 +1,658 @@
+---
+title: "debiasR: Conceptual Guide to Adjustment Methods"
+format:
+  html:
+    toc: true
+    html-math-method: mathml
+    embed-resources: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Purpose
+
+This short notebook explains, intuitively, how each `debiasR` adjustment method works and how it is implemented in the package.
+
+## Setup
+
+```{r}
+pkg_root <- if (file.exists("DESCRIPTION")) "." else ".."
+
+if (!requireNamespace("debiasR", quietly = TRUE)) {
+  if (!requireNamespace("devtools", quietly = TRUE)) {
+    stop("Install either `debiasR` or `devtools` to load the local package.")
+  }
+  devtools::load_all(pkg_root, quiet = TRUE)
+}
+
+library(debiasR)
+library(dplyr)
+
+data(simulated_mpd.od, package = "debiasR")
+data(simulated_benchmark.od, package = "debiasR")
+data(simulated_coverage, package = "debiasR")
+data(simulated_covariates, package = "debiasR")
+data(simulated_distance, package = "debiasR")
+```
+
+<style>
+.method-table-wrap {
+  overflow-x: auto;
+  margin: 1.25rem 0 1.75rem 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.method-summary-table {
+  min-width: 1900px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.method-summary-table th,
+.method-summary-table td {
+  vertical-align: top;
+  padding: 0.8rem 0.75rem;
+  white-space: normal;
+}
+
+.method-summary-table th {
+  font-size: 0.95rem;
+}
+
+.method-summary-table td:nth-child(1) {
+  min-width: 17rem;
+}
+
+.method-summary-table td:nth-child(2) {
+  min-width: 17rem;
+}
+
+.method-summary-table td:nth-child(3) {
+  min-width: 19rem;
+}
+
+.eq-stack {
+  font-family: "Cambria Math", "STIX Two Text", "Times New Roman", serif;
+  line-height: 1.45;
+}
+
+.eq-line {
+  display: block;
+}
+
+.eq-line + .eq-line {
+  margin-top: 0.28rem;
+}
+</style>
+
+## Shared Intuition
+
+All methods start from observed MPD flows (`flow`) and produce adjusted flows (`flow_adj`).
+
+- If a method thinks MPD under-observes a flow, it increases `flow_adj`.
+- If it thinks MPD over-observes a flow, it decreases `flow_adj`.
+
+The methods differ in *how* they infer that correction.
+
+### Notation Used
+
+- $F^{mpd}_{ij}$: observed MPD flow from origin $i$ to destination $j$.
+- $F^{bench}_{ij}$: benchmark (census-like) flow from $i$ to $j$.
+- $F^{adj}_{ij}$: adjusted flow output by a method.
+- $P_i, P_j$: population at origin/destination.
+- $U_i, U_j$: active user count at origin/destination.
+- $p_i = U_i/P_i$: coverage (penetration) rate.
+- $d_{ij}$: distance between $i$ and $j$.
+- $X_i, X_j$: origin/destination covariates (for example, income).
+
+## Methods In Scope
+
+This vignette covers the six adjustment methods currently implemented in `debiasR`:
+
+- `adjust_inverse_penetration()`
+- `adjust_selection_rate()`
+- `adjust_selection_rate2()`
+- `adjust_raking_ratio()`
+- `adjust_coefficient()`
+- `adjust_multilevel_bayes()`
+
+Methods discussed in earlier research notes but not currently implemented in the package are intentionally excluded here:
+
+- calibration / transfer frameworks
+- difference-in-differences approaches
+- Bayesian data fusion across multiple biased sources
+
+## Package Workflow
+
+![Workflow linking clearly identified input data to bias measurement, bias adjustment, and validation.](figures/package-workflow.svg){fig-alt="debiasR workflow showing an input-data panel with coverage inputs, flow inputs, and enrichment inputs feeding three stacked steps: measure bias, adjust bias, and validate bias-adjusted flows."}
+
+## Adjustment Method Landscape
+
+![Available adjustment methods in debiasR, grouped by coverage-based reweighting, benchmark-constrained calibration, and hierarchical Bayesian modelling.](figures/adjustment-methods-overview.svg){fig-alt="Available adjustment methods in debiasR grouped into coverage-based reweighting, benchmark-constrained calibration, and hierarchical Bayesian modelling, with each method card listing its main data requirements."}
+
+## Validation functions
+
+The package exposes five validation functions because they solve different problems:
+
+- `validate_flow_overall()` is the summary scorer. It uses adjusted flows from `adj_df` and benchmark flows from `benchmark_od_df`, then returns method-level fit metrics such as correlation, RMSE, MAE, MAPE, and regression diagnostics.
+- `validate_flow_pairs()` is the lower-level audit table. It keeps the core joined columns and raw residual differences, and is useful when you only want the minimal OD-level join without the additional diagnostics.
+- `validate_flow_residuals()` is the richer OD-level residual diagnostic. It builds on the same inputs, then adds signed movement, absolute residual reduction, percentage residuals, improvement flags, raw-versus-adjusted standard-deviation threshold flags, and a `top_worst` table of OD pairs with the largest residuals remaining after adjustment.
+- `validate_flow_residual_structure()` diagnoses residual structure. It returns residual-versus-benchmark-flow correlation, area-level residual summaries, optional Moran's I from user-supplied neighbour links, optional covariate correlation, map-ready residual data, and optional diagnostic plots.
+- `validate_flow_distribution()` checks whether adjusted flows preserve the benchmark destination-share distribution by origin, using `KL(benchmark || adjusted)` and Jensen-Shannon divergence.
+
+For compatibility, the earlier names `validate_flow_benchmark()` and `validate_flow_all()` are still available as aliases for one release cycle, but new code should prefer the current names.
+
+Together they support two complementary checks:
+
+- summary fit or proportionality: are adjusted flows aligned with the benchmark pattern overall?
+- residual audit: for each OD pair, by how much do MPD and adjusted flows differ from the benchmark?
+- residual structure: are remaining errors spatially patterned or associated with flow size or covariates?
+- allocation fidelity: are destinations receiving similar shares of each origin's benchmark flow?
+
+## Implemented Method Summary Table
+
+```{r results='asis', echo=FALSE}
+eq_stack <- function(...) {
+  paste0(
+    "<div class='eq-stack'>",
+    paste0("<div class='eq-line'>", c(...), "</div>", collapse = ""),
+    "</div>"
+  )
+}
+
+method_summary <- tibble::tribble(
+  ~Method, ~Rationale, ~Equation, ~`Benchmark<br>population`, ~`Active<br>users`, ~`Benchmark<br>OD flows`, ~`Digital<br>OD flows`, ~Covariates, ~Assumptions, ~Strengths, ~Weaknesses, ~`Suitability<br>for OD flows`, ~`Validation<br>strategy`,
+  "<code>adjust_inverse_penetration()</code>",
+  "Inflate observed flows using population-to-user ratios where coverage is thin.<br/>Good transparent baseline when bias is mainly under-coverage.",
+  eq_stack(
+    "<i>w</i><sub>i</sub> = P<sub>i</sub> / U<sub>i</sub>",
+    "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; <i>w</i><sub>i</sub>, <i>w</i><sub>j</sub>, or &radic;(<i>w</i><sub>i</sub><i>w</i><sub>j</sub>)"
+  ),
+  "Yes", "Yes", "No", "Yes", "No",
+  "Coverage bias is roughly proportional to penetration; origin/destination weights capture most bias.",
+  "Simple, transparent, cheap, no benchmark OD needed.",
+  "Can overinflate sparse areas; misses compositional and structural selection bias.",
+  "Good baseline for observed OD correction; weaker for nuanced structural bias.",
+  "<code>validate_flow_overall()</code> for fit metrics; <code>validate_flow_residuals()</code> to inspect large OD corrections.",
+
+  "<code>adjust_selection_rate()</code>",
+  "Blend penetration with an income-like covariate to model differential selection, with optional benchmark calibration.<br/>Useful when simple inverse weighting is too crude.",
+  eq_stack(
+    "<i>w</i><sub>i</sub>(<i>r</i><sub>t</sub>) = 1 / (I<sub>i</sub><i>p</i><sub>i</sub> + (1 - I<sub>i</sub>)<i>r</i><sub>t</sub>)",
+    "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; <i>w</i><sub>ij</sub>"
+  ),
+  "Yes", "Yes", "Optional", "Yes", "Yes",
+  "Income-like covariate is informative; global <code>r_t</code> is meaningful; calibration benchmark is representative if used.",
+  "More flexible than inverse penetration; can incorporate covariates and benchmark calibration.",
+  "More tuning and interpretation burden; depends on covariate quality and calibration choice.",
+  "Good for OD flows where selection varies systematically across places.",
+  "Compare calibrated and uncalibrated outputs with <code>validate_flow_overall()</code>; use <code>validate_flow_residuals()</code> for OD residuals.",
+
+  "<code>adjust_selection_rate2()</code>",
+  "Apply a closed-form penetration correction with optional <code>k</code> calibration.<br/>Useful as a parsimonious selection-style alternative.",
+  eq_stack(
+    "CF(<i>p</i>; <i>k</i>) = <i>p</i> &times; (exp(-<i>k</i>) - 1) / (exp(-<i>k</i><i>p</i>) - 1)",
+    "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; CF(...)"
+  ),
+  "Yes", "Yes", "Optional", "Yes", "No",
+  "A single curvature parameter <code>k</code> can summarize selection bias; penetration is measured well.",
+  "Compact, interpretable, lighter than method 2, can be calibrated.",
+  "Less flexible than method 2; may underfit heterogeneous bias.",
+  "Good lightweight OD correction when coverage is the dominant concern.",
+  "Use <code>validate_flow_overall()</code> for summary performance and <code>validate_flow_residuals()</code> for OD-level residual patterns.",
+
+  "<code>adjust_raking_ratio()</code>",
+  "Force adjusted OD flows to match trusted origin and/or destination margins.<br/>Best when consistency with benchmark totals is the main priority.",
+  eq_stack(
+    "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; <i>w</i><sub>ij</sub>",
+    "&Sigma;<sub>j</sub><i>F</i><sup>adj</sup><sub>ij</sub> = O<sub>i</sub> and/or &Sigma;<sub>i</sub><i>F</i><sup>adj</sup><sub>ij</sub> = D<sub>j</sub>"
+  ),
+  "Optional (as targets)", "No", "Yes or user targets", "Yes", "No",
+  "Benchmark marginals are correct; observed OD support is adequate; zero cells need not be created.",
+  "Ensures consistency with trusted marginals; clear and widely understood.",
+  "Cannot create missing OD support; may improve totals more than internal OD realism.",
+  "Very good for OD tables when marginal consistency matters most.",
+  "Check convergence and margin matching, then use <code>validate_flow_overall()</code> and <code>validate_flow_residuals()</code>.",
+
+  "<code>adjust_coefficient()</code>",
+  "Learn a global mapping from MPD flows to benchmark OD flows, then apply it back to MPD.<br/>Best when benchmark OD is available and calibration is the main goal.",
+  eq_stack(
+    "E[<i>F</i><sup>bench</sup><sub>ij</sub>] = &beta; <i>F</i><sup>mpd</sup><sub>ij</sub>",
+    "log(&mu;<sub>ij</sub>) = &alpha; + log(<i>F</i><sup>mpd</sup><sub>ij</sub>)"
+  ),
+  "No", "No", "Yes", "Yes", "No",
+  "Relationship between MPD and benchmark flows is stable enough to estimate; overlapping positive support exists.",
+  "Direct benchmark-driven calibration; multiple model families available.",
+  "Benchmark quality is critical; a global coefficient may miss local heterogeneity.",
+  "Strong when benchmark OD exists and a simple calibrated mapping is acceptable.",
+  "Use <code>validate_flow_overall()</code> across families and levels; use <code>validate_flow_residuals()</code> for systematic residuals.",
+
+  "<code>adjust_multilevel_bayes()</code>",
+  "Fit a hierarchical count model with coverage bias, covariates, and optional distance, then remove the estimated coverage-bias contribution from posterior fixed-effect predictors.<br/>Current scope is observed OD pairs only.",
+  eq_stack(
+    "log(&mu;<sup>obs</sup><sub>ij</sub>) = &alpha; + &beta;<sub>o</sub>X<sub>i</sub> + &beta;<sub>d</sub>X<sub>j</sub> + &gamma; log(<i>d</i><sub>ij</sub>) + &omega;e<sub>i</sub> + <i>u</i>",
+    "flow<sub>adj</sub> = summary(exp(&eta;<sup>fix</sup><sub>ij</sub> - &omega;e<sub>i</sub>))"
+  ),
+  "Yes", "Yes", "No", "Yes", "Yes",
+  "Model family and hierarchy are well specified; coverage bias is captured by the fitted bias term; Stage 1 only adjusts observed OD rows.",
+  "Partial pooling, uncertainty-aware, richer structure, no benchmark OD needed for fitting.",
+  "Prototype, slower, dependency-heavy, and not yet a full missing-OD reconstruction method.",
+  "Promising for noisy or sparse observed OD correction; not yet ready for full OD completion.",
+  "Posterior predictive checks plus <code>validate_flow_overall()</code> on observed OD rows; use <code>validate_flow_residuals()</code> for row-level audit."
+)
+
+table_html <- knitr::kable(
+  method_summary,
+  format = "html",
+  escape = FALSE,
+  table.attr = "class='table method-summary-table'"
+)
+
+cat("<div class='method-table-wrap'>", table_html, "</div>")
+```
+
+Key contrast:
+- `adjust_coefficient()` directly learns from benchmark flows.
+- `adjust_multilevel_bayes()` does **not** use benchmark flows in model fitting; it adjusts MPD using coverage/covariates/distance/hierarchical structure.
+
+## Method 1: `adjust_inverse_penetration()`
+
+### Concept
+
+If only a fraction of the population is observed in MPD, inflate flows by the inverse of that fraction.
+
+- Coverage at area `i`: `user_count_i / population_i`
+- Inverse penetration weight: `population_i / user_count_i`
+
+### Equation
+
+$$
+p_i = \frac{U_i}{P_i}, \quad w_i = \frac{1}{p_i} = \frac{P_i}{U_i}
+$$
+
+Origin-weighted version:
+$$
+F^{adj}_{ij} = w_i F^{mpd}_{ij}
+$$
+
+Destination-weighted version:
+$$
+F^{adj}_{ij} = w_j F^{mpd}_{ij}
+$$
+
+Both:
+$$
+F^{adj}_{ij} = \sqrt{w_i w_j} \, F^{mpd}_{ij}
+$$
+
+### Implementation in `debiasR`
+
+- Function: `adjust_inverse_penetration()`
+- Uses `coverage_df` columns `origin`, `population`, `user_count` (and optionally `mpd_source`).
+- Applies weights by origin, destination, or both (`weight_by`).
+
+```{r}
+adj_m1 <- adjust_inverse_penetration(
+  mpd_od_df = simulated_mpd.od,
+  coverage_df = simulated_coverage,
+  weight_by = "both"
+)
+
+adj_m1 |> select(origin, destination, flow, flow_adj) |> slice_head(n = 5)
+```
+
+## Method 2: `adjust_selection_rate()`
+
+### Concept
+
+Adjust with a selection-rate style factor that combines:
+
+- coverage terms (population/users),
+- covariates (for example, income),
+- optional calibration to benchmark totals.
+
+### Equation
+
+Origin-side weight:
+$$
+w_i^{(O)}(r_t) = \frac{1}{I_i p_i^{(O)} + (1 - I_i) r_t}
+$$
+
+Destination-side weight:
+$$
+w_j^{(D)}(r_t) = \frac{1}{I_j p_j^{(D)} + (1 - I_j) r_t}
+$$
+
+Adjustment:
+$$
+F^{adj}_{ij} = F^{mpd}_{ij} \times w_{ij}
+$$
+
+where $w_{ij}$ is origin-weighted, destination-weighted, or the geometric mean of the two.
+
+### Implementation in `debiasR`
+
+- Function: `adjust_selection_rate()`
+- Requires `covariates_df` and coverage inputs.
+- Can calibrate globally/origin/destination using `benchmark_od_df`.
+
+```{r}
+adj_m2 <- adjust_selection_rate(
+  mpd_od_df = simulated_mpd.od,
+  coverage_df = simulated_coverage,
+  covariates_df = simulated_covariates,
+  income_col = "income_norm",
+  weight_by = "origin",
+  benchmark_od_df = simulated_benchmark.od,
+  calibration_aggregate = "origin"
+)
+
+attr(adj_m2, "r_global")
+```
+
+## Method 3: `adjust_selection_rate2()`
+
+### Concept
+
+A simplified/alternative selection-rate adjustment that often behaves like a multiplicative scaling of MPD flows.
+
+### Equation
+
+$$
+CF(p; k) = p \frac{e^{-k} - 1}{e^{-k p} - 1}
+$$
+
+with:
+$$
+F^{adj}_{ij} = F^{mpd}_{ij} \times CF(p; k)
+$$
+
+or the corresponding destination-side / both-side version depending on `weight_by`.
+
+### Implementation in `debiasR`
+
+- Function: `adjust_selection_rate2()`
+- Uses coverage-derived correction and optional calibration constant `k`.
+- Often yields near-linear `flow_adj` vs `flow`.
+
+```{r}
+adj_m3 <- adjust_selection_rate2(
+  mpd_od_df = simulated_mpd.od,
+  coverage_df = simulated_coverage,
+  weight_by = "origin",
+  benchmark_od_df = simulated_benchmark.od,
+  calibration_aggregate = "origin"
+)
+
+attr(adj_m3, "k")
+```
+
+## Method 4: `adjust_raking_ratio()`
+
+### Concept
+
+Use iterative proportional fitting (IPF/raking) so adjusted OD flows match known marginals (from benchmark).
+
+### Equation (constraint form)
+
+Find $F^{adj}_{ij}$ close to $F^{mpd}_{ij}$ such that:
+$$
+\sum_j F^{adj}_{ij} = O_i^{bench}, \quad
+\sum_i F^{adj}_{ij} = D_j^{bench}
+$$
+
+where $O_i^{bench}$ and $D_j^{bench}$ are benchmark outflow/inflow marginals.
+IPF alternates row and column scaling until constraints are met.
+
+### Implementation in `debiasR`
+
+- Function: `adjust_raking_ratio()`
+- Reweights the OD matrix iteratively to satisfy margin constraints.
+- Good when matching aggregate totals is the priority.
+
+```{r}
+adj_m4 <- adjust_raking_ratio(
+  mpd_od_df = simulated_mpd.od,
+  benchmark_od_df = simulated_benchmark.od
+)
+
+list(
+  ipf_converged = attr(adj_m4, "ipf_converged"),
+  ipf_iterations = attr(adj_m4, "ipf_iterations")
+)
+```
+
+## Method 5: `adjust_coefficient()`
+
+### Concept
+
+Learn a mapping from MPD flows to benchmark flows via a regression coefficient model, then apply that mapping.
+
+### Equation
+
+Core proportional form:
+$$
+E[F^{bench}_{ij}] = \beta F^{mpd}_{ij}
+$$
+
+For count families in the package:
+$$
+\log(\mu_{ij}) = \alpha + \log(F^{mpd}_{ij})
+$$
+
+so that:
+$$
+\mu_{ij} = e^{\alpha} F^{mpd}_{ij}, \quad \beta = e^{\alpha}
+$$
+
+### Implementation in `debiasR`
+
+- Function: `adjust_coefficient()`
+- Supports model families (for example, OLS).
+- Can fit at OD level and project to adjusted flows.
+
+```{r}
+adj_m5 <- adjust_coefficient(
+  mpd_od_df = simulated_mpd.od,
+  benchmark_od_df = simulated_benchmark.od,
+  model_family = "ols",
+  level = "od"
+)
+
+attr(adj_m5, "coef")
+```
+
+## Method 6: `adjust_multilevel_bayes()`
+
+### Concept
+
+Fit a Bayesian multilevel count model to observed MPD flows:
+
+- fixed effects for origin/destination predictors and distance,
+- explicit bias term from coverage (`bias_e_origin`),
+- random intercept structure (for example, origin).
+
+Then remove the estimated coverage-bias contribution from posterior fixed-effect linear predictors to obtain `flow_adj`.
+
+### Equation (prototype in package)
+
+Observation model:
+$$
+F^{mpd}_{ij} \sim \text{Poisson}(\mu^{obs}_{ij})
+$$
+
+Observed-flow model:
+$$
+\log \mu^{obs}_{ij}
+= \alpha + \beta_o X_i + \beta_d X_j + \gamma \log d_{ij} + \omega e_i + u_i
+$$
+
+with coverage-bias term:
+$$
+e_i = 1 - \frac{U_i}{P_i}
+$$
+
+Stage-1 adjusted fixed-effect predictor:
+$$
+\eta^{adj}_{ij} = \eta^{fix}_{ij} - \omega e_i
+$$
+
+and:
+$$
+F^{adj}_{ij} = \exp(\eta^{adj}_{ij})
+$$
+
+In implementation, this is done draw-by-draw from the posterior and summarized by mean/median. In the current Stage-1 prototype, only observed OD rows are adjusted; missing OD pairs are not imputed.
+
+### Implementation in `debiasR`
+
+- Function: `adjust_multilevel_bayes()`
+- Backend: `rstanarm`/`brms` (depends on family/backend choice).
+- Uses posterior draws and summarizes adjusted flows (mean/median).
+- Returns explicit Stage-1 metadata and lightweight diagnostics in attributes.
+
+```{r echo=FALSE, include=FALSE}
+coef_m6 <- NULL
+
+if (requireNamespace("rstanarm", quietly = TRUE)) {
+  adj_m6 <- adjust_multilevel_bayes(
+    mpd_od_df = simulated_mpd.od |> slice_sample(n = 3000),
+    coverage_df = simulated_coverage,
+    covariates_df = simulated_covariates,
+    distance_df = simulated_distance,
+    random_intercept = "origin",
+    model_family = "poisson",
+    flow_adj_summary = "median",
+    iter = 200,
+    chains = 1,
+    seed = 123,
+    refresh = 0
+  )
+
+  coef_m6 <- attr(adj_m6, "coefficients") |> select(any_of(c("term", "mean", "q2.5", "q97.5")))
+}
+```
+
+The caterpillar plot below summarizes the most extreme origin random intercepts returned in `attr(adj_m6, "coefficients")`.
+
+```{r echo=FALSE, fig.height=9, fig.width=8}
+if (!is.null(coef_m6) && requireNamespace("ggplot2", quietly = TRUE)) {
+  plot_terms <- coef_m6 |>
+    filter(grepl("^b\\[\\(Intercept\\) origin:", .data$term)) |>
+    transmute(
+      area = sub("\\]$", "", sub("^b\\[\\(Intercept\\) origin:", "", .data$term)),
+      mean = .data$mean,
+      lower = .data[["q2.5"]],
+      upper = .data[["q97.5"]]
+    ) |>
+    arrange(.data$mean)
+
+  if (nrow(plot_terms) > 30) {
+    plot_terms <- bind_rows(
+      slice_head(plot_terms, n = 15),
+      slice_tail(plot_terms, n = 15)
+    ) |>
+      distinct(.data$area, .keep_all = TRUE)
+  }
+
+  plot_terms <- plot_terms |>
+    mutate(area = factor(.data$area, levels = .data$area))
+
+  ggplot2::ggplot(plot_terms, ggplot2::aes(x = .data$mean, y = .data$area)) +
+    ggplot2::geom_vline(xintercept = 0, linetype = "dashed", color = "#94a3b8") +
+    ggplot2::geom_segment(
+      ggplot2::aes(x = .data$lower, xend = .data$upper, yend = .data$area),
+      linewidth = 1,
+      color = "#94a3b8"
+    ) +
+    ggplot2::geom_point(size = 2.3, color = "#0f766e") +
+    ggplot2::labs(
+      title = "Origin random intercepts from `adjust_multilevel_bayes()`",
+      subtitle = "Posterior mean with 95% intervals; showing the most extreme origin effects",
+      x = "Coefficient estimate",
+      y = NULL
+    ) +
+    ggplot2::theme_minimal(base_size = 11) +
+    ggplot2::theme(
+      panel.grid.major.y = ggplot2::element_blank(),
+      plot.title = ggplot2::element_text(face = "bold"),
+      axis.text.y = ggplot2::element_text(size = 8)
+    )
+} else if (!is.null(coef_m6)) {
+  "Install 'ggplot2' to render the caterpillar plot."
+} else {
+  "Install 'rstanarm' to fit the Bayesian example and generate the caterpillar plot."
+}
+```
+
+## How to Read Outputs
+
+For all methods:
+
+- Primary output: tibble with `origin`, `destination`, `flow`, `flow_adj`.
+- Compare methods with:
+  - `validate_flow_overall()` for fit/proportionality metrics
+  - `validate_flow_residuals()` for richer OD-level residual inspection
+  - `validate_flow_pairs()` for the lower-level joined audit table
+  - scatterplots (`flow_adj` vs benchmark, `flow_adj` vs MPD).
+
+```{r}
+val_m1 <- validate_flow_overall(
+  adj_df = adj_m1,
+  benchmark_od_df = simulated_benchmark.od,
+  method_name = "adjust_inverse_penetration",
+  return_joined = FALSE
+)
+
+tibble::tibble(
+  method = val_m1$method,
+  n = val_m1$n,
+  pearson_r = val_m1$pearson_r,
+  rmse = val_m1$rmse,
+  mae = val_m1$mae,
+  r_squared = val_m1$r_squared
+)
+```
+
+```{r}
+audit_m1 <- validate_flow_pairs(
+  adj_df = adj_m1,
+  benchmark_od_df = simulated_benchmark.od
+)
+
+audit_m1 |>
+  select(origin, destination, mpd_flow, adj_flow, benchmark_flow,
+         diff_mpd_benchmark, diff_adj_benchmark) |>
+  slice_head(n = 5)
+```
+
+```{r}
+resid_m1 <- validate_flow_residuals(
+  adj_df = adj_m1,
+  benchmark_od_df = simulated_benchmark.od,
+  top_n = 5
+)
+
+resid_m1$summary
+```
+
+```{r}
+resid_m1$top_worst |>
+  select(origin, destination, benchmark_flow, adj_flow,
+         residual_adj_benchmark, abs_residual_adj_benchmark,
+         residual_adj_over_1sd, residual_adj_over_2sd, residual_adj_over_3sd,
+         improvement_flag) |>
+  slice_head(n = 5)
+```
+
+## Practical Takeaway
+
+- Need fast transparent scaling: start with Method 1 or 3.
+- Need margin consistency: Method 4.
+- Need model-based mapping: Method 5.
+- Need uncertainty + hierarchical bias structure: Method 6.

@@ -149,14 +149,14 @@ Coverage proportion gives quick calibration feel (not formal validation alone).
 raw_as_adj <- simulated_mpd.od %>%
   transmute(origin, destination, flow_adj = flow)
 
-val_raw <- debiasR::validate_flow_benchmark(
+val_raw <- debiasR::validate_flow_overall(
   adj_df = raw_as_adj,
   benchmark_od_df = simulated_benchmark.od,
   method_name = "raw_mpd",
   return_joined = FALSE
 )
 
-val_adj <- debiasR::validate_flow_benchmark(
+val_adj <- debiasR::validate_flow_overall(
   adj_df = adj,
   benchmark_od_df = simulated_benchmark.od,
   method_name = "adjust_multilevel_bayes",

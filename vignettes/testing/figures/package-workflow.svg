@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 960" role="img" aria-labelledby="workflow-title workflow-desc">
+  <title id="workflow-title">debiasR workflow</title>
+  <desc id="workflow-desc">A three-step workflow showing clearly labelled input data feeding bias measurement, bias adjustment, and validation of bias-adjusted flows.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#475569" />
+    </marker>
+    <style>
+      .panel { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 2; }
+      .section { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.5; }
+      .stage { fill: #fefce8; stroke: #a16207; stroke-width: 2; }
+      .stage2 { fill: #ecfeff; stroke: #0f766e; stroke-width: 2; }
+      .stage3 { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 2; }
+      .label { font: 700 24px sans-serif; fill: #0f172a; }
+      .subhead { font: 700 18px sans-serif; fill: #1e293b; }
+      .body { font: 500 16px sans-serif; fill: #334155; }
+      .small { font: 500 14px sans-serif; fill: #475569; }
+      .fn { font: 600 15px sans-serif; fill: #7c2d12; }
+      .fn2 { font: 600 15px sans-serif; fill: #115e59; }
+      .fn3 { font: 600 15px sans-serif; fill: #1e3a8a; }
+      .arrow { stroke: #475569; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+      .dashed { stroke-dasharray: 7 6; }
+    </style>
+  </defs>
+
+  <rect class="panel" x="40" y="70" width="320" height="820" rx="22" ry="22" />
+  <text class="label" x="200" y="115" text-anchor="middle">Input Data</text>
+  <text class="small" x="200" y="145" text-anchor="middle">Inputs used across the three package stages</text>
+
+  <rect class="section" x="68" y="185" width="264" height="160" rx="16" ry="16" />
+  <text class="subhead" x="200" y="220" text-anchor="middle">Coverage Inputs</text>
+  <text class="body" x="200" y="262" text-anchor="middle">Benchmark population</text>
+  <text class="body" x="200" y="298" text-anchor="middle">Active users</text>
+  <text class="small" x="200" y="326" text-anchor="middle">Feeds coverage rates and bias indicators</text>
+
+  <rect class="section" x="68" y="390" width="264" height="185" rx="16" ry="16" />
+  <text class="subhead" x="200" y="425" text-anchor="middle">Flow Inputs</text>
+  <text class="body" x="200" y="467" text-anchor="middle">Digital OD flows</text>
+  <text class="body" x="200" y="503" text-anchor="middle">Benchmark OD flows</text>
+  <text class="small" x="200" y="532" text-anchor="middle">or trusted origin / destination margins</text>
+  <text class="small" x="200" y="556" text-anchor="middle">Used for adjustment and validation</text>
+
+  <rect class="section" x="68" y="620" width="264" height="160" rx="16" ry="16" />
+  <text class="subhead" x="200" y="655" text-anchor="middle">Enrichment Inputs</text>
+  <text class="body" x="200" y="697" text-anchor="middle">Covariates</text>
+  <text class="body" x="200" y="733" text-anchor="middle">Optional distance</text>
+  <text class="small" x="200" y="761" text-anchor="middle">Used by selection, coefficient,</text>
+  <text class="small" x="200" y="783" text-anchor="middle">and Bayesian adjustment methods</text>
+
+  <rect class="stage" x="430" y="110" width="710" height="180" rx="22" ry="22" />
+  <text class="label" x="785" y="155" text-anchor="middle">1. Measure Bias</text>
+  <text class="body" x="785" y="195" text-anchor="middle">Estimate coverage rates and origin-side bias indicators</text>
+  <text class="body" x="785" y="227" text-anchor="middle">for later correction steps</text>
+  <text class="fn" x="785" y="260" text-anchor="middle">measure_bias()</text>
+
+  <rect class="stage2" x="430" y="380" width="710" height="230" rx="22" ry="22" />
+  <text class="label" x="785" y="425" text-anchor="middle">2. Adjust Bias</text>
+  <text class="body" x="785" y="465" text-anchor="middle">Apply one of the available adjustment methods to generate</text>
+  <text class="body" x="785" y="497" text-anchor="middle">bias-adjusted OD flows</text>
+  <text class="fn2" x="785" y="535" text-anchor="middle">adjust_*() and adjust_multilevel_bayes()</text>
+  <text class="small" x="785" y="572" text-anchor="middle">Main output: flow_adj</text>
+
+  <rect class="stage3" x="430" y="700" width="710" height="170" rx="22" ry="22" />
+  <text class="label" x="785" y="745" text-anchor="middle">3. Validate Bias-Adjusted Flows</text>
+  <text class="body" x="785" y="785" text-anchor="middle">Assess fit, residuals, residual structure, and allocation fidelity</text>
+  <text class="fn3" x="785" y="825" text-anchor="middle">validate_flow_overall(), residuals(), structure(), distribution()</text>
+
+  <path class="arrow" d="M332 250 C385 250, 385 175, 428 175" />
+  <path class="arrow" d="M332 265 C405 265, 405 460, 428 460" />
+  <path class="arrow" d="M332 480 C390 480, 390 510, 428 510" />
+  <path class="arrow" d="M332 520 C405 520, 405 780, 428 780" />
+  <path class="arrow" d="M332 700 C392 700, 392 535, 428 535" />
+
+  <path class="arrow" d="M785 290 L785 378" />
+  <path class="arrow" d="M785 610 L785 698" />
+  <path class="arrow dashed" d="M985 610 C1080 610, 1080 690, 1080 740" />
+</svg>

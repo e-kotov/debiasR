@@ -36,8 +36,8 @@ The package currently supports this working sequence:
 - `adjust_multilevel_bayes()` (stage-1 Bayesian prototype only)
 
 4. Validate outputs:
-- `validate_flow_benchmark()` for summary metrics (correlation/error/regression diagnostics),
-- `validate_flow_all()` for row-level joined comparison table.
+- `validate_flow_overall()` for summary metrics (correlation/error/regression diagnostics),
+- `validate_flow_pairs()` for row-level joined comparison table.
 
 5. Compare methods and inspect fit:
 - Use `vignettes/simulated-methods-walkthrough.qmd` and related vignette material to compare model behavior and benchmark alignment.
@@ -51,8 +51,8 @@ Based on local code, changelog, and recent commits:
 1. API transition is underway:
 - Old `method*` function naming has been replaced with `adjust_*` names.
 - Validation has moved from `validate_flows()` to:
-  - `validate_flow_benchmark()`
-  - `validate_flow_all()`
+  - `validate_flow_overall()`
+  - `validate_flow_pairs()`
 - `NEWS.md` documents this breaking change.
 
 2. Bias definition update:

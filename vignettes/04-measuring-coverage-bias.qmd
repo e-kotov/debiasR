@@ -1,0 +1,36 @@
+---
+title: "Measuring Coverage Bias"
+format:
+  html:
+    toc: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Timing
+
+20 minutes.
+
+## Purpose
+
+Show the first useful thing the package does.
+
+## Code-Along
+
+- Use `measure_bias()`
+- Compute coverage bias as `1 - user_count / population`
+- Interpret under-coverage, apparent over-coverage, and missingness
+- Summarise the distribution of bias
+- Plot or map bias across MSOAs
+
+## Teaching Point
+
+Participants should be able to say: I can quantify how far the digital trace
+population departs from a census benchmark.
+
+## Exercise
+
+Which MSOAs are most under-covered?
+

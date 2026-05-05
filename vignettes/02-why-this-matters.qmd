@@ -1,0 +1,38 @@
+---
+title: "Opening: Why This Matters"
+format:
+  html:
+    toc: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Timing
+
+10-15 minutes.
+
+## Purpose
+
+Motivate the problem without drowning participants in theory.
+
+## Core Message
+
+Digital trace data can be useful for real-time population and mobility analysis,
+especially in settings such as disaster response, displacement, transport
+planning, and service delivery. But it is not a neutral mirror of the
+population.
+
+## Framing Question
+
+If we observe 10,000 devices in an area, what exactly do we know about the people
+there?
+
+## Topics
+
+- What digital trace mobility data can offer
+- Why coverage and representativeness matter
+- `debiasR` as a practical framework: measure, explain, adjust
+- The UK Locomizer and Census MSOA example as the running case
+

@@ -333,11 +333,11 @@ draw_fair_subset <- function(mpd_df, n_target, seed) {
 }
 ```
 
-## Validation Helpers
+## Validation functions
 
 ```{r}
 collect_metrics <- function(method_name, adj_df, benchmark_df, seed_id) {
-  v <- validate_flow_benchmark(
+  v <- validate_flow_overall(
     adj_df = adj_df,
     benchmark_od_df = benchmark_df,
     method_name = method_name,

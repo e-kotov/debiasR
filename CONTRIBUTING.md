@@ -52,7 +52,7 @@ Thank you for your interest in contributing to this project! We welcome all kind
 
 ## 🧭 Naming Guide
 
-- Use the current exported API in examples and docs: `adjust_*`, `validate_flow_benchmark()`, `validate_flow_all()`, and `simulated_*`.
+- Use the current exported API in examples and docs: `adjust_*`, `validate_flow_overall()`, `validate_flow_pairs()`, and `simulated_*`.
 - If you need to mention older names for migration context, keep them in [notes/project-management/MIGRATION_MAP.md](notes/project-management/MIGRATION_MAP.md) rather than in user-facing instructions.
 - Prefer the current vignette/file naming too, for example `adjust-inverse-penetration` rather than legacy `debias-method1`.
 

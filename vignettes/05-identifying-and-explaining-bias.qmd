@@ -1,0 +1,33 @@
+---
+title: "Identifying and Explaining Bias"
+format:
+  html:
+    toc: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Timing
+
+25-30 minutes.
+
+## Purpose
+
+Move from "there is bias" to "what kinds of places are biased?"
+
+## Code-Along and Demo
+
+- Join bias estimates to census or contextual variables
+- Explore bias by deprivation, age structure, urban/rural status, income,
+  ethnicity, housing, and related area characteristics
+- Fit a simple explain-bias model, depending on what is ready in `debiasR`
+- Show variable importance, partial dependence, or SHAP-style outputs if
+  available
+- Connect to the finding that bias is spatial, social, and not random
+
+## Exercise
+
+Which area characteristics seem associated with under-coverage?
+

@@ -10,7 +10,8 @@
 #' random-intercept term (origin, destination, or OD).
 #'
 #' The adjusted flow removes the estimated bias contribution from posterior
-#' linear predictors, then summarizes draw-level adjusted flows by mean or median.
+#' linear predictors for observed OD pairs only, then summarizes draw-level
+#' adjusted flows by mean or median.
 #'
 #' @param mpd_od_df Data frame with at least \code{origin}, \code{destination},
 #'   and \code{flow_col}. Optional \code{mpd_source} is carried through.
@@ -40,17 +41,23 @@
 #'   \code{"brms"}. \code{"auto"} chooses \pkg{rstanarm} for Poisson/NegBin and
 #'   \pkg{brms} for zero-inflated families.
 #' @param flow_adj_summary Summary for posterior draw-level adjusted flows:
-#'   \code{"mean"} or \code{"median"}.
+#'   \code{"mean"} or \code{"median"}. This controls how the draw-level
+#'   Stage-1 adjusted flows are collapsed into the returned \code{flow_adj}
+#'   column after removing the estimated coverage-bias contribution.
 #' @param iter Number of sampling iterations. Default \code{1000}.
 #' @param chains Number of MCMC chains. Default \code{2}.
 #' @param seed Random seed. Default \code{123}.
 #' @param refresh Sampler progress refresh. Default \code{0}.
 #' @param include_flow_adj_draws Logical; if \code{TRUE}, attach posterior draw
-#'   matrix as attribute \code{"flow_adj_draws"}. Default \code{FALSE}.
+#'   matrix as attribute \code{"flow_adj_draws"}. These are the draw-level
+#'   adjusted observed flows underlying the returned \code{flow_adj} summary.
+#'   Default \code{FALSE}.
 #' @param keep_cols Optional extra columns from \code{mpd_od_df} to keep.
 #'
 #' @return A tibble with identifiers, original \code{flow}, adjusted
-#'   \code{flow_adj}, \code{bias_e_origin}, and log-distance helper.
+#'   \code{flow_adj}, \code{bias_e_origin}, and log-distance helper. In this
+#'   Stage-1 prototype, \code{flow_adj} is only returned for observed OD rows in
+#'   \code{mpd_od_df}; missing OD pairs are not imputed.
 #'   Attributes:
 #'   \itemize{
 #'     \item \code{"model"}: fitted model object
@@ -58,7 +65,13 @@
 #'     \item \code{"coefficients"}: fixed-effect summary table
 #'     \item \code{"backend"}: backend used
 #'     \item \code{"model_family"}: fitted family
+#'     \item \code{"stage"}: development stage label
+#'     \item \code{"stage_scope"}: short statement of scope
+#'     \item \code{"result_metadata"}: compact Stage-1 metadata bundle
+#'     \item \code{"random_intercept"}: grouping structure used
+#'     \item \code{"flow_adj_summary"}: posterior summary used for \code{flow_adj}
 #'     \item \code{"distance_source"}: where distance came from
+#'     \item \code{"diagnostics"}: lightweight fit/convergence metadata when available
 #'     \item \code{"prototype_notes"}: stage notes
 #'   }
 #' @export
@@ -84,12 +97,11 @@ adjust_multilevel_bayes <- function(mpd_od_df,
 
   random_intercept <- match.arg(random_intercept)
   model_family <- match.arg(model_family)
-  backend <- match.arg(backend)
+  backend <- .resolve_multilevel_backend(
+    model_family = model_family,
+    backend = backend
+  )
   flow_adj_summary <- match.arg(flow_adj_summary)
-
-  if (backend == "auto") {
-    backend <- if (model_family %in% c("poisson", "negbin")) "rstanarm" else "brms"
-  }
 
   prep <- .prepare_multilevel_bayes_data(
     mpd_od_df = mpd_od_df,
@@ -195,16 +207,39 @@ adjust_multilevel_bayes <- function(mpd_od_df,
     probs = c(0.025, 0.975)
   )
 
+  result_metadata <- list(
+    backend = backend,
+    model_family = model_family,
+    stage = "stage_1",
+    stage_scope = "observed_od_only",
+    random_intercept = random_intercept,
+    flow_adj_summary = flow_adj_summary,
+    distance_source = prep$distance_source
+  )
+
+  diagnostics <- .collect_multilevel_diagnostics(
+    fit = fit,
+    backend = backend,
+    coefficients = coef_tbl
+  )
+
   attr(out, "model") <- fit
   attr(out, "formula") <- deparse(fit_formula)
   attr(out, "coefficients") <- coef_tbl
   attr(out, "backend") <- backend
   attr(out, "model_family") <- model_family
+  attr(out, "stage") <- "stage_1"
+  attr(out, "stage_scope") <- "observed_od_only"
+  attr(out, "result_metadata") <- result_metadata
+  attr(out, "random_intercept") <- random_intercept
+  attr(out, "flow_adj_summary") <- flow_adj_summary
   attr(out, "distance_source") <- prep$distance_source
+  attr(out, "diagnostics") <- diagnostics
   attr(out, "prototype_notes") <- paste(
     "Stage-1 only: bias-adjusted observed OD flows.",
+    "No missing OD pairs are created or imputed.",
     "No Stage-2 missing OD imputation yet.",
-    "flow_adj computed from posterior draw-level correction and summarized by", flow_adj_summary
+    "flow_adj removes the estimated coverage-bias contribution from posterior fixed-effect linear predictor draws and is summarized by", flow_adj_summary
   )
 
   if (isTRUE(include_flow_adj_draws)) {
@@ -212,6 +247,131 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   }
 
   out
+}
+
+.collect_multilevel_diagnostics <- function(fit, backend, coefficients) {
+  diagnostics <- list(
+    backend = backend,
+    has_bias_term = "bias_e_origin" %in% coefficients$term,
+    convergence = list(status = "not_available")
+  )
+
+  diag_tbl <- .fit_summary_diagnostics_frame(fit = fit, backend = backend)
+  if (is.null(diag_tbl) || nrow(diag_tbl) == 0L) {
+    return(diagnostics)
+  }
+
+  diagnostics$convergence <- .summarize_diagnostics_frame(diag_tbl)
+  diagnostics
+}
+
+.fit_summary_diagnostics_frame <- function(fit, backend) {
+  fit_summary <- suppressWarnings(
+    tryCatch(summary(fit), error = function(e) NULL)
+  )
+
+  if (is.null(fit_summary)) {
+    return(NULL)
+  }
+
+  if (backend == "rstanarm") {
+    coef_obj <- if (is.list(fit_summary) && !is.null(fit_summary$coefficients)) {
+      fit_summary$coefficients
+    } else {
+      fit_summary
+    }
+
+    if (is.null(dim(coef_obj))) {
+      return(NULL)
+    }
+
+    return(as.data.frame(coef_obj))
+  }
+
+  for (slot in c("fixed", "coefficients")) {
+    coef_obj <- fit_summary[[slot]]
+    if (!is.null(coef_obj) && !is.null(dim(coef_obj))) {
+      return(as.data.frame(coef_obj))
+    }
+  }
+
+  NULL
+}
+
+.summarize_diagnostics_frame <- function(diag_tbl) {
+  nm_norm <- gsub("[^a-z0-9]+", "", tolower(names(diag_tbl)))
+  find_metric_col <- function(patterns) {
+    idx <- which(vapply(
+      patterns,
+      function(pattern) any(grepl(pattern, nm_norm)),
+      logical(1)
+    ))
+    if (length(idx) == 0L) {
+      return(NA_integer_)
+    }
+
+    matches <- which(grepl(patterns[idx[1]], nm_norm))
+    if (length(matches) == 0L) NA_integer_ else matches[1]
+  }
+
+  rhat_idx <- find_metric_col(c("^rhat$", "rhat"))
+  bulk_ess_idx <- find_metric_col(c("^bulkess$", "bulkess", "essbulk"))
+  tail_ess_idx <- find_metric_col(c("^tailess$", "tailess", "esstail"))
+  neff_idx <- find_metric_col(c("^neff$", "neff", "effn", "effective"))
+  se_mean_idx <- find_metric_col(c("^semean$", "semean", "mcse"))
+
+  out <- list(status = "available")
+
+  if (!is.na(rhat_idx)) {
+    rhat_vals <- suppressWarnings(as.numeric(diag_tbl[[rhat_idx]]))
+    if (any(is.finite(rhat_vals))) {
+      out$rhat_max <- max(rhat_vals[is.finite(rhat_vals)])
+    }
+  }
+
+  if (!is.na(bulk_ess_idx)) {
+    ess_bulk_vals <- suppressWarnings(as.numeric(diag_tbl[[bulk_ess_idx]]))
+    if (any(is.finite(ess_bulk_vals))) {
+      out$ess_bulk_min <- min(ess_bulk_vals[is.finite(ess_bulk_vals)])
+    }
+  }
+
+  if (!is.na(tail_ess_idx)) {
+    ess_tail_vals <- suppressWarnings(as.numeric(diag_tbl[[tail_ess_idx]]))
+    if (any(is.finite(ess_tail_vals))) {
+      out$ess_tail_min <- min(ess_tail_vals[is.finite(ess_tail_vals)])
+    }
+  }
+
+  if (!is.na(neff_idx)) {
+    neff_vals <- suppressWarnings(as.numeric(diag_tbl[[neff_idx]]))
+    if (any(is.finite(neff_vals))) {
+      out$n_eff_min <- min(neff_vals[is.finite(neff_vals)])
+    }
+  }
+
+  if (!is.na(se_mean_idx)) {
+    se_mean_vals <- suppressWarnings(as.numeric(diag_tbl[[se_mean_idx]]))
+    if (any(is.finite(se_mean_vals))) {
+      out$se_mean_max <- max(se_mean_vals[is.finite(se_mean_vals)])
+    }
+  }
+
+  if (length(out) == 1L) {
+    out$status <- "available_no_standard_metrics"
+  }
+
+  out
+}
+
+.resolve_multilevel_backend <- function(model_family, backend) {
+  backend <- match.arg(backend, choices = c("auto", "rstanarm", "brms"))
+
+  if (backend == "auto") {
+    return(if (model_family %in% c("poisson", "negbin")) "rstanarm" else "brms")
+  }
+
+  backend
 }
 
 .build_multilevel_formula <- function(random_intercept,
