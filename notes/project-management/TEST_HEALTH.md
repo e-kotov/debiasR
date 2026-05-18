@@ -1,6 +1,6 @@
 # Test Health
 
-Last updated: 2026-05-08
+Last updated: 2026-05-18
 
 ## Summary
 
@@ -14,7 +14,9 @@ Last updated: 2026-05-08
   - current local branch head `b787cfd3edfa8e31660c81a509b6e1f459b2daa2` is newer than the merged PR head and has not yet had a pull-request-triggered workflow run.
   - package-readiness check with tests/vignettes/manual skipped now completes with 0 errors, 0 warnings, and 2 notes:
     `devtools::check(document = FALSE, build_args = "--no-build-vignettes", args = c("--no-manual", "--ignore-vignettes", "--no-tests"), error_on = "never")`.
-  - the remaining package-readiness notes are that optional `debiasRdata` is not installed and the checker cannot verify current time.
+  - historical package-readiness notes were that optional `debiasRdata` was not installed and the checker could not verify current time.
+  - `debiasRdata` now exists at <https://github.com/de-bias/debiasRdata>; empirical integration should be validated with the installed companion package.
+  - local integration smoke check on 2026-05-18 passed by loading `../debiasRdata` and calling `debiasR_example_data(n_areas = 5)`.
   - `quarto render notes/project-management/STAGE3_MEASURE_BIAS_REVIEW_NOTEBOOK.qmd` passes.
   - core workshop vignettes and updated testing notebooks render cleanly without `debiasRdata` installed by exiting early with an installation note.
   - targeted tests for `measure_bias`, empirical example-data loading, Stage 3 bias residual diagnostics, deterministic adjustment helpers, Stage 2 validation helpers, and the raking smoke test pass under `load_all`.
@@ -52,7 +54,8 @@ Last updated: 2026-05-08
 1. Direct `testthat::test_dir("tests/testthat")` without package load context may fail.
 2. Bayesian tests are slower and environment-sensitive because of optional dependencies.
 3. Full package checks that run the optional Bayesian lane may still be slow on machines with `rstanarm` installed.
-4. Some warnings are locale-related (`LC_ALL='C.UTF-8'`) and mostly non-blocking.
+4. Empirical tests that require `debiasRdata` should remain conditional because the companion package is optional.
+5. Some warnings are locale-related (`LC_ALL='C.UTF-8'`) and mostly non-blocking.
 
 ## Recommended CI Strategy
 

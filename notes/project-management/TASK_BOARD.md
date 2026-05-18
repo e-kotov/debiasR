@@ -1,6 +1,6 @@
 # Task Board
 
-Last updated: 2026-05-08
+Last updated: 2026-05-18
 
 This board turns the current roadmap into a short execution plan. Estimated effort is in rough person-hours.
 
@@ -13,7 +13,8 @@ The staged track below is intended to be implemented one stage per chat window. 
 - Current branch fast deterministic tests pass locally.
 - Local optional Bayesian test-file run passes with `rstanarm`; the remaining workflow check is the manual/optional GitHub Actions lane.
 - Confirm the optional/manual Bayesian lane on GitHub Actions when Bayesian-lane validation is required.
-- Confirm whether `debiasRdata` exposes real OD distance for final empirical Bayesian vignette rendering.
+- Real OD distance is still not included in `debiasRdata`; keep final empirical
+  Bayesian rendering gated until that asset is added.
 
 ## Recently Completed
 
@@ -21,7 +22,8 @@ The staged track below is intended to be implemented one stage per chat window. 
 - Maintainer review completed on 2026-05-08.
 - `validate_flow_residual_structure()` is stable public API.
 - Optional validation plots remain inside helpers for now.
-- `debiasRdata` is the accepted empirical MSOA data route.
+- `debiasRdata` is the implemented empirical MSOA data route:
+  <https://github.com/de-bias/debiasRdata>.
 
 2. Close remaining package-readiness warnings - `complete`
 - Long generated paths and non-standard project folders are excluded from package builds through `.Rbuildignore`.
@@ -35,10 +37,21 @@ The staged track below is intended to be implemented one stage per chat window. 
 - Complete-grid prediction mode is available for strict square OD matrices and preserves row-status metadata.
 - Full empirical Bayesian rendering remains gated by Bayesian dependencies, runtime, and real OD distance from `debiasRdata`.
 
+4. Create `debiasRdata` companion package - `complete`
+- Repository: <https://github.com/de-bias/debiasRdata>.
+- Included data objects: `msoa_OD_travel2work` and
+  `census_msoa_OD_travel2work`.
+- License and source metadata live in the companion package.
+- `debiasR::debiasR_example_data(n_areas = 5)` was smoke-tested against the
+  local sibling `debiasRdata` checkout on 2026-05-18.
+- `msoa_OD_distance` remains planned.
+
 ## Later
 
 1. Harden the Bayesian path further - `1-2 days`
-- Validate complete-grid Bayesian prediction on real `debiasRdata` inputs with real OD distance.
+- Validate complete-grid Bayesian prediction on real `debiasRdata` OD inputs.
+- Add or connect real MSOA OD distance in `debiasRdata` before final empirical
+  Bayesian rendering.
 - Record feasible empirical grid sizes and runtime expectations.
 - Split the Bayesian tests into a clear optional CI lane if the scope expands.
 
@@ -107,6 +120,9 @@ Tasks:
 - Recommended CRAN-safe option: a separate optional `debiasRdata` package licensed for the data, with `debiasR` using `Suggests`, `requireNamespace()`, `system.file()`, and conditional examples/tests/vignettes.
 - Updated direction for `debiasR`: keep simulated/tiny data as lightweight test fixtures, but base user-facing examples and vignettes on the optional `debiasRdata` MSOA travel-to-work workflow.
 - Maintainer review decision: accept the optional `debiasRdata` strategy and do not bundle the full Zenodo record in `debiasR`.
+- Implementation update: `debiasRdata` now exists at
+  <https://github.com/de-bias/debiasRdata> and supplies
+  `msoa_OD_travel2work` plus `census_msoa_OD_travel2work`.
 
 Deliverables:
 

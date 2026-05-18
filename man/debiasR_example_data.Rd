@@ -46,10 +46,11 @@ plus \code{coverage}, \code{active_users}, \code{population}, \code{covariates},
 }
 \description{
 Loads the MSOA travel-to-work example inputs used by package examples and
-vignettes. The mobile-phone-derived OD data are read from \code{debiasRdata}
-(\code{msoa_OD_travel2work.csv} or \code{.csv.gz}). The benchmark OD data are the
-matching Census 2021 workplace-flow extract, also expected from
-\code{debiasRdata}.
+vignettes. By default, the mobile-phone-derived OD data are read from the
+optional companion package \code{debiasRdata}
+(\url{https://github.com/de-bias/debiasRdata}) as \code{msoa_OD_travel2work}. The
+benchmark OD data are the matching Census 2021 workplace-flow extract
+\code{census_msoa_OD_travel2work}, also supplied by \code{debiasRdata}.
 }
 \details{
 Both sources are normalised to the package schema:

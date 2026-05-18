@@ -147,7 +147,7 @@ Result:
 Follow-up on 2026-05-08:
 
 - Package-readiness check with tests, vignettes, and manual skipped completed with 0 errors, 0 warnings, and 2 notes.
-- Remaining notes are optional `debiasRdata` unavailable for checking and current time verification.
+- Historical remaining notes were the then-missing optional companion data package and current time verification. `debiasRdata` now exists at <https://github.com/de-bias/debiasRdata>, but empirical tests should remain conditional because the companion package is optional.
 - The Bayesian draw-summary names mismatch was fixed in the optional Bayesian test file.
 
 ## Maintainer Review Decisions

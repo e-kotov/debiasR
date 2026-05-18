@@ -1,10 +1,11 @@
 #' Load empirical travel-to-work example data
 #'
 #' Loads the MSOA travel-to-work example inputs used by package examples and
-#' vignettes. The mobile-phone-derived OD data are read from `debiasRdata`
-#' (`msoa_OD_travel2work.csv` or `.csv.gz`). The benchmark OD data are the
-#' matching Census 2021 workplace-flow extract, also expected from
-#' `debiasRdata`.
+#' vignettes. By default, the mobile-phone-derived OD data are read from the
+#' optional companion package `debiasRdata`
+#' (<https://github.com/de-bias/debiasRdata>) as `msoa_OD_travel2work`. The
+#' benchmark OD data are the matching Census 2021 workplace-flow extract
+#' `census_msoa_OD_travel2work`, also supplied by `debiasRdata`.
 #'
 #' Both sources are normalised to the package schema:
 #' `origin`, `destination`, and `flow`. The returned coverage table is derived

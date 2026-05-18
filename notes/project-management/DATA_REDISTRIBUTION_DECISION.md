@@ -1,6 +1,6 @@
 # Data Redistribution Decision
 
-Last updated: 2026-04-25
+Last updated: 2026-05-18
 
 ## Question
 
@@ -59,34 +59,46 @@ Decision:
 - The full record is about 187.9 MB on Zenodo and is not appropriate for the main package.
 - `msoa_OD_travel2work.csv.gz` is small enough compressed to be plausible as an optional packaged data asset, but its uncompressed size and third-party licensing make it cleaner to keep out of the core software package unless there is a strong empirical-example need.
 
-## Recommended Package Strategy
+## Implemented Package Strategy
 
-Default recommendation:
+Current strategy:
 
 - Keep `debiasR` small.
-- Continue shipping simulated/tiny examples in the main package.
-- Document external download of the Zenodo dataset by DOI for empirical workflows.
+- Continue shipping simulated/tiny fixtures in the main package.
+- Use the separate optional companion package
+  `debiasRdata` (<https://github.com/de-bias/debiasRdata>) for empirical MSOA
+  travel-to-work workflows.
+- Keep `debiasRdata` in `Suggests`, not `Imports`, so examples and checks can
+  fail gracefully when the data package is absent.
 
-CRAN-safe optional data package:
+Implemented optional data package:
 
-- Create a separate data-only package named, for example, `debiasRdata`.
-- License the data package as `CC BY 4.0`.
-- Include exactly `msoa_OD_travel2work.csv.gz` as the first empirical asset.
-- Include attribution, DOI, license, checksum, and source-version metadata.
+- Package name: `debiasRdata`.
+- Repository: <https://github.com/de-bias/debiasRdata>.
+- License: `CC BY 4.0 + file LICENSE`.
+- Included empirical assets:
+  - `msoa_OD_travel2work`
+  - `census_msoa_OD_travel2work`
+- Compressed normalised CSV files are also installed under `inst/extdata` in
+  `debiasRdata`.
+- Attribution, DOI, license, checksum, row-count, and source-version metadata
+  are recorded in `debiasRdata`.
 - Keep `debiasR` licensed `MIT + file LICENSE`.
-- Put `debiasRdata` in `Suggests`, not `Imports`.
 - Use `requireNamespace("debiasRdata", quietly = TRUE)` in examples/tests/vignettes.
-- Access the file with `system.file()` from `debiasRdata`.
+- Access installed data objects or files from `debiasRdata`.
 - Skip empirical tests/vignettes gracefully when `debiasRdata` is unavailable.
 
-Fallback if the data package is not created:
+Remaining data gap:
 
-- Use a tiny packaged example in `debiasR`.
-- Provide a documented external download workflow with DOI citation, expected filenames, and checksums.
-- Keep all CRAN examples and tests independent of network access.
+- `msoa_OD_distance` is not available yet.
+- Empirical Bayesian rendering in `debiasR` remains gated until `debiasRdata`
+  supplies a real MSOA OD distance table.
 
 ## Decision
 
 `debiasR` should not redistribute the full Zenodo resource.
 
-If empirical packaged data is needed, use a separate optional `debiasRdata` package containing only `msoa_OD_travel2work.csv.gz`. Otherwise, keep the main package on simulated/tiny data and document the Zenodo DOI as an external data source.
+The separate optional `debiasRdata` package now implements the empirical data
+route. `debiasR` should continue to keep the full Zenodo resource out of the
+main package, use `debiasRdata` conditionally for empirical MSOA examples, and
+keep all package checks independent of network access.

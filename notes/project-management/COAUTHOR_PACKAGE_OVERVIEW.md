@@ -1,6 +1,6 @@
 # Coauthor Package Overview
 
-Last updated: 2026-05-05
+Last updated: 2026-05-18
 
 ## Purpose
 
@@ -82,8 +82,12 @@ Packaged in the main package:
 Empirical data:
 
 - the Zenodo-based empirical data are not bundled in the main package
-- the leading option is a separate optional data package, for example `debiasRdata`
-- `msoa_OD_travel2work.csv.gz` is the preferred empirical candidate if that route is taken
+- the separate optional companion package `debiasRdata` is now available at
+  <https://github.com/de-bias/debiasRdata>
+- `debiasRdata` supplies `msoa_OD_travel2work` and
+  `census_msoa_OD_travel2work`
+- real MSOA OD distance remains planned, so final empirical Bayesian rendering
+  is still gated
 
 ## What Is Stable Now
 
@@ -92,14 +96,13 @@ Empirical data:
 - OD-level residual diagnostics
 - distributional validation
 - measure-bias residual diagnostics
+- empirical OD-flow loading when `debiasRdata` is installed
 
 ## What Is Still In Progress
 
-- maintainer review of Stage 2 validation outputs
-- maintainer review of Stage 3 measure-bias outputs
-- decision on whether empirical data should live in a separate `debiasRdata` package
 - Stage 4 origin-destination random-effects extension
-- Bayesian path hardening and possible stage-2 imputation design
+- Bayesian path hardening and complete-grid empirical validation
+- real MSOA OD distance for final empirical Bayesian examples
 
 ## Suggested Reading Order
 

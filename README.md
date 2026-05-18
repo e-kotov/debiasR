@@ -67,7 +67,8 @@ Current progress:
   full empirical Bayesian vignette rendering still depends on Bayesian
   dependencies and real OD distance inputs
 - Stage 4 origin-destination random-effects extension is still planned
-- empirical examples now use the optional separate `debiasRdata` package
+- empirical examples can now use the optional companion
+  [`debiasRdata`](https://github.com/de-bias/debiasRdata) package
 
 ![debiasR package overview and status](assets/package-overview-status.svg)
 
@@ -88,7 +89,14 @@ If you’re interested in collaborating or contributing, please join our growing
 
 1. Install and load the package from this checkout.
 2. Explore the documentation in `R/` and `man/`.
-3. Try the empirical MSOA travel-to-work examples through `debiasRdata` and the
+3. Install the optional empirical data companion when you need the MSOA
+   travel-to-work examples:
+
+```r
+remotes::install_github("de-bias/debiasRdata")
+```
+
+4. Try the empirical MSOA travel-to-work examples through `debiasRdata` and the
    walkthroughs in `vignettes/`.
 
 Default example data:
@@ -96,6 +104,8 @@ Default example data:
 - MPD travel-to-work OD flows: `msoa_OD_travel2work` from `debiasRdata`
 - Census benchmark OD flows: `census_msoa_OD_travel2work`, the matching
   Census 2021 `ODWP01EW` MSOA workplace-flow extract in `debiasRdata`
+- Real MSOA OD distance is not included yet; empirical Bayesian rendering still
+  falls back to `distance_source = "not_available"` until `debiasRdata` adds it.
 - Package helper: `debiasR_example_data()`, which normalises both sources to
   `origin`, `destination`, and `flow`, can return strict square complete-grid OD
   support, and derives the example coverage table from matched origin totals
