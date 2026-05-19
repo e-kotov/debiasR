@@ -24,7 +24,9 @@ load_debiasr_workshop <- function() {
   invisible(pkg_root)
 }
 
-load_workshop_example <- function(n_areas = 25, complete_grid = TRUE) {
+load_workshop_example <- function(n_areas = 25,
+                                  complete_grid = TRUE,
+                                  geography = "lad") {
   load_debiasr_workshop()
 
   if (!requireNamespace("debiasRdata", quietly = TRUE)) {
@@ -39,7 +41,8 @@ load_workshop_example <- function(n_areas = 25, complete_grid = TRUE) {
   tryCatch(
     debiasR::debiasR_example_data(
       n_areas = n_areas,
-      complete_grid = complete_grid
+      complete_grid = complete_grid,
+      geography = geography
     ),
     error = function(e) {
       cat(
