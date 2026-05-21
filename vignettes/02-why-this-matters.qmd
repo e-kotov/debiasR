@@ -48,16 +48,18 @@ and validated against external evidence.
 
 - measure coverage and representativeness bias
 - model how bias varies across places
-- adjust OD flows using deterministic baselines and a Bayesian multilevel model
+- adjust OD flows using a menu of methods with different data requirements,
+  assumptions, and levels of model complexity
 - validate adjusted flows against benchmark OD data
 
 The package's main innovation is `adjust_multilevel_bayes()`. It treats observed
 OD flows as biased counts and estimates adjusted flows through a multilevel count
 model that can include origin and destination attributes, distance, coverage
-residuals, and hierarchical structure. Deterministic methods remain important
-because they are transparent comparators: they help users understand what the
-Bayesian model improves, where it agrees with simpler corrections, and where it
-does not.
+residuals, and hierarchical structure. The other adjustment methods remain
+important because they are useful options in their own right: some require only
+coverage inputs, some use benchmark margins, and some directly calibrate against
+benchmark OD flows. Method choice should therefore depend on the available data,
+the target use case, and the validation evidence.
 
 ## What Adjustment Enables
 

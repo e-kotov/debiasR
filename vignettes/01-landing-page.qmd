@@ -1,5 +1,5 @@
 ---
-title: "debiasR: Bayesian-Centred OD Bias Adjustment"
+title: "debiasR: OD Bias Measurement, Adjustment, and Validation"
 format:
   html:
     html-math-method: mathml
@@ -44,8 +44,9 @@ The tutorial sequence follows three stages.
 
 1. Measure coverage and representativeness bias in the mobile-phone-derived OD
    source.
-2. Adjust bias, with `adjust_multilevel_bayes()` as the main methodological
-   innovation and deterministic methods as transparent baselines.
+2. Adjust bias using a menu of methods, including coverage-based reweighting,
+   benchmark-calibrated approaches, margin-constrained adjustment, and the
+   Bayesian multilevel model as the main methodological innovation.
 3. Validate adjusted OD flows against benchmark OD data using complementary
    fit, residual, structure, and allocation metrics.
 
@@ -72,6 +73,6 @@ The vignettes use the same notation throughout:
 3. Getting set up with `debiasR` and `debiasRdata`
 4. Measuring coverage bias
 5. Identifying and explaining bias
-6. Adjusting bias, centred on the Bayesian multilevel model
+6. Adjusting bias with a menu of methods
 7. Validating adjusted OD flows
 8. Describing the package example data

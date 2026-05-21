@@ -42,8 +42,8 @@ flows, and zero-filled absent pairs.
 ```{r}
 example_data <- load_workshop_example(n_areas = 25, complete_grid = TRUE)
 
-msoa_OD_travel2work <- example_data$msoa_OD_travel2work
-census_msoa_OD_travel2work <- example_data$census_msoa_OD_travel2work
+mpd_od <- example_data$mpd_od
+benchmark_od <- example_data$benchmark_od
 coverage <- example_data$coverage
 covariates <- example_data$covariates
 distance <- example_data$distance
@@ -62,22 +62,22 @@ example_data$od_audit
 ```{r}
 tibble::tibble(
   table = c(
-    "msoa_OD_travel2work",
-    "census_msoa_OD_travel2work",
+    "mpd_od",
+    "benchmark_od",
     "coverage",
     "covariates",
     "distance"
   ),
   rows = c(
-    nrow(msoa_OD_travel2work),
-    nrow(census_msoa_OD_travel2work),
+    nrow(mpd_od),
+    nrow(benchmark_od),
     nrow(coverage),
     nrow(covariates),
     nrow(distance)
   ),
   columns = c(
-    ncol(msoa_OD_travel2work),
-    ncol(census_msoa_OD_travel2work),
+    ncol(mpd_od),
+    ncol(benchmark_od),
     ncol(coverage),
     ncol(covariates),
     ncol(distance)
@@ -88,8 +88,8 @@ tibble::tibble(
 ## First Rows
 
 ```{r}
-head(msoa_OD_travel2work)
-head(census_msoa_OD_travel2work)
+head(mpd_od)
+head(benchmark_od)
 head(coverage)
 head(covariates)
 ```

@@ -9,10 +9,11 @@ mobile-phone-derived OD matrix and `census_msoa_OD_travel2work` as the Census
 benchmark OD matrix via `debiasR::debiasR_example_data()`.
 
 The main method demonstrations request `complete_grid = TRUE` so the MPD and
-benchmark OD matrices share strict square support. Deterministic methods are
-used as transparent baselines. `adjust_multilevel_bayes()` is treated as the
-main methodological innovation, with empirical rendering conditional on
-Bayesian dependencies and real OD distance being available.
+benchmark OD matrices share strict square support. Adjustment is presented as a
+menu of methods with different data requirements, assumptions, advantages, and
+limitations. `adjust_multilevel_bayes()` is treated as the main methodological
+innovation, with empirical rendering conditional on Bayesian dependencies and
+real OD distance being available.
 
 ## Structure
 

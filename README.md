@@ -38,7 +38,10 @@ raking ratio adjustment, coefficient calibration, and a Bayesian multilevel
 adjustment path for OD flows. The Bayesian path is the main methodological
 innovation and now supports an explicit complete-grid prediction scope for
 square OD matrices, while still requiring careful runtime and dependency
-validation.
+validation. The multilevel path now carries an explicit S1-S4 scenario contract
+for single/multiple source and single/multiple time inputs; new S1-S4
+development should use the faster frequentist engine first and defer Bayesian
+sampling until the complete model contract is stable.
 
 ## Package At A Glance
 
@@ -50,8 +53,10 @@ validation.
   in bias residuals
 
 2. `Adjust bias`
-- use `adjust_multilevel_bayes()` as the central multilevel adjustment model
-- compare against deterministic OD-flow correction baselines
+- choose from a menu of OD-flow adjustment methods with different input
+  requirements, assumptions, and modelling goals
+- use `adjust_multilevel_bayes()` when an uncertainty-aware multilevel model is
+  needed
 
 3. `Validate adjusted flows`
 - compare adjusted flows against benchmark OD flows
@@ -59,13 +64,16 @@ validation.
 
 Current progress:
 
-- deterministic adjustment methods are transparent baselines and comparators
+- adjustment methods are documented as a menu of coverage-based,
+  margin-constrained, benchmark-calibrated, and multilevel modelling options
 - Stage 2 validation diagnostics are maintainer-reviewed and stable
 - Stage 3 measure-bias diagnostics are maintainer-reviewed and stable,
   including a population-only linear residual diagnostic
 - the Bayesian method now has observed and complete-grid prediction scopes, but
   full empirical Bayesian validation remains dependency- and runtime-sensitive
-- Stage 4 origin-destination random-effects extension is still planned
+- Stage 4 scenario support for source/time repeated OD observations is in
+  frequentist-first development around `adjust_multilevel_bayes()`, with
+  MSOA-scale software checks and LAD-scale teaching material
 - empirical examples can now use the optional companion
   [`debiasRdata`](https://github.com/de-bias/debiasRdata) package
 
@@ -172,9 +180,16 @@ See the [LICENSE](LICENSE) file for full details.
 
 ### Stable vs Prototype
 
-Most deterministic helpers are intended for regular use. `adjust_multilevel_bayes()` is the main methodological innovation and now includes an explicit complete-grid prediction scope, but the Bayesian path remains dependency- and runtime-sensitive and should be validated carefully before production use. For the current stability summary, see [notes/project-management/STATUS.md](notes/project-management/STATUS.md).
+Most non-Bayesian adjustment helpers are intended for regular use when their
+input requirements and assumptions fit the application. `adjust_multilevel_bayes()`
+is the main methodological innovation and now includes an explicit complete-grid
+prediction scope, but the Bayesian path remains dependency- and runtime-sensitive
+and should be validated carefully before production use. For the current
+stability summary, see [notes/project-management/STATUS.md](notes/project-management/STATUS.md).
 
-The repository now separates the main deterministic workflow from the Bayesian prototype so that contributors can focus on the stable API first and treat the Bayesian path as experimental until it is fully hardened.
+The repository separates stable adjustment and validation helpers from the
+Bayesian prototype so contributors can use the established API while treating
+the multilevel Bayesian path as experimental until it is fully hardened.
 
 ## 🎉 Acknowledging Contributors
 

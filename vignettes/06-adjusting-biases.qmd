@@ -12,9 +12,16 @@ execute:
 
 ## Aim
 
-This vignette demonstrates the adjustment functions in `debiasR`. The Bayesian
-multilevel model is the central innovation; deterministic methods are shown as
-transparent baselines and comparators.
+This vignette demonstrates the adjustment functions in `debiasR`. The package
+offers a menu of methods for adjusting mobile-phone-derived OD flows. These
+methods differ in what they require, what assumptions they make, and how they
+should be validated.
+
+The Bayesian multilevel model is the main methodological innovation because it
+can represent coverage bias, covariates, distance, and hierarchical structure in
+one uncertainty-aware model. The other methods are also useful adjustment
+options, especially when users need transparent weighting, benchmark-calibrated
+scaling, or margin consistency.
 
 ```{r setup}
 common_path <- if (file.exists("_common.R")) "_common.R" else "vignettes/_common.R"
@@ -22,10 +29,55 @@ source(common_path)
 example_data <- load_workshop_example(n_areas = 25, complete_grid = TRUE)
 ```
 
+## Adjustment Method Menu
+
+The available methods answer different adjustment problems. A method should be
+chosen based on input data availability, the scale of analysis, interpretability
+needs, uncertainty requirements, and validation performance.
+
+```{r}
+method_menu <- tibble::tribble(
+  ~method, ~method_family, ~main_inputs, ~best_when, ~main_limitation,
+  "adjust_inverse_penetration()",
+  "Coverage-based reweighting",
+  "MPD OD flows; area population; active-user counts",
+  "Coverage differences are the main known bias and a transparent correction is needed.",
+  "Can over-correct sparse areas and does not model compositional selection.",
+  "adjust_selection_rate()",
+  "Selection-rate adjustment",
+  "MPD OD flows; coverage inputs; covariates; optional benchmark OD flows for calibration",
+  "Selection varies systematically with area attributes and calibration is useful.",
+  "Depends on covariate quality and calibration choices.",
+  "adjust_selection_rate2()",
+  "Selection-rate adjustment",
+  "MPD OD flows; coverage inputs; optional benchmark OD flows for k calibration",
+  "A compact coverage-based correction is preferred.",
+  "Less flexible when bias varies strongly across places.",
+  "adjust_raking_ratio()",
+  "Margin-constrained adjustment",
+  "MPD OD flows; benchmark OD flows or trusted origin/destination margins",
+  "Matching known origin and destination totals is the priority.",
+  "Improves margins but cannot by itself explain local OD residual structure.",
+  "adjust_coefficient()",
+  "Benchmark-calibrated adjustment",
+  "MPD OD flows; benchmark OD flows",
+  "A benchmark OD table exists and a direct calibration relationship is acceptable.",
+  "A global relationship can miss local heterogeneity.",
+  "adjust_multilevel_bayes()",
+  "Bayesian multilevel adjustment",
+  "MPD OD flows; coverage inputs; covariates; optional distance; optional complete grid",
+  "Bias is structured across places and uncertainty-aware partial pooling is needed.",
+  "Requires heavier dependencies, runtime checks, and model diagnostics."
+)
+
+method_menu
+```
+
 ## Bayesian Multilevel Adjustment
 
 `adjust_multilevel_bayes()` estimates adjusted OD flows with a multilevel count
-model. The core idea is:
+model. Unlike fixed-rule adjustment methods, it can pool information across
+areas and return model metadata and diagnostics. The core idea is:
 
 $$
 \log(\mu_{ij}) =
@@ -58,7 +110,7 @@ bayes_ready <- requireNamespace("rstanarm", quietly = TRUE) &&
 adj_bayes <- NULL
 if (bayes_ready) {
   adj_bayes <- adjust_multilevel_bayes(
-    mpd_od_df = bayes_example$msoa_OD_travel2work,
+    mpd_od_df = bayes_example$mpd_od,
     coverage_df = bayes_example$coverage,
     covariates_df = bayes_example$covariates,
     distance_df = bayes_example$distance,
@@ -74,15 +126,14 @@ if (bayes_ready) {
 
   attr(adj_bayes, "result_metadata")
 } else {
-  "Bayesian empirical rendering requires `rstanarm` and real OD distance from `debiasRdata`. The complete-grid interface is available, but the final empirical Bayesian vignette should be rendered after those inputs are present."
+  "Bayesian empirical rendering requires `rstanarm` and empirical OD distance. The complete-grid interface is available, but empirical Bayesian examples should be rendered only when the required inputs and runtime budget are available."
 }
 ```
 
-## Deterministic Baselines
+## Coverage-Based Reweighting
 
-The deterministic methods provide interpretable comparators.
-
-### Inverse Penetration
+`adjust_inverse_penetration()` inflates observed flows using the inverse of the
+area coverage score.
 
 $$
 w_i = \frac{P_i}{U_i}
@@ -98,40 +149,73 @@ $$
 F^{adj}_{ij} = F^{mpd}_{ij}\sqrt{w_i w_j}
 $$
 
-### Selection Rate
+This method is useful when the main concern is uneven coverage and the user has
+reliable population and active-user counts. It is simple and interpretable, but
+it does not model social or spatial selection beyond the supplied coverage
+rates.
 
-The selection-rate methods use coverage and a covariate-scaled selection
-parameter to construct multiplicative weights.
+## Selection-Rate Adjustment
 
-### Raking Ratio
+`adjust_selection_rate()` and `adjust_selection_rate2()` extend coverage-based
+adjustment by allowing the correction factor to vary with a selection parameter,
+covariates, or calibration against a benchmark.
 
-Raking adjusts flows so that supplied origin and destination margins match
-trusted targets:
+For `adjust_selection_rate()`, an origin-side weight can be written as:
+
+$$
+w_i^{(O)}(r_t) =
+\frac{1}{I_i p_i^{(O)} + (1 - I_i)r_t}
+$$
+
+and the OD adjustment is:
+
+$$
+F^{adj}_{ij} = F^{mpd}_{ij}w_{ij}
+$$
+
+These methods are useful when selection bias is thought to vary systematically
+with area characteristics. They require more judgement than inverse penetration
+because covariate choice and calibration strategy affect the result.
+
+## Margin-Constrained Adjustment
+
+`adjust_raking_ratio()` uses iterative proportional fitting so adjusted OD flows
+match trusted origin and destination margins:
 
 $$
 \sum_j F^{adj}_{ij} = T^{O}_i,\qquad
 \sum_i F^{adj}_{ij} = T^{D}_j
 $$
 
-### Coefficient Calibration
+This is useful when consistency with known origin and destination totals is the
+main requirement. It is widely used for matrix adjustment, but it should still be
+validated at the OD-pair level because matching margins does not guarantee that
+the internal destination allocation is correct.
 
-The coefficient method estimates a global mapping from observed MPD flows to
-benchmark flows:
+## Benchmark-Calibrated Adjustment
+
+`adjust_coefficient()` estimates a relationship between observed MPD flows and
+benchmark flows, then applies that relationship to the MPD table:
 
 $$
 E(F^{bench}_{ij}) = \beta F^{mpd}_{ij}
 $$
 
-## Fit Baselines
+This is useful when a benchmark OD table exists and direct calibration is the
+goal. Its strength is that it learns from the benchmark. Its limitation is that
+a global coefficient can miss local heterogeneity unless the selected model
+family and level capture the relevant structure.
+
+## Fit Adjustment Methods
 
 ```{r}
-baseline_results <- fit_deterministic_baselines(example_data)
+method_results <- fit_adjustment_methods(example_data)
 
 tibble::tibble(
-  method = names(baseline_results),
-  rows = vapply(baseline_results, nrow, integer(1)),
+  method = names(method_results),
+  rows = vapply(method_results, nrow, integer(1)),
   adjusted_total = vapply(
-    baseline_results,
+    method_results,
     function(x) sum(x$flow_adj, na.rm = TRUE),
     numeric(1)
   )
@@ -139,19 +223,23 @@ tibble::tibble(
 ```
 
 ```{r}
-baseline_results$raking_ratio |>
+method_results$raking_ratio |>
   summarise(
     raw_total = sum(flow, na.rm = TRUE),
     adjusted_total = sum(flow_adj, na.rm = TRUE),
     median_weight = median(weight_ipf, na.rm = TRUE),
-    ipf_converged = attr(baseline_results$raking_ratio, "ipf_converged"),
-    ipf_iterations = attr(baseline_results$raking_ratio, "ipf_iterations")
+    ipf_converged = attr(method_results$raking_ratio, "ipf_converged"),
+    ipf_iterations = attr(method_results$raking_ratio, "ipf_iterations")
   )
 ```
 
-## Compare Bayesian and Baselines
+## Choosing And Validating A Method
 
-If the Bayesian model is rendered, compare it against the same benchmark in
-`07-validation.qmd`. If it is not rendered, the deterministic baselines still
-show the complete-grid adjustment workflow and the Bayesian preconditions are
-explicit.
+No single adjustment method should be treated as universally best. The practical
+choice depends on which inputs are available, which assumptions are acceptable,
+and whether the adjusted OD matrix improves against the benchmark.
+
+If the Bayesian model is rendered, validate it with the same functions used for
+the other adjustment methods in `07-validation.qmd`. If it is not rendered, the
+method menu still shows a complete-grid adjustment workflow and makes the
+Bayesian preconditions explicit.

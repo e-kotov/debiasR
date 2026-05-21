@@ -27,7 +27,7 @@ Coverage bias is not only a technical nuisance. If $e_i = p_i - \bar{p}$ is
 systematically related to benchmark flows or contextual variables, then the OD
 matrix may encode spatial and social selection.
 
-`validate_bias_residual_structure()` provides a deterministic diagnostic layer.
+`validate_bias_residual_structure()` provides a reproducible diagnostic layer.
 It does not claim causality. It identifies where residual coverage is associated
 with benchmark mobility structure or selected covariates.
 

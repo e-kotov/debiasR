@@ -86,9 +86,9 @@ validation_row <- function(method_name, adj_df, benchmark_od_df) {
   )
 }
 
-fit_deterministic_baselines <- function(example_data) {
-  mpd_od <- example_data$msoa_OD_travel2work
-  benchmark_od <- example_data$census_msoa_OD_travel2work
+fit_adjustment_methods <- function(example_data) {
+  mpd_od <- example_data$mpd_od
+  benchmark_od <- example_data$benchmark_od
   coverage <- example_data$coverage
   covariates <- example_data$covariates
 

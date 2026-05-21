@@ -23,8 +23,8 @@ example_data <- load_workshop_example(n_areas = 25, complete_grid = TRUE)
 ```
 
 ```{r}
-baseline_results <- fit_deterministic_baselines(example_data)
-benchmark_od <- example_data$census_msoa_OD_travel2work
+method_results <- fit_adjustment_methods(example_data)
+benchmark_od <- example_data$benchmark_od
 ```
 
 ## Overall Fit
@@ -36,10 +36,10 @@ describe error magnitude.
 ```{r}
 overall_metrics <- dplyr::bind_rows(
   lapply(
-    names(baseline_results),
+    names(method_results),
     function(method_name) validation_row(
       method_name,
-      baseline_results[[method_name]],
+      method_results[[method_name]],
       benchmark_od
     )
   )
@@ -56,7 +56,7 @@ pairs.
 
 ```{r}
 validate_flow_pairs(
-  adj_df = baseline_results$raking_ratio,
+  adj_df = method_results$raking_ratio,
   benchmark_od_df = benchmark_od
 ) |>
   arrange(desc(abs(diff_adj_benchmark))) |>
@@ -79,7 +79,7 @@ positive values mean the adjusted flow is closer to the benchmark.
 
 ```{r}
 residuals_raking <- validate_flow_residuals(
-  adj_df = baseline_results$raking_ratio,
+  adj_df = method_results$raking_ratio,
   benchmark_od_df = benchmark_od,
   method_name = "raking_ratio",
   top_n = 10
@@ -101,7 +101,7 @@ associated with benchmark flow size or selected covariates.
 
 ```{r}
 structure_raking <- validate_flow_residual_structure(
-  adj_df = baseline_results$raking_ratio,
+  adj_df = method_results$raking_ratio,
   benchmark_od_df = benchmark_od,
   method_name = "raking_ratio",
   covariate_df = example_data$covariates,
@@ -124,7 +124,7 @@ destinations more like the benchmark.
 
 ```{r}
 distribution_raking <- validate_flow_distribution(
-  adj_df = baseline_results$raking_ratio,
+  adj_df = method_results$raking_ratio,
   benchmark_od_df = benchmark_od,
   method_name = "raking_ratio",
   weight_by = "benchmark_origin_total"
@@ -136,6 +136,7 @@ distribution_raking$summary
 ## Bayesian Validation
 
 When `adjust_multilevel_bayes()` is rendered with real OD distance, validate it
-with the same functions and compare it against the deterministic baselines.
-Bayesian validation should report both predictive performance and runtime/model
-diagnostics attached to the result object.
+with the same functions used for the other adjustment methods. Bayesian
+validation should report both predictive performance and runtime/model
+diagnostics attached to the result object, because its main innovation is an
+uncertainty-aware multilevel structure rather than a fixed adjustment rule.

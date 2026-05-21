@@ -1,6 +1,6 @@
 # Task Board
 
-Last updated: 2026-05-18
+Last updated: 2026-05-21
 
 This board turns the current roadmap into a short execution plan. Estimated effort is in rough person-hours.
 
@@ -9,10 +9,13 @@ The staged track below is intended to be implemented one stage per chat window. 
 ## Now
 
 1. Validate optional Bayesian CI workflow - `1-2h`
-- Fast deterministic GitHub Actions validation passed on merged PR #11.
-- Current branch fast deterministic tests pass locally.
+- Fast core GitHub Actions validation passed on merged PR #11.
+- Current branch fast core tests pass locally.
 - Local optional Bayesian test-file run passes with `rstanarm`; the remaining workflow check is the manual/optional GitHub Actions lane.
 - Confirm the optional/manual Bayesian lane on GitHub Actions when Bayesian-lane validation is required.
+- The full optional Bayesian implementation for the S1-S4 multilevel scenario
+  path has not been implemented yet; current S1-S4 development should proceed
+  through the frequentist engine first.
 - The default LAD empirical route now has selected-area distance support through
   `debiasRdata::lad_centroids`.
 
@@ -190,7 +193,7 @@ Tasks:
 - Returned scatter-plot-ready data and optional `ggplot2` scatter plots.
 
 5. Add tests and documentation.
-- Added deterministic tests in `tests/testthat/test-validate-bias-residual-structure.R`.
+- Added focused tests in `tests/testthat/test-validate-bias-residual-structure.R`.
 - Updated `scripts/run_fast_tests.R`.
 - Generated `man/validate_bias_residual_structure.Rd` and updated `NAMESPACE`.
 - Updated README, NEWS, status notes, test health notes, vignettes, and workflow diagrams.
@@ -200,7 +203,7 @@ Tasks:
 Deliverables:
 
 - [x] a Stage 3 design note with a clear residual definition for `measure_bias()`-related diagnostics
-- [x] a deterministic bias residual diagnostics helper or a documented extension to `measure_bias()`
+- [x] a bias residual diagnostics helper or a documented extension to `measure_bias()`
 - [x] spatial randomness summary and map-ready area data
 - [x] benchmark-flow and covariate correlation diagnostics
 - [x] focused tests and generated documentation
@@ -210,57 +213,100 @@ Deliverables:
 Decision gate:
 
 - Are the new bias diagnostics interpretable enough to keep in the main package API rather than only in analysis notes?
-- Stage 3 answer: yes, maintainer reviewed on 2026-05-05. The implementation uses deterministic coverage residuals directly linked to `measure_bias()`, includes a simple population-only linear-model residual for diagnostics, reuses the Stage 2 diagnostic interfaces, and keeps optional plotting dependency-light.
+- Stage 3 answer: yes, maintainer reviewed on 2026-05-05. The implementation uses reproducible coverage residuals directly linked to `measure_bias()`, includes a simple population-only linear-model residual for diagnostics, reuses the Stage 2 diagnostic interfaces, and keeps optional plotting dependency-light.
 
-### Stage 4: Validation Modelling Extension
+### Stage 4: Multilevel Model Scenario Extension
 
-Goal: extend the modelling strategy to origin-destination random effects under repeated-observation settings.
+Goal: extend `adjust_multilevel_bayes()` so one Bayesian path can support four
+mobile-phone-derived input scenarios.
 
 Estimated effort: `3-5 days`
 
-Status: `planned`
+Status: `in progress; frequentist-first scaffold implemented`
+
+Scenario plan:
+
+- See [MULTILEVEL_MODEL_SCENARIO_PLAN.md](MULTILEVEL_MODEL_SCENARIO_PLAN.md).
+- S1: single source, single time.
+- S2: single source, multiple times.
+- S3: multiple sources, single time.
+- S4: multiple sources, multiple times.
 
 Working recommendation:
 
-- Start with two separate example datasets, not one unified dataset.
-- Reason: this is clearer for users, keeps the two repeated-observation assumptions explicit, makes examples easier to explain, and reduces the risk of one overloaded schema trying to cover two conceptually different designs.
-- Revisit a unified internal representation only later if duplication becomes a real maintenance burden.
+- Add scenario support through parameters in `adjust_multilevel_bayes()`, not
+  separate exported functions.
+- Use MSOA-scale data for software development and internal stress testing.
+- Use LAD-scale data for vignettes and teaching materials.
+- Use `model_engine = "frequentist"` as the active development scaffold for
+  formula, data-shape, and runtime checks; skip new Bayesian scenario work until
+  the complete S1-S4 model contract is stable.
+- Keep `model_engine = "bayesian"` as the existing Stage-1 path and final
+  inferential target.
+- Full optional Bayesian S1-S4 support is explicitly not implemented in this
+  stage; it remains a later transfer step after the frequentist model contract
+  is complete.
 
-Tasks:
+Software-development tasks:
 
-1. Write a short design note before implementation.
-- Compare a two-dataset versus one-dataset approach explicitly.
-- Record why the default choice is two datasets unless a strong reason emerges to unify them.
-- Keep transparency and user-friendliness as the primary criteria, with computational efficiency secondary.
-- Before implementation, explicitly ask which datasets should be used for Stage 4 examples and modelling tests.
-- Confirm whether Stage 4 should use simulated data, empirical data, or one of each for the two formulations.
+1. Define the scenario parameters.
+- Decide whether users pass an explicit `scenario` argument, source/time column
+  arguments, or both.
+- Validate that S1-S4 are distinguishable from the supplied columns.
+- Keep existing observed-flow and complete-grid behavior backward compatible.
+- Implementation update: `scenario`, `source_col`, `time_col`,
+  `repeated_observation`, and `model_engine` are now parameters on
+  `adjust_multilevel_bayes()`. S2-S4 Bayesian use is explicitly deferred with a
+  clear error; current scenario development uses `model_engine =
+  "frequentist"`.
 
-2. Formulation A: repeated observations for an OD pair from a single data source.
-- Create a dataset to support this formulation.
-- Add level-1 variables needed to control temporal variation.
-- Decide what the minimum reproducible example should look like.
+2. Build the internal modelling scaffold.
+- Prototype formula and random-effect structures with a faster frequentist
+  implementation first.
+- Transfer the selected structure into the Bayesian backend only once the data
+  contract and output contract are stable.
+- Keep the frequentist path as a development engine option, not a separate
+  exported adjustment function.
+- Implementation update: the default frequentist formula contract is now
+  recorded in `MULTILEVEL_MODEL_SCENARIO_PLAN.md` and returned in
+  `model_terms` metadata. S1 has no source/time term; S2 adds `mpd_time`; S3
+  adds `mpd_source`; S4 adds `mpd_source + mpd_time`.
 
-3. Formulation B: repeated observations for an OD pair from multiple data sources.
-- Create a dataset to support this formulation.
-- Add level-1 variables needed to control data-source variation.
-- Decide what the minimum reproducible example should look like.
+3. Test against MSOA-scale inputs.
+- Use MSOA data for internal software tests and runtime checks because it is the
+  stricter scale for grid size and repeated observations.
+- Add focused tests for scenario detection, required columns, output metadata,
+  and compatibility with existing Bayesian prediction scopes.
+- Implementation update: the fast tier now includes deterministic MSOA-like
+  S1-S4 fixtures for default frequentist formula terms, metadata, and S4
+  complete-grid prediction.
 
-4. Improve modelling flexibility.
-- Explore an interface that lets users define the model they want to estimate.
-- Keep the modelling API transparent enough that users can see what is being fit.
-- Decide how much formula freedom is realistic without making the function too opaque or fragile.
+Vignette and teaching-material tasks:
 
-5. Validate the user-facing design.
-- Compare whether two separate datasets really do improve transparency and onboarding.
-- Check whether a single internal helper could still support both examples without exposing unnecessary complexity.
+1. Design LAD-scale examples.
+- Use LAD data for user-facing vignettes because it is easier to render,
+  explain, and teach.
+- Keep examples small enough for optional Bayesian dependencies and vignette
+  rendering constraints.
+
+2. Teach the four scenarios separately.
+- Start with S1 as the baseline.
+- Introduce time effects with S2, source effects with S3, and the combined
+  source-time setting with S4.
+- Make clear that the frequentist engine is for development iteration and that
+  the intended final inferential method is Bayesian.
 
 Deliverables:
 
-- a written modelling design note
-- one example dataset for single-source repeated OD observations
-- one example dataset for multi-source repeated OD observations
-- a recommendation on flexible model specification
+- [x] a written multilevel model scenario plan
+- [x] scenario parameters for `adjust_multilevel_bayes()`
+- [x] internal MSOA-like software tests for S1-S4 data contracts
+- [ ] LAD vignette examples for the teachable scenario path
+- [ ] a documented decision on when the frequentist development engine is ready to
+  transfer into the Bayesian implementation
 
 Decision gate:
 
-- Do two separate datasets remain the clearest path for users after we draft the examples, or is there a strong enough maintenance case to justify a unified structure?
+- Do the S1-S4 parameters make the Bayesian path flexible enough for mobile
+  phone-derived inputs without turning `adjust_multilevel_bayes()` into an
+  opaque general modelling wrapper?

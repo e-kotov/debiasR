@@ -168,7 +168,7 @@ eq_stack <- function(...) {
 method_summary <- tibble::tribble(
   ~Method, ~Rationale, ~Equation, ~`Benchmark<br>population`, ~`Active<br>users`, ~`Benchmark<br>OD flows`, ~`Digital<br>OD flows`, ~Covariates, ~Assumptions, ~Strengths, ~Weaknesses, ~`Suitability<br>for OD flows`, ~`Validation<br>strategy`,
   "<code>adjust_inverse_penetration()</code>",
-  "Inflate observed flows using population-to-user ratios where coverage is thin.<br/>Good transparent baseline when bias is mainly under-coverage.",
+  "Inflate observed flows using population-to-user ratios where coverage is thin.<br/>Good transparent option when bias is mainly under-coverage.",
   eq_stack(
     "<i>w</i><sub>i</sub> = P<sub>i</sub> / U<sub>i</sub>",
     "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; <i>w</i><sub>i</sub>, <i>w</i><sub>j</sub>, or &radic;(<i>w</i><sub>i</sub><i>w</i><sub>j</sub>)"
@@ -177,7 +177,7 @@ method_summary <- tibble::tribble(
   "Coverage bias is roughly proportional to penetration; origin/destination weights capture most bias.",
   "Simple, transparent, cheap, no benchmark OD needed.",
   "Can overinflate sparse areas; misses compositional and structural selection bias.",
-  "Good baseline for observed OD correction; weaker for nuanced structural bias.",
+  "Good option for observed OD correction; weaker for nuanced structural bias.",
   "<code>validate_flow_overall()</code> for fit metrics; <code>validate_flow_residuals()</code> to inspect large OD corrections.",
 
   "<code>adjust_selection_rate()</code>",

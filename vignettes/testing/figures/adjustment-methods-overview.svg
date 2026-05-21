@@ -80,5 +80,5 @@
   <rect class="chip-box" x="1012" y="404" width="100" height="28" rx="14" ry="14" /><text class="chip" x="1062" y="423" text-anchor="middle">Covariates</text>
   <rect class="chip-box" x="1124" y="404" width="88" height="28" rx="14" ry="14" /><text class="chip" x="1168" y="423" text-anchor="middle">Distance</text>
 
-  <text class="foot" x="700" y="875" text-anchor="middle">The first five methods are deterministic adjustment routines. The sixth is the current Bayesian prototype path.</text>
+  <text class="foot" x="700" y="875" text-anchor="middle">The package offers several adjustment options. The Bayesian multilevel path is the current uncertainty-aware prototype.</text>
 </svg>

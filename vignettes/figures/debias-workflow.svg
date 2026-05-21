@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="420" viewBox="0 0 1080 420" role="img" aria-labelledby="title desc">
   <title id="title">debiasR origin-destination workflow</title>
-  <desc id="desc">Mobile phone derived origin-destination flows, benchmark data, and covariates feed a three stage workflow: measure bias, adjust bias with a Bayesian multilevel model, and validate adjusted OD flows.</desc>
+  <desc id="desc">Mobile phone derived origin-destination flows, benchmark data, and covariates feed a three stage workflow: measure bias, adjust bias with a menu of methods including a Bayesian multilevel model, and validate adjusted OD flows.</desc>
   <defs>
     <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
       <path d="M2,2 L10,6 L2,10 Z" fill="#121282"/>
@@ -34,10 +34,10 @@
   <line x1="526" y1="201" x2="600" y2="201" class="line"/>
   <rect x="604" y="96" width="214" height="210" class="bayes"/>
   <text x="634" y="132" class="label">2. Adjust</text>
-  <text x="634" y="170" class="text">Bayesian multilevel model</text>
+  <text x="634" y="170" class="text">menu of adjustment methods</text>
   <text x="634" y="202" class="text">log(mu<tspan baseline-shift="sub" font-size="10">ij</tspan>) = f(X<tspan baseline-shift="sub" font-size="10">i</tspan>, X<tspan baseline-shift="sub" font-size="10">j</tspan>, d<tspan baseline-shift="sub" font-size="10">ij</tspan>, e<tspan baseline-shift="sub" font-size="10">i</tspan>)</text>
-  <text x="634" y="236" class="text">compare deterministic baselines</text>
-  <text x="634" y="266" class="small">inverse weighting, raking, coefficients</text>
+  <text x="634" y="236" class="text">Bayesian multilevel innovation</text>
+  <text x="634" y="266" class="small">weighting, raking, calibration</text>
   <line x1="818" y1="201" x2="892" y2="201" class="line"/>
   <rect x="896" y="96" width="136" height="210" class="primary"/>
   <text x="922" y="132" class="label">3. Validate</text>

@@ -12,8 +12,8 @@ execute:
 
 ## Purpose
 
-This vignette compares the stable deterministic adjustment methods in `debiasR`
-and includes the Bayesian helper as the main experimental prototype:
+This vignette compares the implemented adjustment methods in `debiasR` and
+includes the Bayesian helper as the main experimental prototype:
 
 1. `adjust_inverse_penetration`
 2. `adjust_selection_rate`
@@ -28,8 +28,8 @@ It uses a fast but fair comparison protocol:
 2. repeated over multiple seeds,
 3. Bayesian prototype with lighter MCMC settings for illustration.
 
-`adjust_multilevel_bayes()` is not part of the stable deterministic path. Treat
-Method 6 results here as exploratory unless the optional Bayesian diagnostics,
+`adjust_multilevel_bayes()` is the main methodological innovation. Treat Method
+6 results here as exploratory unless the optional Bayesian diagnostics,
 complete-grid checks, and runtime gate are explicitly reviewed for the rendered
 data.
 
