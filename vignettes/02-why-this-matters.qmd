@@ -1,5 +1,5 @@
 ---
-title: "Why This Matters"
+title: "Why this matters"
 format:
   html:
     toc: true
@@ -9,39 +9,52 @@ execute:
   message: false
 ---
 
-Mobile-phone-derived mobility data can provide timely evidence on population
-movement, commuting, displacement, transport demand, and service catchments. The
-same data are also selective. People, places, devices, operators, and observation
-windows are not represented evenly.
+Mobile-phone-derived location records can provide timely evidence on where
+people are located and how they move between places. However, these records do
+not represent all people and places equally. Some groups, areas, devices,
+operators and time periods may be more visible in the data than others because
+people differ in phone ownership and use, operators differ in market share and
+network coverage, and some observation windows capture some movements better than
+others.
 
-## The Challenge
 
-An observed device count is not a population count. An observed OD flow is not a
-neutral measurement of the true movement system. If mobile phone data under-cover
-some places and over-cover others, then the observed OD matrix can reproduce
-those inequalities as if they were mobility patterns.
+## The challenge
 
-In notation, the observed flow \(F^{mpd}_{ij}\) can differ from the target flow
-\(F^{bench}_{ij}\) or the unobserved true flow because coverage varies across
-origins, destinations, and social contexts. Area \(i\) may have population
-\(P_i\), observed active users \(U_i\), coverage score \(p_i = U_i / P_i\), and
-coverage bias \(b_i = 1 - p_i\).
+A population count based on active devices does not always represent the true population count. Similarly, OD flows derived from mobile phone data do not necessarily
+represent the true number of people moving from an origin location to a
+destination location. Mobile phone records may underrepresent populations and
+flows in some places and overrepresent them in others.
+
+A common way to assess whether mobile phone data offer a good representation of the underlying population is to ask whether observed device counts are approximately proportional to benchmark population counts across areas. This assessment can be useful as a quick "sanity check", but it is not enough to establish whether the data are representative. A dataset can scale well with the benchmark population overall while still being systematically too high in some places and too low in others. Looking at residuals helps reveal these local departures from the overall pattern. If the residuals are related to local population characteristics, then the errors are not random. Instead, they suggest that some types of places or populations are more visible in the data than others.
+
+In notation, $U_i$ is the observed digital trace population count in area $i$,
+and $P_i$ is the benchmark population for the same area. A simple proportional
+comparison would ask whether $U_i$ scales consistently with $P_i$ across areas. The
+remaining differences after this comparison are residuals, which show where the
+digital trace data are higher or lower than expected. For OD flows, the same
+logic applies to comparisons between observed mobile-phone-derived flows
+$F^{mpd}_{ij}$ and benchmark flows $F^{bench}_{ij}$ between origin
+$i$ and destination $j$, if these benchmarks are available.
+
 
 ## Consequences
 
 If these biases are ignored, downstream estimates can mislead decisions:
 
 - displacement analysis can miss groups with low digital coverage
-- transport models can overstate movement from highly observed areas
-- public health exposure estimates can inherit spatial coverage bias
-- company data products can be used outside the populations they represent
-- policy comparisons can confuse data availability with real mobility
+- transport models can overstate movement from overrepresented areas
+- estimates of exposure to hazards, disease outbreaks or service disruptions can reflect
+  uneven data coverage rather than true population exposure
+- data from one mobile operator, app or platform can be mistaken for evidence
+  about the whole population
+- policy comparisons between places can reflect differences in data coverage
+  rather than real differences in movement
 
 The problem is not that mobile-phone-derived data are unusable. The problem is
 that their measurement process must be made visible, adjusted where possible,
 and validated against external evidence.
 
-## What `debiasR` Adds
+## What `debiasR` adds
 
 `debiasR` supports a practical workflow:
 
@@ -49,6 +62,7 @@ and validated against external evidence.
 - model how bias varies across places
 - adjust OD flows using deterministic baselines and a Bayesian multilevel model
 - validate adjusted flows against benchmark OD data
+<!-- - integrate multiple digital trace data sources for improved estimates of population counts and flows -->
 
 The package's main innovation is `adjust_multilevel_bayes()`. It treats observed
 OD flows as biased counts and estimates adjusted flows through a multilevel count
@@ -58,9 +72,8 @@ because they are transparent comparators: they help users understand what the
 Bayesian model improves, where it agrees with simpler corrections, and where it
 does not.
 
-## What Adjustment Enables
+## What adjustment enables
 
 After adjustment, users can compare raw and adjusted OD matrices, inspect which
-places changed most, and assess whether the adjusted data better reproduce
-benchmark flows. Adjustment does not remove the need for judgement. It makes the
-assumptions explicit enough to test, discuss, and report.
+places changed most and assess whether the adjusted data better reproduce
+benchmark flows. While bias adjustment does not remove the need for caution in drawing conclusions from the data, it makes the assumptions explicit enough to test, discuss and report results with greater confidence.
