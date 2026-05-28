@@ -133,14 +133,3 @@ The vignettes use the same notation throughout:
     example
 -   $F^{bench}_{ij}$: benchmark OD flow
 -   $F^{adj}_{ij}$: adjusted OD flow
-
-## Vignette map
-
-1.  Landing page and workflow overview
-2.  Why biased mobile-phone-derived mobility data matter
-3.  Getting set up with `debiasR` and `debiasRdata`
-4.  Measuring coverage bias
-5.  Identifying and explaining bias
-6.  Adjusting bias, centred on the Bayesian multilevel model
-7.  Validating adjusted OD flows
-8.  Describing the package example data
