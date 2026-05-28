@@ -1,8 +1,7 @@
 ---
-title: "Getting Set Up With debiasR"
+title: "Getting started with debiasR"
 format:
   html:
-    html-math-method: mathml
     toc: true
 execute:
   echo: true
@@ -12,86 +11,128 @@ execute:
 
 ## Aim
 
-This vignette shows how to load `debiasR`, access the empirical example data,
-and check that the OD matrices have valid support before using them for method
-demonstrations.
+This vignette introduces the example data used throughout the `debiasR`
+vignettes and shows the first checks needed before measuring bias, adjusting OD flows and validating results.
 
-## Package Setup
+A typical `debiasR` workflow starts by:
 
-Install `debiasR` from the project repository or load it from the current
-checkout during development. The empirical examples use the optional
-`debiasRdata` package, available from the DEBIAS GitHub organisation:
+- loading the package and necessary data
+- identifying the population count table, OD-flow table and optional benchmark flow table
+- checking that the observed and benchmark population and OD-flow tables use compatible areas and valid population and flow values
 
-```r
-remotes::install_github("de-bias/debiasRdata")
-```
+## Loading the package
+
+The previous vignette showed how to install `debiasR` and the optional `debiasRdata` package. Here we load the package and prepare the shared setup used by the remaining vignettes.
 
 ```{r setup}
 common_path <- if (file.exists("_common.R")) "_common.R" else "vignettes/_common.R"
 source(common_path)
-load_debiasr_workshop()
+example_data <- load_workshop_example(n_areas = 25, complete_grid = TRUE)
 ```
 
-## Load Empirical Example Data
+## Example data: Locomizer travel-to-work flows
 
-The vignettes use `debiasR_example_data()` so all inputs are normalised to the
-same package schema. The main demonstrations request complete OD support:
-matching origin and destination area sets, no duplicated OD pairs, nonnegative
-flows, and zero-filled absent pairs.
+The vignettes use an empirical example at Local Authority District (LAD) level, combining mobile-phone mobility data provided by Locomizer with benchmark data from the 2021 UK Census. Locomizer is a spatial analytics company that processes anonymised mobile phone location data to produce mobility-related insights. In this example, the observed OD-flow table represents travel-to-work flows inferred from those mobile phone records, while the benchmark OD-flow table comes from the 2021 Census travel-to-work data.
+
+The first step is to identify the core inputs for the `debiasR` workflow, i.e. the observed OD-flow table, the benchmark OD-flow table and the area-level coverage table used to measure population coverage bias. Here we load a bounded LAD example through the shared workshop helper.
 
 ```{r}
-example_data <- load_workshop_example(n_areas = 25, complete_grid = TRUE)
+OD_travel2work <- example_data$mpd_od
+census_OD_travel2work <- example_data$benchmark_od
+coverage <- example_data$coverage |>
+  mutate(
+    area = origin,
+    name = origin
+  )
+```
 
-mpd_od <- example_data$mpd_od
-benchmark_od <- example_data$benchmark_od
-coverage <- example_data$coverage
+The example data available via `debiasRdata` also includes supporting inputs used in later vignettes. Particularly, `covariates`, which contains area-level characteristics used to explain variation in bias across places, and `distance`, which contains distance between origin and destination areas, used by flow adjustment models.
+
+```{r}
 covariates <- example_data$covariates
 distance <- example_data$distance
 ```
 
-## Inspect Inputs
+In summary, the main input datasets are:
+
+| Object | Role |
+|---|---|
+| `OD_travel2work` | observed mobile-phone-derived OD flows |
+| `census_OD_travel2work` | benchmark OD flows from the Census |
+| `coverage` | area-level benchmark and observed digital trace population counts |
+| `covariates` | area-level characteristics used to explain bias |
+| `distance` | OD distance used in adjustment models |
+
+
+## Inspect inputs
+
+Before proceeding to the next steps of the workflow, it is useful to check and understand what each input dataset contains and whether the inputs are valid.
+
+Below, we produce a compact row and column count, which gives a quick overview of the size of the main datasets. If the workflow includes $N$ areas and within-area flows are included, a complete OD-flow table has $N \times N$ rows: one row for every possible origin-destination pair. If within-area flows are excluded, the complete table has $N \times (N - 1)$ rows. If the table only records observed flows, it can have fewer rows, because OD pairs with no recorded flow may be absent. The `coverage` table should have one row per area, so it should contain $N$ rows.
+
+For the supporting tables, `covariates` table should also have one row per area, with columns describing area-level characteristics used to explain variation in bias. The `distance` table is an OD table, so it should contain one row per origin-destination pair and a distance measure for that pair.
 
 ```{r}
-example_data$metadata
+
+nrow(OD_travel2work)
+nrow(census_OD_travel2work)
+nrow(coverage)
+nrow(covariates)
+nrow(distance)
 ```
 
+Next, we can explore the content of each table. We print the column names and the first few rows to show basic structure of the core workflow tables.
+
+### Observed flows
+
+The `OD_travel2work` table is the observed mobile-phone-derived OD-flow
+table. Each row represents a flow from a home area (in this case, a Local Authority District or LAD), stored in `origin`, to a
+workplace area, stored in `destination`. The `flow` column gives the observed
+number of mobile-phone-derived travel-to-work movements for that OD pair.
+
+Because the example was loaded with `complete_grid = TRUE`, the table also
+contains row-status columns. These indicate whether an OD pair was observed in
+the original Locomizer-derived data or added during complete-grid construction
+with a zero flow. This makes the observed and benchmark OD tables easier to
+compare because they share the same set of origin-destination pairs.
+
+The column `mpd_source` identifies the data source. The columns `mpd_observed`,
+`mpd_zero_filled` and `mpd_row_status` describe whether the row was present in
+the original observed data or added as a zero-filled OD pair. Rows marked as
+`mpd_observed = TRUE` were present in the Locomizer OD table; rows marked as
+`mpd_zero_filled = TRUE` were added so that all possible OD pairs among the selected areas are represented.
+
 ```{r}
-example_data$od_audit
+head(OD_travel2work)
 ```
 
+
+### Benchmark flows
+
+The `census_OD_travel2work` table is the benchmark OD-flow table. Each row
+represents a Census travel-to-work flow from a home area, stored in `origin`, to a workplace area, stored in `destination`. The `flow` column gives the benchmark number of people travelling from the origin to the destination.
+
+As with the observed-flow table, the benchmark table includes row-status columns
+because the example was loaded with `complete_grid = TRUE`.
+`benchmark_observed`, `benchmark_zero_filled` and `benchmark_row_status` show
+whether each OD pair was present in the original Census table or added as a
+zero-filled pair to align the benchmark and observed OD grids.
+
 ```{r}
-tibble::tibble(
-  table = c(
-    "mpd_od",
-    "benchmark_od",
-    "coverage",
-    "covariates",
-    "distance"
-  ),
-  rows = c(
-    nrow(mpd_od),
-    nrow(benchmark_od),
-    nrow(coverage),
-    nrow(covariates),
-    nrow(distance)
-  ),
-  columns = c(
-    ncol(mpd_od),
-    ncol(benchmark_od),
-    ncol(coverage),
-    ncol(covariates),
-    ncol(distance)
-  )
-)
+head(census_OD_travel2work)
 ```
 
-## First Rows
+### Population counts
+
+The `coverage` dataset is the area-level population count table used to measure bias. Each row represents one spatial unit. The `population` column gives the benchmark population count for the area, taken from the UK 2021 Census. The `user_count` column gives the observed digital trace population count, based on the number of users with detected home locations in that area.
+
+Home locations have been inferred from anonymised mobile-phone location records before movements are aggregated into travel-to-work OD flows. Further details on the home and work detection process are provided by Zhong et al. (2025).
 
 ```{r}
-head(mpd_od)
-head(benchmark_od)
 head(coverage)
-head(covariates)
 ```
 
-The data are described in detail in `08-data.qmd`.
+The key comparison is between $U_i$, the observed digital trace user count,
+and $P_i$, the benchmark population count. The next vignette uses these values
+to calculate coverage score $p_i = U_i / P_i$ and coverage bias
+$b_i = 1 - p_i$.
