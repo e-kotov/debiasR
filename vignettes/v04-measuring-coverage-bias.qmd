@@ -41,13 +41,22 @@ So, if an area has $p_i = 0.04$, the digital trace data cover about 4 people per
 We use the LAD coverage table from `debiasRdata`. The table contains benchmark Census population counts and Locomizer-derived digital trace population counts for each LAD.
 
 ```{r setup}
-input_dir <- dirname(knitr::current_input(dir = TRUE))
-debiasr_pkg_root <- normalizePath(file.path(input_dir, ".."), mustWork = FALSE)
-common_path <- file.path(input_dir, "_common.R")
-if (!file.exists(common_path)) {
-  common_path <- if (file.exists("_common.R")) "_common.R" else "vignettes/_common.R"
+input_file <- knitr::current_input(dir = TRUE)
+input_dir <- if (is.null(input_file)) {
+  candidates <- c(".", "vignettes", "../vignettes", "../../vignettes")
+  candidates[file.exists(file.path(candidates, "_common.R"))][1]
+} else {
+  dirname(input_file)
 }
-source(common_path)
+if (is.na(input_dir)) {
+  stop(
+    "Could not find vignettes/_common.R. ",
+    "Set the working directory to the debiasR package root or vignettes folder."
+  )
+}
+input_dir <- normalizePath(input_dir, mustWork = TRUE)
+debiasr_pkg_root <- normalizePath(file.path(input_dir, ".."), mustWork = FALSE)
+source(file.path(input_dir, "_common.R"))
 example_data <- load_workshop_example(n_areas = 25, complete_grid = TRUE)
 library(ggplot2)
 ```

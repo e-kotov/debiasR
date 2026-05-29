@@ -7,7 +7,7 @@
 #'   \item \eqn{P_i^{(O)}, P_j^{(D)}}: population at origin \eqn{i} and destination \eqn{j}
 #'   \item \eqn{U_i^{(O)}, U_j^{(D)}}: active users at origin \eqn{i} and destination \eqn{j}
 #'   \item \eqn{p_i^{(O)} = U_i^{(O)}/P_i^{(O)}} and \eqn{p_j^{(D)} = U_j^{(D)}/P_j^{(D)}}: penetration
-#'   \item \eqn{I_i, I_j \in [0,1]}: normalized income covariate
+#'   \item \eqn{I_i, I_j \in [0,1]}: normalized selected covariate
 #'   \item \eqn{r_t > 0}: global selection parameter
 #'   \item \eqn{F_{ij}^{mpd}} and \eqn{F_{ij}^{adj}}: observed and adjusted flows
 #' }
@@ -24,7 +24,7 @@
 #' \eqn{w_{ij} = w_j^{(D)}} for \code{weight_by = "destination"}, and
 #' \eqn{w_{ij} = \sqrt{w_i^{(O)} w_j^{(D)}}} for \code{weight_by = "both"}.
 #'
-#' with flexible income covariates and optional calibration of r_t
+#' with flexible area-level covariates and optional calibration of r_t
 #' against benchmark OD flows.
 #'
 #' Coverage formats:
@@ -37,7 +37,7 @@
 #' Optional covariates:
 #'   covariates_df with:
 #'     area,
-#'     an income-like column (specified via `income_col` or auto-detected),
+#'     a numeric area-level covariate column (specified via `covariate_col`),
 #'     optional mpd_source.
 #'
 #' r_t handling:
@@ -53,10 +53,12 @@
 #' @param coverage_df Data frame in NEW or LEGACY schema.
 #' @param covariates_df Optional data frame with columns:
 #'   - area
-#'   - income-like column
+#'   - a numeric area-level covariate column
 #'   - optional mpd_source
-#' @param income_col Optional name of income column in `covariates_df`.
-#'   If NULL, auto-detect among:
+#' @param covariate_col Optional name of the numeric area-level covariate column
+#'   in `covariates_df`. The selected covariate is normalized to the 0-1 range
+#'   internally before weights are computed. If NULL, auto-detect among legacy
+#'   income-like names:
 #'   `income_norm, gni_pc, income, inc, gni, income_2000, income_2010`.
 #' @param weight_by "origin", "destination", or "both".
 #' @param r_global Optional scalar r_t. Overrides calibration if given.
@@ -70,6 +72,8 @@
 #' @param clip_min Lower bound used to clamp weights. Default 0.
 #' @param clip_max Upper bound used to clamp weights. Default Inf.
 #' @param keep_cols Extra columns from `mpd_od_df` to keep.
+#' @param ... Deprecated arguments. `income_col` is accepted here as a legacy
+#'   alias for `covariate_col`.
 #'
 #' @return Tibble with:
 #'   origin, destination, mpd_source, flow,
@@ -81,7 +85,7 @@
 adjust_selection_rate <- function(mpd_od_df,
                                    coverage_df,
                                    covariates_df = NULL,
-                                   income_col = NULL,
+                                   covariate_col = NULL,
                                    weight_by = c("origin", "destination", "both"),
                                    r_global = NULL,
                                    benchmark_od_df = NULL,
@@ -90,9 +94,24 @@ adjust_selection_rate <- function(mpd_od_df,
                                    calibration_aggregate = c("origin", "od"),
                                    clip_min = 0,
                                    clip_max = Inf,
-                                   keep_cols = character()) {
+                                   keep_cols = character(),
+                                   ...) {
   weight_by <- match.arg(weight_by)
   calibration_aggregate <- match.arg(calibration_aggregate)
+
+  dots <- list(...)
+  legacy_income_col <- dots$income_col
+  dots$income_col <- NULL
+  if (length(dots) > 0L) {
+    stop("Unused argument(s): ", paste(names(dots), collapse = ", "))
+  }
+  if (!is.null(covariate_col) && !is.null(legacy_income_col) &&
+      !identical(covariate_col, legacy_income_col)) {
+    stop("Use only one of `covariate_col` or legacy `income_col`.")
+  }
+  if (is.null(covariate_col) && !is.null(legacy_income_col)) {
+    covariate_col <- legacy_income_col
+  }
 
   # -------- basic checks --------
   req_mpd <- c("origin", "destination", "flow", "mpd_source")
@@ -137,7 +156,7 @@ adjust_selection_rate <- function(mpd_od_df,
     if (v_max > v_min) (v - v_min) / (v_max - v_min) else rep(NA_real_, length(v))
   }
 
-  infer_income_from_coverage <- function(df, prefix = NULL) {
+  infer_covariate_from_coverage <- function(df, prefix = NULL) {
     cand <- c(
       if (!is.null(prefix)) paste0(prefix, c("income", "gni_pc", "gni")),
       "income", "gni_pc", "gni"
@@ -148,34 +167,35 @@ adjust_selection_rate <- function(mpd_od_df,
     ifelse(is.finite(inc), inc, 1)
   }
 
-  # -------- build covariate income_norm (if provided) --------
-  cov_income <- NULL
+  # -------- build normalized selected covariate (if provided) --------
+  covariate_values <- NULL
   if (!is.null(covariates_df)) {
     if (!"area" %in% names(covariates_df)) {
       stop("`covariates_df` must contain column `area`.")
     }
 
-    if (!is.null(income_col)) {
-      if (!income_col %in% names(covariates_df)) {
-        stop("`income_col` = '", income_col, "' not found in `covariates_df`.")
+    if (!is.null(covariate_col)) {
+      if (!covariate_col %in% names(covariates_df)) {
+        stop("`covariate_col` = '", covariate_col, "' not found in `covariates_df`.")
       }
-      income_col_use <- income_col
+      covariate_col_use <- covariate_col
     } else {
       cand_auto <- c("income_norm", "gni_pc", "income", "inc", "gni",
                      "income_2000", "income_2010")
-      income_col_use <- cand_auto[cand_auto %in% names(covariates_df)][1]
-      if (is.na(income_col_use)) income_col_use <- NULL
+      covariate_col_use <- cand_auto[cand_auto %in% names(covariates_df)][1]
+      if (is.na(covariate_col_use)) covariate_col_use <- NULL
     }
 
-    if (!is.null(income_col_use)) {
-      inc_norm <- normalize01(covariates_df[[income_col_use]])
-      cov_income <- covariates_df %>%
+    if (!is.null(covariate_col_use)) {
+      covariate_norm <- normalize01(covariates_df[[covariate_col_use]])
+      covariate_values <- covariates_df %>%
         dplyr::transmute(
           area = as.character(.data$area),
-          mpd_source = if ("mpd_source" %in% names(covariates_df))
-            .data$mpd_source else NA_character_,
-          income_norm = inc_norm
+          covariate_norm = covariate_norm
         )
+      if ("mpd_source" %in% names(covariates_df)) {
+        covariate_values$mpd_source <- covariates_df$mpd_source
+      }
     }
   }
 
@@ -194,19 +214,19 @@ adjust_selection_rate <- function(mpd_od_df,
       ) %>%
       dplyr::filter(is.finite(P_o), P_o > 0, is.finite(U_o), U_o > 0)
 
-    if (!is.null(cov_income)) {
-      if ("mpd_source" %in% names(cov_income)) {
+    if (!is.null(covariate_values)) {
+      if ("mpd_source" %in% names(covariate_values)) {
         cov_o_pre <- cov_o_pre %>%
-          dplyr::left_join(cov_income,
+          dplyr::left_join(covariate_values,
                            by = c("origin" = "area", "mpd_source"))
       } else {
         cov_o_pre <- cov_o_pre %>%
-          dplyr::left_join(cov_income, by = c("origin" = "area"))
+          dplyr::left_join(covariate_values, by = c("origin" = "area"))
       }
-      Income_o <- ifelse(is.finite(cov_o_pre$income_norm),
-                         cov_o_pre$income_norm, NA_real_)
+      Income_o <- ifelse(is.finite(cov_o_pre$covariate_norm),
+                         cov_o_pre$covariate_norm, NA_real_)
     } else {
-      Income_o <- infer_income_from_coverage(cov_o_pre, prefix = "origin_")
+      Income_o <- infer_covariate_from_coverage(cov_o_pre, prefix = "origin_")
     }
     Income_o[!is.finite(Income_o)] <- 1
     cov_o_pre$Income_o <- Income_o
@@ -222,19 +242,19 @@ adjust_selection_rate <- function(mpd_od_df,
       ) %>%
       dplyr::filter(is.finite(P_d), P_d > 0, is.finite(U_d), U_d > 0)
 
-    if (!is.null(cov_income)) {
-      if ("mpd_source" %in% names(cov_income)) {
+    if (!is.null(covariate_values)) {
+      if ("mpd_source" %in% names(covariate_values)) {
         cov_d_pre <- cov_d_pre %>%
-          dplyr::left_join(cov_income,
+          dplyr::left_join(covariate_values,
                            by = c("destination" = "area", "mpd_source"))
       } else {
         cov_d_pre <- cov_d_pre %>%
-          dplyr::left_join(cov_income, by = c("destination" = "area"))
+          dplyr::left_join(covariate_values, by = c("destination" = "area"))
       }
-      Income_d <- ifelse(is.finite(cov_d_pre$income_norm),
-                         cov_d_pre$income_norm, NA_real_)
+      Income_d <- ifelse(is.finite(cov_d_pre$covariate_norm),
+                         cov_d_pre$covariate_norm, NA_real_)
     } else {
-      Income_d <- infer_income_from_coverage(cov_d_pre, prefix = "destination_")
+      Income_d <- infer_covariate_from_coverage(cov_d_pre, prefix = "destination_")
     }
     Income_d[!is.finite(Income_d)] <- 1
     cov_d_pre$Income_d <- Income_d
@@ -251,18 +271,18 @@ adjust_selection_rate <- function(mpd_od_df,
       ) %>%
       dplyr::filter(is.finite(P), P > 0, is.finite(U), U > 0)
 
-    if (!is.null(cov_income)) {
-      if ("mpd_source" %in% names(cov_income)) {
+    if (!is.null(covariate_values)) {
+      if ("mpd_source" %in% names(covariate_values)) {
         cov_base_pre <- cov_base_pre %>%
-          dplyr::left_join(cov_income, by = c("area", "mpd_source"))
+          dplyr::left_join(covariate_values, by = c("area", "mpd_source"))
       } else {
         cov_base_pre <- cov_base_pre %>%
-          dplyr::left_join(cov_income, by = "area")
+          dplyr::left_join(covariate_values, by = "area")
       }
-      Income <- ifelse(is.finite(cov_base_pre$income_norm),
-                       cov_base_pre$income_norm, NA_real_)
+      Income <- ifelse(is.finite(cov_base_pre$covariate_norm),
+                       cov_base_pre$covariate_norm, NA_real_)
     } else {
-      Income <- infer_income_from_coverage(cov_base_pre, prefix = NULL)
+      Income <- infer_covariate_from_coverage(cov_base_pre, prefix = NULL)
     }
     Income[!is.finite(Income)] <- 1
     cov_base_pre$Income <- Income

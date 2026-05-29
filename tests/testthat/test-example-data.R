@@ -65,6 +65,29 @@ test_that("debiasR_example_data normalises empirical travel-to-work files", {
   expect_equal(ex$metadata$geography, "lad")
 })
 
+test_that("debiasR_example_data returns real debiasRdata covariates when available", {
+  testthat::skip_if_not_installed("debiasRdata")
+
+  ex <- debiasR_example_data(
+    n_areas = 5,
+    complete_grid = TRUE,
+    geography = "lad"
+  )
+
+  expect_equal(ex$metadata$covariate_source, "debiasRdata::lad_covariates")
+  expect_identical(sort(ex$covariates$area), sort(ex$coverage$origin))
+  expect_equal(anyDuplicated(ex$covariates$area), 0L)
+  expect_true(all(c(
+    "name",
+    "year",
+    "per_age_20.29",
+    "per_age_70plus",
+    "per_level4",
+    "rural_pct"
+  ) %in% names(ex$covariates)))
+  expect_false("income_norm" %in% names(ex$covariates))
+})
+
 test_that("debiasR_example_data can return strict complete square OD support", {
   mpd_path <- tempfile(fileext = ".csv")
   census_path <- tempfile(fileext = ".csv")

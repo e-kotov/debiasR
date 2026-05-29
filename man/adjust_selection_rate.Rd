@@ -8,7 +8,7 @@ adjust_selection_rate(
   mpd_od_df,
   coverage_df,
   covariates_df = NULL,
-  income_col = NULL,
+  covariate_col = NULL,
   weight_by = c("origin", "destination", "both"),
   r_global = NULL,
   benchmark_od_df = NULL,
@@ -17,7 +17,8 @@ adjust_selection_rate(
   calibration_aggregate = c("origin", "od"),
   clip_min = 0,
   clip_max = Inf,
-  keep_cols = character()
+  keep_cols = character(),
+  ...
 )
 }
 \arguments{
@@ -28,12 +29,14 @@ adjust_selection_rate(
 \item{covariates_df}{Optional data frame with columns:
 \itemize{
 \item area
-\item income-like column
+\item a numeric area-level covariate column
 \item optional mpd_source
 }}
 
-\item{income_col}{Optional name of income column in \code{covariates_df}.
-If NULL, auto-detect among:
+\item{covariate_col}{Optional name of the numeric area-level covariate column
+in \code{covariates_df}. The selected covariate is normalized to the 0-1 range
+internally before weights are computed. If NULL, auto-detect among legacy
+income-like names:
 \verb{income_norm, gni_pc, income, inc, gni, income_2000, income_2010}.}
 
 \item{weight_by}{"origin", "destination", or "both".}
@@ -56,6 +59,9 @@ Default \code{seq(0, 3, by = 0.01)} as in Chi et al.}
 \item{clip_max}{Upper bound used to clamp weights. Default Inf.}
 
 \item{keep_cols}{Extra columns from \code{mpd_od_df} to keep.}
+
+\item{...}{Deprecated arguments. \code{income_col} is accepted here as a legacy
+alias for \code{covariate_col}.}
 }
 \value{
 Tibble with:
@@ -74,7 +80,7 @@ Notation used throughout:
 \item \eqn{P_i^{(O)}, P_j^{(D)}}: population at origin \eqn{i} and destination \eqn{j}
 \item \eqn{U_i^{(O)}, U_j^{(D)}}: active users at origin \eqn{i} and destination \eqn{j}
 \item \eqn{p_i^{(O)} = U_i^{(O)}/P_i^{(O)}} and \eqn{p_j^{(D)} = U_j^{(D)}/P_j^{(D)}}: penetration
-\item \eqn{I_i, I_j \in [0,1]}: normalized income covariate
+\item \eqn{I_i, I_j \in [0,1]}: normalized selected covariate
 \item \eqn{r_t > 0}: global selection parameter
 \item \eqn{F_{ij}^{mpd}} and \eqn{F_{ij}^{adj}}: observed and adjusted flows
 }
@@ -91,7 +97,7 @@ with \eqn{w_{ij} = w_i^{(O)}} for \code{weight_by = "origin"},
 \eqn{w_{ij} = w_j^{(D)}} for \code{weight_by = "destination"}, and
 \eqn{w_{ij} = \sqrt{w_i^{(O)} w_j^{(D)}}} for \code{weight_by = "both"}.
 
-with flexible income covariates and optional calibration of r_t
+with flexible area-level covariates and optional calibration of r_t
 against benchmark OD flows.
 
 Coverage formats:
@@ -104,7 +110,7 @@ origin, population, user_count, mpd_source
 Optional covariates:
 covariates_df with:
 area,
-an income-like column (specified via \code{income_col} or auto-detected),
+a numeric area-level covariate column (specified via \code{covariate_col}),
 optional mpd_source.
 
 r_t handling:

@@ -114,7 +114,7 @@ structure_raking <- validate_flow_residual_structure(
   benchmark_od_df = benchmark_od,
   method_name = "raking_ratio",
   covariate_df = example_data$covariates,
-  covariate_col = "income_norm"
+  covariate_col = "rural_pct"
 )
 
 structure_raking$summary

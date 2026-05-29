@@ -16,7 +16,7 @@ test_that("adjust_selection_rate basic origin weighting works", {
     mpd_od_df      = simulated_mpd.od,
     coverage_df    = simulated_coverage,
     covariates_df  = simulated_covariates,
-    income_col     = "income_norm",
+    covariate_col  = "income_norm",
     weight_by      = "origin"
   )
 
@@ -38,7 +38,7 @@ test_that("adjust_selection_rate destination and both-side weighting work", {
     mpd_od_df      = simulated_mpd.od,
     coverage_df    = simulated_coverage,
     covariates_df  = simulated_covariates,
-    income_col     = "income_norm",
+    covariate_col  = "income_norm",
     weight_by      = "destination"
   )
 
@@ -51,7 +51,7 @@ test_that("adjust_selection_rate destination and both-side weighting work", {
     mpd_od_df      = simulated_mpd.od,
     coverage_df    = simulated_coverage,
     covariates_df  = simulated_covariates,
-    income_col     = "income_norm",
+    covariate_col  = "income_norm",
     weight_by      = "both"
   )
 
@@ -74,7 +74,7 @@ test_that("adjust_selection_rate calibration with benchmark chooses minimizing r
     mpd_od_df           = simulated_mpd.od,
     coverage_df         = simulated_coverage,
     covariates_df       = simulated_covariates,
-    income_col          = "income_norm",
+    covariate_col       = "income_norm",
     weight_by           = "origin",
     benchmark_od_df     = simulated_benchmark.od,
     calibration_aggregate = "origin",
@@ -107,7 +107,7 @@ test_that("adjust_selection_rate calibration with benchmark chooses minimizing r
     mpd_od_df      = simulated_mpd.od,
     coverage_df    = simulated_coverage,
     covariates_df  = simulated_covariates,
-    income_col     = "income_norm",
+    covariate_col  = "income_norm",
     weight_by      = "origin",
     r_global       = rt
   )
@@ -118,6 +118,38 @@ test_that("adjust_selection_rate calibration with benchmark chooses minimizing r
     res_cal$flow_adj,
     tolerance = 1e-8
   )
+})
+
+test_that("adjust_selection_rate uses source-free area covariate tables", {
+
+  data(simulated_mpd.od)
+  data(simulated_coverage)
+  data(simulated_covariates)
+
+  res <- adjust_selection_rate(
+    mpd_od_df = simulated_mpd.od,
+    coverage_df = simulated_coverage,
+    covariates_df = simulated_covariates,
+    covariate_col = "income_norm",
+    weight_by = "origin",
+    r_global = 0.2
+  )
+
+  origin_weights <- res |>
+    dplyr::distinct(.data$origin, .data$weight_origin) |>
+    dplyr::left_join(
+      simulated_coverage |>
+        dplyr::transmute(
+          origin = .data$origin,
+          inverse_penetration = .data$population / .data$user_count
+        ),
+      by = "origin"
+    )
+
+  expect_true(any(
+    abs(origin_weights$weight_origin - origin_weights$inverse_penetration) > 1e-8,
+    na.rm = TRUE
+  ))
 })
 
 test_that("adjust_selection_rate errors cleanly with bad inputs", {
@@ -135,21 +167,21 @@ test_that("adjust_selection_rate errors cleanly with bad inputs", {
       mpd_od_df     = bad_mpd,
       coverage_df   = simulated_coverage,
       covariates_df = simulated_covariates,
-      income_col    = "income_norm",
+      covariate_col = "income_norm",
       weight_by     = "origin"
     ),
     "mpd_od_df"
   )
 
-  # invalid income column name
+  # invalid covariate column name
   expect_error(
     adjust_selection_rate(
       mpd_od_df     = simulated_mpd.od,
       coverage_df   = simulated_coverage,
       covariates_df = simulated_covariates,
-      income_col    = "not_a_col",
+      covariate_col = "not_a_col",
       weight_by     = "origin"
     ),
-    "income_col"
+    "covariate_col"
   )
 })

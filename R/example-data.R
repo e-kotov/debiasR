@@ -12,6 +12,10 @@
 #' from matched origin totals: Census workplace outflow is used as the benchmark
 #' population-like denominator and MPD travel-to-work outflow is used as the
 #' active-user numerator for the empirical examples.
+#' If `debiasRdata` supplies area-level covariates, the returned `covariates`
+#' table uses the selected rows from `lad_covariates` or `msoa_covariates`. If
+#' no matching covariate object is available, the package falls back to the
+#' derived covariates used in earlier examples.
 #' If `debiasRdata` supplies LAD centroids, the optional distance table is
 #' computed for the selected example areas from those real centroids rather than
 #' from a synthetic placeholder.
@@ -32,9 +36,9 @@
 #' @param fill_missing_flow Numeric value used for absent OD pairs when
 #'   `complete_grid = TRUE`. Default `0`.
 #' @param geography Area level to load from `debiasRdata`. The default `"lad"`
-#'   uses `lad_OD_travel2work`, `census_lad_OD_travel2work`, and optional
-#'   `lad_centroids`. Use `"msoa"` only when MSOA-level examples are explicitly
-#'   required.
+#'   uses `lad_OD_travel2work`, `census_lad_OD_travel2work`, optional
+#'   `lad_covariates`, and optional `lad_centroids`. Use `"msoa"` only when
+#'   MSOA-level examples are explicitly required.
 #'
 #' @return A named list with normalised OD matrices and derived teaching tables:
 #'   `lad_OD_travel2work` and `mpd_od` for observed MPD flows,
@@ -187,7 +191,20 @@ debiasR_example_data <- function(n_areas = 25,
     )
   }
 
-  covariates <- .build_example_covariates(mpd_od, benchmark_od, coverage)
+  derived_covariates <- .build_example_covariates(mpd_od, benchmark_od, coverage)
+  covariate_bundle <- .load_optional_example_covariates(
+    data_package = data_package,
+    areas = final_areas,
+    geography = geography
+  )
+  if (nrow(covariate_bundle$covariates) > 0L) {
+    covariates <- covariate_bundle$covariates
+    covariate_source <- covariate_bundle$covariate_source
+  } else {
+    covariates <- derived_covariates
+    covariate_source <- "derived_from_od_flows"
+  }
+
   distance <- .load_optional_example_distance(
     data_package = data_package,
     areas = final_areas,
@@ -216,6 +233,7 @@ debiasR_example_data <- function(n_areas = 25,
       geography = geography,
       mpd_source = source_spec$mpd_metadata_source,
       benchmark_source = source_spec$benchmark_metadata_source,
+      covariate_source = covariate_source,
       distance_source = distance_source,
       complete_grid = complete_grid,
       include_self_flows = include_self_flows,
@@ -494,6 +512,148 @@ debiasR_example_data <- function(n_areas = 25,
     distance_km = numeric(),
     distance_source = character()
   )
+}
+
+.empty_example_covariate_bundle <- function() {
+  list(
+    covariates = tibble::tibble(),
+    covariate_source = "not_available"
+  )
+}
+
+.load_optional_example_covariates <- function(data_package,
+                                              areas,
+                                              geography) {
+  if (!requireNamespace(data_package, quietly = TRUE)) {
+    return(.empty_example_covariate_bundle())
+  }
+
+  covariate_spec <- .example_covariate_spec(geography)
+  covariates_raw <- .load_optional_example_object(
+    object_names = covariate_spec$covariate_object_names,
+    data_package = data_package
+  )
+
+  if (is.null(covariates_raw)) {
+    covariate_path <- .find_example_file(
+      file_names = covariate_spec$covariate_file_names,
+      data_package = data_package
+    )
+    if (!is.null(covariate_path)) {
+      covariates_raw <- .read_example_csv(covariate_path)
+    }
+  }
+
+  if (is.null(covariates_raw)) {
+    return(.empty_example_covariate_bundle())
+  }
+
+  covariates <- .normalise_example_covariates(
+    covariates_raw,
+    areas = areas
+  )
+
+  if (nrow(covariates) == 0L) {
+    return(.empty_example_covariate_bundle())
+  }
+
+  list(
+    covariates = covariates,
+    covariate_source = paste0(data_package, "::", covariate_spec$covariate_source)
+  )
+}
+
+.example_covariate_spec <- function(geography) {
+  if (identical(geography, "lad")) {
+    return(list(
+      covariate_object_names = c(
+        "lad_covariates",
+        "lad_covariate",
+        "lad_area_covariates",
+        "covariates"
+      ),
+      covariate_file_names = c(
+        "lad_covariates.csv.gz",
+        "lad_covariates.csv",
+        "lad_area_covariates.csv.gz",
+        "lad_area_covariates.csv",
+        "covariates.csv.gz",
+        "covariates.csv"
+      ),
+      covariate_source = "lad_covariates"
+    ))
+  }
+
+  list(
+    covariate_object_names = c(
+      "msoa_covariates",
+      "msoa_covariate",
+      "msoa_area_covariates",
+      "covariates"
+    ),
+    covariate_file_names = c(
+      "msoa_covariates.csv.gz",
+      "msoa_covariates.csv",
+      "msoa_area_covariates.csv.gz",
+      "msoa_area_covariates.csv",
+      "covariates.csv.gz",
+      "covariates.csv"
+    ),
+    covariate_source = "msoa_covariates"
+  )
+}
+
+.normalise_example_covariates <- function(df, areas) {
+  area_col <- .find_col(
+    df,
+    c(
+      "area",
+      "lad",
+      "lad21cd",
+      "lad22cd",
+      "ltla",
+      "ltla_code",
+      "msoa",
+      "msoa21cd",
+      "msoa_code",
+      "code"
+    ),
+    required = FALSE
+  )
+
+  if (is.null(area_col)) {
+    return(tibble::tibble())
+  }
+
+  areas <- sort(unique(as.character(areas)))
+  out <- tibble::as_tibble(df)
+  out$area <- as.character(out[[area_col]])
+  if (!identical(area_col, "area")) {
+    out <- out |>
+      dplyr::select(-dplyr::all_of(area_col))
+  }
+
+  out <- out |>
+    dplyr::filter(
+      .data$area %in% areas,
+      !is.na(.data$area)
+    ) |>
+    dplyr::select(dplyr::all_of("area"), dplyr::everything()) |>
+    dplyr::group_by(.data$area) |>
+    dplyr::summarise(
+      dplyr::across(dplyr::everything(), ~ dplyr::first(.x)),
+      .groups = "drop"
+    )
+
+  if (!all(areas %in% out$area)) {
+    return(tibble::tibble())
+  }
+
+  out |>
+    dplyr::mutate(.area_order = match(.data$area, areas)) |>
+    dplyr::arrange(.data$.area_order) |>
+    dplyr::select(-dplyr::all_of(".area_order")) |>
+    tibble::as_tibble()
 }
 
 .load_optional_example_distance <- function(data_package,

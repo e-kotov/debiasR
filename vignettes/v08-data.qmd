@@ -225,7 +225,10 @@ present.
 
 The covariate tables are selected Census 2021 topic-summary percentages. They
 are intended to explain spatial variation in MPD coverage and OD-flow bias. All
-covariate percentage columns are numeric and use a 0 to 100 scale.
+covariate percentage columns are numeric and use a 0 to 100 scale. The vignette
+examples use `rural_pct` as a general area-level covariate because it is present
+in both the LAD and MSOA covariate tables, but adjustment functions that accept
+`covariate_col` can use any relevant numeric covariate supplied by the user.
 
 The LAD centroid table is derived from ONS LAD representative coordinate data.
 It is not a full distance matrix. `debiasR_example_data(geography = "lad")`
@@ -280,8 +283,12 @@ covariates.
 ## Using The Data In `debiasR`
 
 `debiasR_example_data()` loads a matched MPD/benchmark/covariate bundle and
-normalises it to the package interface. The default scale is LAD because it is
-small enough for fast examples.
+normalises it to the package interface. When `debiasRdata` is available, the
+`covariates` element contains selected rows from the packaged LAD or MSOA
+covariate table. If a packaged covariate table is not available, the helper falls
+back to a small derived covariate table and records that fallback in
+`metadata$covariate_source`. The default scale is LAD because it is small enough
+for fast examples.
 
 ```{r lad-example}
 lad_example <- load_workshop_example(
@@ -295,8 +302,26 @@ lad_example$metadata
 lad_example$od_audit
 ```
 
+The covariate table returned by the example helper has the same `area` join key
+as the packaged `debiasRdata` covariates. The adjustment vignettes use
+`rural_pct`, but users can replace this with another relevant numeric column by
+changing the function argument `covariate_col`.
+
+```{r lad-example-covariates}
+lad_example$metadata |>
+  dplyr::select(geography, covariate_source, distance_source)
+
+names(lad_example$covariates)
+
+lad_example$covariates |>
+  dplyr::select(area, name, rural_pct, per_level4) |>
+  dplyr::slice_head(n = 5)
+```
+
 Use MSOA when the analysis needs finer geography and the runtime cost is
-acceptable.
+acceptable. The same covariate interface applies: `msoa_example$covariates`
+uses `area` as the join key and records its source in
+`metadata$covariate_source`.
 
 ```{r msoa-example}
 msoa_example <- load_workshop_example(
