@@ -5,6 +5,10 @@ Thank you for your interest in contributing to this project! We welcome all kind
 
 ## 🚀 How to Contribute
 
+Only Francisco Rowe (`fcorowe`) may push directly to `main`. Everyone else,
+including automation agents, must make changes on a branch and open a pull
+request into `main`.
+
 1. **Clone the repository**  
    ```bash
    git clone https://github.com/de-bias/debiasR.git

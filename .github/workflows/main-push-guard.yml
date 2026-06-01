@@ -1,0 +1,23 @@
+name: Main push guard
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  main-push-actor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Fail non-maintainer direct pushes
+        if: github.actor != 'fcorowe'
+        run: |
+          echo "::error::Only fcorowe may push directly to main. Open a pull request instead."
+          exit 1
+
+      - name: Accept maintainer direct push
+        if: github.actor == 'fcorowe'
+        run: echo "Direct push to main by fcorowe is allowed."

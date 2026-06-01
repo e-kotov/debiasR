@@ -15,6 +15,12 @@ Before substantial work:
 - Check `git status --short` and avoid overwriting unrelated modified or untracked files.
 - If the task touches validation, also check relevant notes in `notes/project-management/`.
 
+Git and GitHub controls:
+- Only Francisco Rowe (`fcorowe`) may push directly to `main`.
+- All other contributors and automation agents must work on a branch and open a pull request into `main`.
+- Do not push to `main` from another account, bot, or shared token, even for small fixes.
+- If a direct push to `main` by a non-`fcorowe` actor appears necessary, stop and ask Francisco to approve a PR-based route instead.
+
 Coding defaults:
 - Prefer existing package patterns in `R/`, `tests/testthat/`, and roxygen documentation.
 - Keep patches narrow and traceable.
