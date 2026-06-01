@@ -42,6 +42,8 @@ make_multilevel_scenario_toy <- function(sources = "src1",
   covariates <- data.frame(
     area = areas,
     income_norm = c(0.2, 0.5, 0.8),
+    rural_pct = c(0.7, 0.4, 0.1),
+    deprivation_score = c(3.0, 1.5, 2.2),
     population = c(100, 120, 150)
   )
 
@@ -113,6 +115,8 @@ make_multilevel_msoa_like_scenario <- function(n_areas = 12,
   covariates <- data.frame(
     area = areas,
     income_norm = seq(0.15, 0.85, length.out = n_areas),
+    rural_pct = seq(0.75, 0.25, length.out = n_areas),
+    deprivation_score = seq(1.2, 3.6, length.out = n_areas),
     population = 1000 + (seq_len(n_areas) * 25)
   )
 
@@ -174,7 +178,10 @@ test_that("prepare helper carries source and time metadata for repeated inputs",
 
   expect_equal(prep$scenario_info$scenario, "s2")
   expect_equal(prep$scenario_info$repeated_observation, "time")
-  expect_true(all(c("mpd_source", "mpd_time", "bias_e_origin") %in% names(prep$model_df)))
+  expect_true(all(c(
+    "mpd_source", "mpd_time", "bias_e_origin",
+    "rural_pct_o", "rural_pct_d", "deprivation_score_o", "deprivation_score_d"
+  ) %in% names(prep$model_df)))
   expect_equal(length(unique(prep$model_df$mpd_time)), 2)
   expect_true(all(is.finite(prep$model_df$bias_e_origin)))
 })
@@ -260,7 +267,7 @@ test_that("internal frequentist scaffold returns adjusted observed flows", {
     model_engine = "frequentist",
     scenario = "s1",
     random_intercept = "none",
-    custom_formula = flow ~ bias_e_origin + log_distance,
+    formula = flow ~ rural_pct_o + rural_pct_d + bias_e_origin + log_distance,
     include_flow_adj_draws = TRUE
   )
 
@@ -273,6 +280,8 @@ test_that("internal frequentist scaffold returns adjusted observed flows", {
   expect_true(all(res$flow_adj >= 0))
   expect_equal(dim(attr(res, "flow_adj_draws")), c(1L, nrow(res)))
   expect_true("bias_e_origin" %in% attr(res, "coefficients")$term)
+  expect_equal(attr(res, "model_terms")$formula_source, "formula")
+  expect_true(all(c("rural_pct_o", "rural_pct_d") %in% attr(res, "model_terms")$formula_variables))
 })
 
 test_that("internal frequentist scaffold supports S4 complete-grid prediction", {
@@ -290,7 +299,7 @@ test_that("internal frequentist scaffold supports S4 complete-grid prediction", 
     model_engine = "frequentist",
     scenario = "s4",
     random_intercept = "none",
-    custom_formula = flow ~ bias_e_origin + log_distance + mpd_source + mpd_time,
+    formula = flow ~ rural_pct_o + rural_pct_d + bias_e_origin + log_distance + mpd_source + mpd_time,
     prediction_scope = "complete_grid"
   )
 
@@ -311,21 +320,42 @@ test_that("internal frequentist scaffold can use lme4 for a mixed model when ava
   testthat::skip_if_not_installed("lme4")
   toy <- make_multilevel_scenario_toy(periods = c("t1", "t2"))
 
-  res <- adjust_multilevel_bayes(
-    mpd_od_df = toy$mpd_od,
-    coverage_df = toy$coverage,
-    covariates_df = toy$covariates,
-    distance_df = toy$distance,
-    model_engine = "frequentist",
-    scenario = "s2",
-    random_intercept = "origin",
-    custom_formula = flow ~ bias_e_origin + log_distance + mpd_time + (1 | origin)
+  res <- suppressWarnings(
+    adjust_multilevel_bayes(
+      mpd_od_df = toy$mpd_od,
+      coverage_df = toy$coverage,
+      covariates_df = toy$covariates,
+      distance_df = toy$distance,
+      model_engine = "frequentist",
+      scenario = "s2",
+      random_intercept = "origin",
+      formula = flow ~ bias_e_origin + log_distance + mpd_time + (1 + log_distance | origin)
+    )
   )
 
   expect_equal(attr(res, "backend"), "frequentist_dev")
   expect_equal(attr(res, "model_engine"), "frequentist")
   expect_equal(attr(res, "random_intercept"), "origin")
+  expect_true("(1 + log_distance | origin)" %in% attr(res, "model_terms")$formula_random_effects)
   expect_true(all(is.finite(res$flow_adj)))
+})
+
+test_that("formula validation reports missing prepared covariates", {
+  toy <- make_multilevel_scenario_toy()
+
+  expect_error(
+    adjust_multilevel_bayes(
+      mpd_od_df = toy$mpd_od,
+      coverage_df = toy$coverage,
+      covariates_df = toy$covariates,
+      distance_df = toy$distance,
+      model_engine = "frequentist",
+      scenario = "s1",
+      random_intercept = "none",
+      formula = flow ~ missing_covariate_o + bias_e_origin
+    ),
+    "missing_covariate_o"
+  )
 })
 
 test_that("Bayesian engine explicitly defers repeated source/time scenarios", {

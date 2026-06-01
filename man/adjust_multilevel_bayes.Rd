@@ -7,10 +7,10 @@
 adjust_multilevel_bayes(
   mpd_od_df,
   coverage_df,
-  covariates_df,
+  covariates_df = NULL,
   distance_df = NULL,
   flow_col = "flow",
-  income_col = "income_norm",
+  income_col = NULL,
   pop_col = "population",
   distance_col = "distance_km",
   source_col = NULL,
@@ -19,6 +19,7 @@ adjust_multilevel_bayes(
   repeated_observation = c("auto", "none", "time", "source", "source_time"),
   random_intercept = c("origin", "destination", "od", "source", "time", "source_time",
     "none"),
+  formula = NULL,
   custom_formula = NULL,
   model_family = c("poisson", "negbin", "zip", "zinb"),
   model_engine = c("bayesian", "frequentist"),
@@ -41,17 +42,22 @@ and \code{flow_col}. Optional \code{mpd_source} is carried through.}
 \code{population}, \code{user_count}. Optional \code{destination} and
 \code{mpd_source} enable destination/source-specific joins.}
 
-\item{covariates_df}{Area-level covariates with at least \code{area} and
-\code{income_col}. If \code{pop_col} exists, it is used for population
-covariates; otherwise populations are derived from \code{coverage_df}.}
+\item{covariates_df}{Optional area-level covariates with at least
+\code{area}. Each additional column is made available to \code{formula}
+twice using origin and destination suffixes, for example
+\code{rural_pct_o} and \code{rural_pct_d}. If \code{pop_col} exists, it is
+used for population covariates; otherwise populations are derived from
+\code{coverage_df}. Set to \code{NULL} when \code{formula} uses only OD,
+distance, coverage, source, or time fields.}
 
 \item{distance_df}{Optional OD distance data frame with
 \code{origin}, \code{destination}, and \code{distance_col}.}
 
 \item{flow_col}{Name of MPD flow column in \code{mpd_od_df}. Default \code{"flow"}.}
 
-\item{income_col}{Name of income-like covariate in \code{covariates_df}.
-Default \code{"income_norm"}.}
+\item{income_col}{Deprecated. Optional name of the area-level covariate to
+use in the default formula when \code{formula = NULL}. Prefer specifying
+covariates directly in \code{formula}.}
 
 \item{pop_col}{Optional population column in \code{covariates_df}. Default
 \code{"population"}. If missing, a population proxy is built from
@@ -79,10 +85,17 @@ from the supplied source and time columns.}
 
 \item{random_intercept}{Random-intercept structure: \code{"origin"},
 \code{"destination"}, \code{"od"}, \code{"source"}, \code{"time"},
-\code{"source_time"}, or \code{"none"}.}
+\code{"source_time"}, or \code{"none"}. Used only when \code{formula} is
+not supplied; formula random-effect terms such as \code{(1 | origin)} or
+\code{(1 + log_distance | origin)} take precedence.}
 
-\item{custom_formula}{Optional model formula override (character or formula).
-If provided, it supersedes auto-formula construction.}
+\item{formula}{Optional model formula using the prepared model data. The
+response should usually be \code{flow}. The formula can include any
+prepared covariate columns, \code{log_distance}, \code{bias_e_origin},
+scenario columns such as \code{mpd_source} and \code{mpd_time}, and
+random-effect terms supported by the chosen engine.}
+
+\item{custom_formula}{Deprecated alias for \code{formula}.}
 
 \item{model_family}{Count family: \code{"poisson"}, \code{"negbin"},
 \code{"zip"}, or \code{"zinb"}.}
@@ -159,9 +172,9 @@ adjusted flows for every row in a supplied square OD grid.
 Core idea:
 \deqn{\log(\mu^{obs}_{ij}) = f(X_i, X_j, d_{ij}, e_i, u)}
 where \eqn{e_i} is origin bias from coverage and \eqn{u} is an optional
-random-intercept term (origin, destination, or OD).
+random-effect structure supplied through a model formula.
 
-The adjusted flow removes the estimated bias contribution from posterior
-linear predictors for observed OD pairs only, then summarizes draw-level
-adjusted flows by mean or median.
+The adjusted flow is computed from a formula-aware fixed-effect
+counterfactual prediction with \code{bias_e_origin} set to zero, then
+summarizes draw-level adjusted flows by mean or median.
 }

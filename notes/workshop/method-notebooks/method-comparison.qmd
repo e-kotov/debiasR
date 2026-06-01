@@ -479,6 +479,7 @@ run_methods_once <- function(seed_id) {
     coverage_df = coverage_s1,
     covariates_df = simulated_covariates,
     distance_df = distance_sub,
+    formula = flow ~ income_norm_o + income_norm_d + log_distance + bias_e_origin,
     model_engine = "frequentist",
     scenario = "s1",
     source_col = "mpd_source",

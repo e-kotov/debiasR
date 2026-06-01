@@ -540,6 +540,7 @@ adj_m6 <- adjust_multilevel_bayes(
   coverage_df = coverage_s1,
   covariates_df = simulated_covariates,
   distance_df = simulated_distance,
+  formula = flow ~ income_norm_o + income_norm_d + log_distance + bias_e_origin,
   model_engine = "frequentist",
   scenario = "s1",
   source_col = "mpd_source",

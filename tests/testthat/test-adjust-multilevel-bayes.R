@@ -31,10 +31,20 @@ test_that("backend auto-selection resolves to the expected engine", {
 })
 
 test_that("formula builder reflects the requested random-intercept structure", {
-  f_origin <- debiasR:::.build_multilevel_formula("origin", NULL, TRUE)
-  f_destination <- debiasR:::.build_multilevel_formula("destination", NULL, FALSE)
-  f_od <- debiasR:::.build_multilevel_formula("od", NULL, FALSE)
-  f_none <- debiasR:::.build_multilevel_formula("none", NULL, FALSE)
+  default_info <- list(formula = NULL, source = "default")
+  f_origin <- debiasR:::.build_multilevel_formula("origin", default_info, "income_norm", TRUE)
+  f_destination <- debiasR:::.build_multilevel_formula("destination", default_info, "income_norm", FALSE)
+  f_od <- debiasR:::.build_multilevel_formula("od", default_info, "income_norm", FALSE)
+  f_none <- debiasR:::.build_multilevel_formula("none", default_info, "income_norm", FALSE)
+  f_formula <- debiasR:::.build_multilevel_formula(
+    "origin",
+    list(
+      formula = flow ~ rural_pct_o + rural_pct_d + bias_e_origin + (1 + log_distance | origin),
+      source = "formula"
+    ),
+    "income_norm",
+    TRUE
+  )
 
   txt_origin <- paste(format(f_origin), collapse = " ")
   txt_destination <- paste(format(f_destination), collapse = " ")
@@ -47,6 +57,30 @@ test_that("formula builder reflects the requested random-intercept structure", {
   expect_false(grepl("\\|", txt_none, fixed = TRUE))
   expect_match(txt_origin, "log_pop_o")
   expect_false(grepl("log_pop_o", txt_destination, fixed = TRUE))
+  expect_match(paste(format(f_formula), collapse = " "), "rural_pct_o")
+  expect_true(debiasR:::.formula_has_random_effects(f_formula))
+  expect_equal(
+    debiasR:::.formula_random_effect_terms(f_formula),
+    "(1 + log_distance | origin)"
+  )
+})
+
+test_that("formula resolver keeps custom_formula as a deprecated alias", {
+  expect_warning(
+    info <- debiasR:::.resolve_multilevel_user_formula(
+      custom_formula = flow ~ bias_e_origin + log_distance
+    ),
+    "deprecated"
+  )
+  expect_equal(info$source, "custom_formula")
+  expect_equal(all.vars(info$formula), c("flow", "bias_e_origin", "log_distance"))
+  expect_error(
+    debiasR:::.resolve_multilevel_user_formula(
+      formula = flow ~ bias_e_origin,
+      custom_formula = flow ~ log_distance
+    ),
+    "Use only one"
+  )
 })
 
 test_that("complete-grid audit detects strict square OD support", {
@@ -135,6 +169,8 @@ test_that("prepare helper builds deterministic bias and synthetic distance colum
   )
 
   expect_true(all(c("bias_e_origin", "log_dist_synth") %in% names(prep1$base_df)))
+  expect_true(all(c("income_norm_o", "income_norm_d", "income_o", "income_d") %in% names(prep1$base_df)))
+  expect_equal(prep1$default_covariate_col, "income_norm")
   expect_equal(prep1$base_df$log_dist_synth, prep2$base_df$log_dist_synth)
   expect_equal(prep1$base_df$bias_e_origin, prep2$base_df$bias_e_origin)
 })
@@ -158,6 +194,7 @@ test_that("prepare helper preserves complete-grid source row status", {
   covariates <- data.frame(
     area = c("A", "B"),
     income_norm = c(0.2, 0.8),
+    rural_pct = c(0.7, 0.2),
     population = c(100, 80)
   )
 
@@ -174,7 +211,10 @@ test_that("prepare helper preserves complete-grid source row status", {
     )
   )
 
-  expect_true(all(c("mpd_observed", "mpd_zero_filled", "mpd_row_status") %in% names(prep$model_df)))
+  expect_true(all(c(
+    "mpd_observed", "mpd_zero_filled", "mpd_row_status",
+    "rural_pct_o", "rural_pct_d"
+  ) %in% names(prep$model_df)))
   expect_equal(sum(prep$model_df$mpd_observed), 3)
   expect_equal(sum(prep$model_df$mpd_zero_filled), 1)
   expect_equal(prep$model_df$mpd_row_status[prep$model_df$mpd_zero_filled], "zero_filled")
@@ -313,7 +353,7 @@ test_that("adjust_multilevel_bayes supports complete-grid prediction when rstana
       covariates_df = covariates,
       prediction_scope = "complete_grid",
       random_intercept = "origin",
-      custom_formula = flow ~ bias_e_origin + (1 | origin),
+      formula = flow ~ bias_e_origin + (1 | origin),
       iter = 100,
       chains = 1,
       seed = 321,

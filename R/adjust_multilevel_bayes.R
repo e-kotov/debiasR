@@ -8,25 +8,30 @@
 #' Core idea:
 #' \deqn{\log(\mu^{obs}_{ij}) = f(X_i, X_j, d_{ij}, e_i, u)}
 #' where \eqn{e_i} is origin bias from coverage and \eqn{u} is an optional
-#' random-intercept term (origin, destination, or OD).
+#' random-effect structure supplied through a model formula.
 #'
-#' The adjusted flow removes the estimated bias contribution from posterior
-#' linear predictors for observed OD pairs only, then summarizes draw-level
-#' adjusted flows by mean or median.
+#' The adjusted flow is computed from a formula-aware fixed-effect
+#' counterfactual prediction with \code{bias_e_origin} set to zero, then
+#' summarizes draw-level adjusted flows by mean or median.
 #'
 #' @param mpd_od_df Data frame with at least \code{origin}, \code{destination},
 #'   and \code{flow_col}. Optional \code{mpd_source} is carried through.
 #' @param coverage_df Data frame with at least \code{origin},
 #'   \code{population}, \code{user_count}. Optional \code{destination} and
 #'   \code{mpd_source} enable destination/source-specific joins.
-#' @param covariates_df Area-level covariates with at least \code{area} and
-#'   \code{income_col}. If \code{pop_col} exists, it is used for population
-#'   covariates; otherwise populations are derived from \code{coverage_df}.
+#' @param covariates_df Optional area-level covariates with at least
+#'   \code{area}. Each additional column is made available to \code{formula}
+#'   twice using origin and destination suffixes, for example
+#'   \code{rural_pct_o} and \code{rural_pct_d}. If \code{pop_col} exists, it is
+#'   used for population covariates; otherwise populations are derived from
+#'   \code{coverage_df}. Set to \code{NULL} when \code{formula} uses only OD,
+#'   distance, coverage, source, or time fields.
 #' @param distance_df Optional OD distance data frame with
 #'   \code{origin}, \code{destination}, and \code{distance_col}.
 #' @param flow_col Name of MPD flow column in \code{mpd_od_df}. Default \code{"flow"}.
-#' @param income_col Name of income-like covariate in \code{covariates_df}.
-#'   Default \code{"income_norm"}.
+#' @param income_col Deprecated. Optional name of the area-level covariate to
+#'   use in the default formula when \code{formula = NULL}. Prefer specifying
+#'   covariates directly in \code{formula}.
 #' @param pop_col Optional population column in \code{covariates_df}. Default
 #'   \code{"population"}. If missing, a population proxy is built from
 #'   \code{coverage_df}.
@@ -47,9 +52,15 @@
 #'   \code{"source_time"}. \code{"auto"} maps from \code{scenario}.
 #' @param random_intercept Random-intercept structure: \code{"origin"},
 #'   \code{"destination"}, \code{"od"}, \code{"source"}, \code{"time"},
-#'   \code{"source_time"}, or \code{"none"}.
-#' @param custom_formula Optional model formula override (character or formula).
-#'   If provided, it supersedes auto-formula construction.
+#'   \code{"source_time"}, or \code{"none"}. Used only when \code{formula} is
+#'   not supplied; formula random-effect terms such as \code{(1 | origin)} or
+#'   \code{(1 + log_distance | origin)} take precedence.
+#' @param formula Optional model formula using the prepared model data. The
+#'   response should usually be \code{flow}. The formula can include any
+#'   prepared covariate columns, \code{log_distance}, \code{bias_e_origin},
+#'   scenario columns such as \code{mpd_source} and \code{mpd_time}, and
+#'   random-effect terms supported by the chosen engine.
+#' @param custom_formula Deprecated alias for \code{formula}.
 #' @param model_family Count family: \code{"poisson"}, \code{"negbin"},
 #'   \code{"zip"}, or \code{"zinb"}.
 #' @param model_engine Development engine: \code{"bayesian"} uses the existing
@@ -106,10 +117,10 @@
 #' @export
 adjust_multilevel_bayes <- function(mpd_od_df,
                                     coverage_df,
-                                    covariates_df,
+                                    covariates_df = NULL,
                                     distance_df = NULL,
                                     flow_col = "flow",
-                                    income_col = "income_norm",
+                                    income_col = NULL,
                                     pop_col = "population",
                                     distance_col = "distance_km",
                                     source_col = NULL,
@@ -117,6 +128,7 @@ adjust_multilevel_bayes <- function(mpd_od_df,
                                     scenario = c("auto", "s1", "s2", "s3", "s4"),
                                     repeated_observation = c("auto", "none", "time", "source", "source_time"),
                                     random_intercept = c("origin", "destination", "od", "source", "time", "source_time", "none"),
+                                    formula = NULL,
                                     custom_formula = NULL,
                                     model_family = c("poisson", "negbin", "zip", "zinb"),
                                     model_engine = c("bayesian", "frequentist"),
@@ -130,6 +142,7 @@ adjust_multilevel_bayes <- function(mpd_od_df,
                                     include_flow_adj_draws = FALSE,
                                     keep_cols = character()) {
 
+  random_intercept_supplied <- !missing(random_intercept)
   random_intercept <- match.arg(random_intercept)
   scenario <- match.arg(scenario)
   model_family <- match.arg(model_family)
@@ -137,6 +150,13 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   repeated_observation <- match.arg(repeated_observation)
   flow_adj_summary <- match.arg(flow_adj_summary)
   prediction_scope <- match.arg(prediction_scope)
+  formula_info <- .resolve_multilevel_user_formula(
+    formula = formula,
+    custom_formula = custom_formula
+  )
+  if (!is.null(formula_info$formula) && !random_intercept_supplied) {
+    random_intercept <- "none"
+  }
   start_time <- Sys.time()
 
   if (model_engine == "frequentist") {
@@ -154,7 +174,7 @@ adjust_multilevel_bayes <- function(mpd_od_df,
       scenario = scenario,
       repeated_observation = repeated_observation,
       random_intercept = random_intercept,
-      custom_formula = custom_formula,
+      formula_info = formula_info,
       model_family = model_family,
       flow_adj_summary = flow_adj_summary,
       prediction_scope = prediction_scope,
@@ -213,6 +233,34 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   )
 
   prediction_df <- prep$model_df
+  fit_candidate_df <- prediction_df
+  if (prediction_scope == "complete_grid" && "mpd_observed" %in% names(fit_candidate_df)) {
+    fit_candidate_df <- fit_candidate_df |>
+      dplyr::filter(.data$mpd_observed)
+  }
+
+  scenario_terms <- .resolve_multilevel_formula_terms(
+    data = fit_candidate_df,
+    repeated_observation = scenario_info$repeated_observation,
+    random_intercept = random_intercept
+  )
+
+  fit_formula <- .build_multilevel_formula(
+    random_intercept = random_intercept,
+    formula_info = formula_info,
+    default_covariate_col = prep$default_covariate_col,
+    include_pop_terms = prep$has_pop_terms,
+    scenario_terms = scenario_terms
+  )
+  prediction_df <- .filter_multilevel_model_data(
+    data = prediction_df,
+    formula = fit_formula,
+    context = "prediction"
+  )
+  prediction_df <- .stabilize_multilevel_formula_factor_levels(
+    data = prediction_df,
+    formula = fit_formula
+  )
   fit_df <- prediction_df
   if (prediction_scope == "complete_grid" && "mpd_observed" %in% names(fit_df)) {
     fit_df <- fit_df |>
@@ -223,27 +271,16 @@ adjust_multilevel_bayes <- function(mpd_od_df,
     stop("Insufficient rows for fitting after preprocessing. Need at least 2 complete rows.")
   }
 
-  .validate_multilevel_random_intercept(fit_df, random_intercept)
-
-  if (random_intercept == "od" && max(tabulate(factor(fit_df$od_id))) <= 1L) {
-    warning(
-      "OD random intercepts may be weakly identified when each OD pair appears once. ",
-      "Use with caution."
-    )
+  if (is.null(formula_info$formula)) {
+    .validate_multilevel_random_intercept(fit_df, random_intercept)
+    if (random_intercept == "od" && max(tabulate(factor(fit_df$od_id))) <= 1L) {
+      warning(
+        "OD random intercepts may be weakly identified when each OD pair appears once. ",
+        "Use with caution."
+      )
+    }
   }
-
-  scenario_terms <- .resolve_multilevel_formula_terms(
-    data = fit_df,
-    repeated_observation = scenario_info$repeated_observation,
-    random_intercept = random_intercept
-  )
-
-  fit_formula <- .build_multilevel_formula(
-    random_intercept = random_intercept,
-    custom_formula = custom_formula,
-    include_pop_terms = prep$has_pop_terms,
-    scenario_terms = scenario_terms
-  )
+  .validate_multilevel_formula_random_effects(fit_df, fit_formula)
 
   fit <- .fit_multilevel_bayes(
     backend = backend,
@@ -256,24 +293,14 @@ adjust_multilevel_bayes <- function(mpd_od_df,
     refresh = refresh
   )
 
-  lin_fix <- .posterior_linpred_fixef(
+  bias_zero_df <- .counterfactual_multilevel_bias_data(prediction_df)
+  lin_true <- .posterior_linpred_fixef(
     fit = fit,
     backend = backend,
-    newdata = prediction_df
+    newdata = bias_zero_df
   )
 
-  omega_draw <- .extract_omega_draw(
-    fit = fit,
-    backend = backend,
-    n_draw = nrow(lin_fix)
-  )
-
-  e_vec <- as.numeric(prediction_df$bias_e_origin)
-  e_mat <- matrix(e_vec, nrow = nrow(lin_fix), ncol = ncol(lin_fix), byrow = TRUE)
-  omega_mat <- matrix(omega_draw, nrow = nrow(lin_fix), ncol = ncol(lin_fix))
-
-  # Remove estimated bias term from fixed-effect predictor draw-by-draw.
-  lin_true <- lin_fix - omega_mat * e_mat
+  # Predict the fixed-effect counterfactual where modeled coverage bias is zero.
   flow_adj_draws <- exp(lin_true)
 
   flow_adj <- if (flow_adj_summary == "median") {
@@ -328,7 +355,8 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   )
   model_terms <- .summarize_multilevel_model_terms(
     formula = fit_formula,
-    custom_formula = custom_formula,
+    formula_info = formula_info,
+    default_covariate_col = prep$default_covariate_col,
     include_pop_terms = prep$has_pop_terms,
     scenario_terms = scenario_terms,
     random_intercept = random_intercept
@@ -418,10 +446,10 @@ adjust_multilevel_bayes <- function(mpd_od_df,
 
 .adjust_multilevel_frequentist_dev <- function(mpd_od_df,
                                                coverage_df,
-                                               covariates_df,
+                                               covariates_df = NULL,
                                                distance_df = NULL,
                                                flow_col = "flow",
-                                               income_col = "income_norm",
+                                               income_col = NULL,
                                                pop_col = "population",
                                                distance_col = "distance_km",
                                                source_col = NULL,
@@ -429,13 +457,14 @@ adjust_multilevel_bayes <- function(mpd_od_df,
                                                scenario = c("auto", "s1", "s2", "s3", "s4"),
                                                repeated_observation = c("auto", "none", "time", "source", "source_time"),
                                                random_intercept = c("origin", "destination", "od", "source", "time", "source_time", "none"),
-                                               custom_formula = NULL,
+                                               formula_info = list(formula = NULL, source = "default"),
                                                model_family = c("poisson", "negbin", "zip", "zinb"),
                                                flow_adj_summary = c("mean", "median"),
                                                prediction_scope = c("observed", "complete_grid"),
                                                include_flow_adj_draws = FALSE,
                                                keep_cols = character(),
                                                start_time = Sys.time()) {
+  random_intercept_supplied <- !missing(random_intercept)
   scenario <- match.arg(scenario)
   repeated_observation <- match.arg(repeated_observation)
   random_intercept <- match.arg(random_intercept)
@@ -445,6 +474,9 @@ adjust_multilevel_bayes <- function(mpd_od_df,
 
   if (model_family %in% c("zip", "zinb")) {
     stop("The internal frequentist development engine supports only Poisson and negative-binomial families.")
+  }
+  if (!is.null(formula_info$formula) && !random_intercept_supplied) {
+    random_intercept <- "none"
   }
 
   scenario_info <- .resolve_multilevel_scenario(
@@ -487,6 +519,34 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   )
 
   prediction_df <- prep$model_df
+  fit_candidate_df <- prediction_df
+  if (prediction_scope == "complete_grid" && "mpd_observed" %in% names(fit_candidate_df)) {
+    fit_candidate_df <- fit_candidate_df |>
+      dplyr::filter(.data$mpd_observed)
+  }
+
+  scenario_terms <- .resolve_multilevel_formula_terms(
+    data = fit_candidate_df,
+    repeated_observation = scenario_info$repeated_observation,
+    random_intercept = random_intercept
+  )
+
+  fit_formula <- .build_multilevel_formula(
+    random_intercept = random_intercept,
+    formula_info = formula_info,
+    default_covariate_col = prep$default_covariate_col,
+    include_pop_terms = prep$has_pop_terms,
+    scenario_terms = scenario_terms
+  )
+  prediction_df <- .filter_multilevel_model_data(
+    data = prediction_df,
+    formula = fit_formula,
+    context = "prediction"
+  )
+  prediction_df <- .stabilize_multilevel_formula_factor_levels(
+    data = prediction_df,
+    formula = fit_formula
+  )
   fit_df <- prediction_df
   if (prediction_scope == "complete_grid" && "mpd_observed" %in% names(fit_df)) {
     fit_df <- fit_df |>
@@ -496,31 +556,20 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   if (nrow(fit_df) < 2L) {
     stop("Insufficient rows for fitting after preprocessing. Need at least 2 complete rows.")
   }
-  .validate_multilevel_random_intercept(fit_df, random_intercept)
-
-  scenario_terms <- .resolve_multilevel_formula_terms(
-    data = fit_df,
-    repeated_observation = scenario_info$repeated_observation,
-    random_intercept = random_intercept
-  )
-
-  fit_formula <- .build_multilevel_formula(
-    random_intercept = random_intercept,
-    custom_formula = custom_formula,
-    include_pop_terms = prep$has_pop_terms,
-    scenario_terms = scenario_terms
-  )
+  if (is.null(formula_info$formula)) {
+    .validate_multilevel_random_intercept(fit_df, random_intercept)
+  }
+  .validate_multilevel_formula_random_effects(fit_df, fit_formula)
 
   fit <- .fit_multilevel_frequentist(
     model_family = model_family,
     formula = fit_formula,
-    data = fit_df,
-    random_intercept = random_intercept
+    data = fit_df
   )
 
-  lin_fix <- .predict_linpred_fixef_frequentist(fit, prediction_df)
-  omega <- .extract_omega_frequentist(fit)
-  flow_adj <- exp(as.numeric(lin_fix) - omega * as.numeric(prediction_df$bias_e_origin))
+  bias_zero_df <- .counterfactual_multilevel_bias_data(prediction_df)
+  lin_true <- .predict_linpred_fixef_frequentist(fit, bias_zero_df)
+  flow_adj <- exp(as.numeric(lin_true))
 
   modeled_out <- prediction_df |>
     dplyr::mutate(flow_adj = as.numeric(flow_adj))
@@ -564,7 +613,8 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   coef_tbl <- .coef_summary_frequentist(fit)
   model_terms <- .summarize_multilevel_model_terms(
     formula = fit_formula,
-    custom_formula = custom_formula,
+    formula_info = formula_info,
+    default_covariate_col = prep$default_covariate_col,
     include_pop_terms = prep$has_pop_terms,
     scenario_terms = scenario_terms,
     random_intercept = random_intercept
@@ -636,9 +686,10 @@ adjust_multilevel_bayes <- function(mpd_od_df,
 
 .fit_multilevel_frequentist <- function(model_family,
                                         formula,
-                                        data,
-                                        random_intercept) {
-  if (model_family == "poisson" && random_intercept == "none") {
+                                        data) {
+  has_random_effects <- .formula_has_random_effects(formula)
+
+  if (model_family == "poisson" && !has_random_effects) {
     return(stats::glm(
       formula = formula,
       data = data,
@@ -646,7 +697,7 @@ adjust_multilevel_bayes <- function(mpd_od_df,
     ))
   }
 
-  if (model_family == "negbin" && random_intercept == "none") {
+  if (model_family == "negbin" && !has_random_effects) {
     if (!requireNamespace("MASS", quietly = TRUE)) {
       stop("The internal negative-binomial frequentist engine requires the optional 'MASS' package.")
     }
@@ -1055,23 +1106,213 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   invisible(TRUE)
 }
 
+.resolve_multilevel_user_formula <- function(formula = NULL,
+                                             custom_formula = NULL) {
+  if (!is.null(formula) && !is.null(custom_formula)) {
+    stop("Use only one of `formula` or deprecated `custom_formula`.")
+  }
+
+  if (!is.null(custom_formula)) {
+    warning("`custom_formula` is deprecated; use `formula` instead.", call. = FALSE)
+    formula <- custom_formula
+    source <- "custom_formula"
+  } else if (!is.null(formula)) {
+    source <- "formula"
+  } else {
+    source <- "default"
+  }
+
+  if (is.null(formula)) {
+    return(list(formula = NULL, source = source))
+  }
+
+  formula <- stats::as.formula(formula)
+  response <- .formula_response_var(formula)
+  if (is.null(response)) {
+    stop("`formula` must include a response, usually `flow`.")
+  }
+  if (!identical(response, "flow")) {
+    stop("`formula` response must be `flow`; `flow_col` is standardised to `flow` before fitting.")
+  }
+
+  list(formula = formula, source = source)
+}
+
+.formula_response_var <- function(formula) {
+  vars <- all.vars(formula)
+  if (length(vars) == 0L || length(formula) < 3L) {
+    return(NULL)
+  }
+
+  vars[1]
+}
+
+.formula_random_effect_calls <- function(formula) {
+  out <- list()
+
+  walk <- function(x) {
+    if (!is.call(x)) {
+      return(invisible(NULL))
+    }
+    if (identical(x[[1]], as.name("|")) || identical(x[[1]], as.name("||"))) {
+      out[[length(out) + 1L]] <<- x
+      return(invisible(NULL))
+    }
+    for (i in seq_along(x)[-1L]) {
+      walk(x[[i]])
+    }
+    invisible(NULL)
+  }
+
+  walk(formula[[length(formula)]])
+  out
+}
+
+.formula_random_effect_terms <- function(formula) {
+  calls <- .formula_random_effect_calls(formula)
+  vapply(
+    calls,
+    function(x) paste0("(", paste(deparse(x), collapse = " "), ")"),
+    character(1)
+  )
+}
+
+.formula_has_random_effects <- function(formula) {
+  length(.formula_random_effect_calls(formula)) > 0L
+}
+
+.validate_multilevel_formula_random_effects <- function(fit_df, formula) {
+  calls <- .formula_random_effect_calls(formula)
+  if (length(calls) == 0L) {
+    return(invisible(TRUE))
+  }
+
+  for (call in calls) {
+    term <- paste0("(", paste(deparse(call), collapse = " "), ")")
+    slope_vars <- all.vars(call[[2]])
+    group_vars <- all.vars(call[[3]])
+    needed_vars <- unique(c(slope_vars, group_vars))
+    missing_vars <- setdiff(needed_vars, names(fit_df))
+    if (length(missing_vars) > 0L) {
+      stop(
+        "`formula` random-effect term ", term,
+        " references variable(s) not found in prepared model data: ",
+        paste(missing_vars, collapse = ", ")
+      )
+    }
+
+    if (length(group_vars) == 0L) {
+      stop("`formula` random-effect term ", term, " must include a grouping variable after `|`.")
+    }
+
+    group_df <- fit_df[group_vars]
+    group_df <- group_df[stats::complete.cases(group_df), , drop = FALSE]
+    n_groups <- nrow(unique(group_df))
+    if (n_groups < 2L) {
+      stop("`formula` random-effect term ", term, " requires at least 2 grouping levels.")
+    }
+
+    if (identical(group_vars, "od_id")) {
+      group_count <- tabulate(factor(fit_df$od_id))
+      if (length(group_count) > 0L && max(group_count) <= 1L) {
+        warning(
+          "OD random effects may be weakly identified when each OD pair appears once. ",
+          "Use with caution.",
+          call. = FALSE
+        )
+      }
+    }
+  }
+
+  invisible(TRUE)
+}
+
+.filter_multilevel_model_data <- function(data, formula, context = "model") {
+  vars <- unique(all.vars(formula))
+  missing_vars <- setdiff(vars, names(data))
+  if (length(missing_vars) > 0L) {
+    stop(
+      "`formula` references variable(s) not found in prepared model data: ",
+      paste(missing_vars, collapse = ", ")
+    )
+  }
+
+  keep <- rep(TRUE, nrow(data))
+  response <- .formula_response_var(formula)
+  for (var in vars) {
+    value <- data[[var]]
+    if (is.numeric(value) || is.integer(value)) {
+      var_keep <- is.finite(value)
+    } else {
+      var_keep <- !is.na(value)
+      if (is.character(value)) {
+        var_keep <- var_keep & nzchar(value)
+      }
+    }
+    keep <- keep & var_keep
+  }
+
+  if (!is.null(response) && response %in% names(data)) {
+    response_value <- suppressWarnings(as.numeric(data[[response]]))
+    keep <- keep & is.finite(response_value) & response_value >= 0
+  }
+
+  dropped_n <- sum(!keep)
+  if (dropped_n > 0L) {
+    warning(
+      dropped_n,
+      " row(s) were excluded from ",
+      context,
+      " data because `formula` variables were missing, non-finite, or invalid.",
+      call. = FALSE
+    )
+  }
+
+  data[keep, , drop = FALSE]
+}
+
+.stabilize_multilevel_formula_factor_levels <- function(data, formula) {
+  vars <- setdiff(unique(all.vars(formula)), .formula_response_var(formula))
+  for (var in vars) {
+    if (var %in% names(data) && is.character(data[[var]])) {
+      levels <- sort(unique(data[[var]][!is.na(data[[var]]) & nzchar(data[[var]])]))
+      data[[var]] <- factor(data[[var]], levels = levels)
+    }
+  }
+
+  data
+}
+
+.counterfactual_multilevel_bias_data <- function(data) {
+  if ("bias_e_origin" %in% names(data)) {
+    data$bias_e_origin <- 0
+  }
+
+  data
+}
+
 .summarize_multilevel_model_terms <- function(formula,
-                                              custom_formula,
+                                              formula_info,
+                                              default_covariate_col,
                                               include_pop_terms,
                                               scenario_terms,
                                               random_intercept) {
-  custom_formula_supplied <- !is.null(custom_formula)
-  default_fixed_effects <- if (custom_formula_supplied) {
+  user_formula_supplied <- !is.null(formula_info$formula)
+  default_fixed_effects <- if (user_formula_supplied) {
     character()
   } else {
-    out <- c("income_o", "income_d", "log_distance", "bias_e_origin")
+    out <- c(
+      if (!is.null(default_covariate_col)) c("income_o", "income_d"),
+      "log_distance",
+      "bias_e_origin"
+    )
     if (isTRUE(include_pop_terms)) {
       out <- c(out, "log_pop_o", "log_pop_d")
     }
     out
   }
 
-  random_effect_term <- switch(
+  default_random_effect_term <- switch(
     random_intercept,
     origin = "(1 | origin)",
     destination = "(1 | destination)",
@@ -1081,14 +1322,25 @@ adjust_multilevel_bayes <- function(mpd_od_df,
     source_time = "(1 | mpd_source_time)",
     none = NA_character_
   )
+  formula_random_effect_terms <- .formula_random_effect_terms(formula)
+  random_effect_term <- if (length(formula_random_effect_terms) > 0L) {
+    formula_random_effect_terms
+  } else {
+    default_random_effect_term
+  }
 
   list(
     formula = paste(deparse(formula), collapse = " "),
-    custom_formula = custom_formula_supplied,
+    formula_source = formula_info$source,
+    user_formula = user_formula_supplied,
+    custom_formula = identical(formula_info$source, "custom_formula"),
+    default_area_covariate = default_covariate_col,
     default_fixed_effects = default_fixed_effects,
-    scenario_fixed_effects = if (custom_formula_supplied) character() else scenario_terms,
+    scenario_fixed_effects = if (user_formula_supplied) character() else scenario_terms,
+    formula_variables = unique(all.vars(formula)),
     requested_random_intercept = random_intercept,
-    random_effect_term = random_effect_term
+    random_effect_term = random_effect_term,
+    formula_random_effects = formula_random_effect_terms
   )
 }
 
@@ -1158,14 +1410,19 @@ adjust_multilevel_bayes <- function(mpd_od_df,
 }
 
 .build_multilevel_formula <- function(random_intercept,
-                                      custom_formula,
+                                      formula_info = list(formula = NULL, source = "default"),
+                                      default_covariate_col = NULL,
                                       include_pop_terms,
                                       scenario_terms = character()) {
-  if (!is.null(custom_formula)) {
-    return(stats::as.formula(custom_formula))
+  if (!is.null(formula_info$formula)) {
+    return(stats::as.formula(formula_info$formula))
   }
 
-  rhs_terms <- c("income_o", "income_d", "log_distance", "bias_e_origin")
+  rhs_terms <- c(
+    if (!is.null(default_covariate_col)) c("income_o", "income_d"),
+    "log_distance",
+    "bias_e_origin"
+  )
   if (isTRUE(include_pop_terms)) {
     rhs_terms <- c(rhs_terms, "log_pop_o", "log_pop_d")
   }
@@ -1196,6 +1453,7 @@ adjust_multilevel_bayes <- function(mpd_od_df,
                                   chains,
                                   seed,
                                   refresh) {
+  has_random_effects <- .formula_has_random_effects(formula)
 
   if (backend == "rstanarm") {
     if (!requireNamespace("rstanarm", quietly = TRUE)) {
@@ -1203,6 +1461,18 @@ adjust_multilevel_bayes <- function(mpd_od_df,
     }
 
     if (model_family == "poisson") {
+      if (!has_random_effects) {
+        return(rstanarm::stan_glm(
+          formula = formula,
+          data = data,
+          family = stats::poisson(link = "log"),
+          iter = iter,
+          chains = chains,
+          seed = seed,
+          refresh = refresh
+        ))
+      }
+
       return(rstanarm::stan_glmer(
         formula = formula,
         data = data,
@@ -1215,6 +1485,17 @@ adjust_multilevel_bayes <- function(mpd_od_df,
     }
 
     if (model_family == "negbin") {
+      if (!has_random_effects) {
+        return(rstanarm::stan_glm.nb(
+          formula = formula,
+          data = data,
+          iter = iter,
+          chains = chains,
+          seed = seed,
+          refresh = refresh
+        ))
+      }
+
       return(rstanarm::stan_glmer.nb(
         formula = formula,
         data = data,
@@ -1325,6 +1606,42 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   out
 }
 
+.resolve_multilevel_default_covariate_col <- function(covariates_df,
+                                                      income_col = NULL,
+                                                      pop_col = "population") {
+  if (!is.null(income_col)) {
+    if (!income_col %in% names(covariates_df)) {
+      stop("`covariates_df` must contain `income_col` column `", income_col, "`.")
+    }
+    return(income_col)
+  }
+
+  preferred <- c(
+    "income_norm",
+    "rural_pct",
+    "income",
+    "gni_pc",
+    "deprivation_score",
+    "imd_score"
+  )
+  preferred <- preferred[preferred %in% names(covariates_df)]
+  if (length(preferred) > 0L) {
+    return(preferred[1])
+  }
+
+  candidate_cols <- setdiff(names(covariates_df), c("area", pop_col))
+  numeric_cols <- candidate_cols[vapply(
+    candidate_cols,
+    function(col) is.numeric(covariates_df[[col]]) || is.integer(covariates_df[[col]]),
+    logical(1)
+  )]
+  if (length(numeric_cols) > 0L) {
+    return(numeric_cols[1])
+  }
+
+  NULL
+}
+
 .prepare_multilevel_bayes_data <- function(mpd_od_df,
                                            coverage_df,
                                            covariates_df,
@@ -1346,10 +1663,24 @@ adjust_multilevel_bayes <- function(mpd_od_df,
     stop("`coverage_df` must contain: ", paste(req_cov, collapse = ", "))
   }
 
-  req_covar <- c("area", income_col)
+  if (is.null(covariates_df)) {
+    area_values <- sort(unique(as.character(c(
+      mpd_od_df$origin,
+      mpd_od_df$destination,
+      coverage_df$origin
+    ))))
+    covariates_df <- tibble::tibble(area = area_values)
+  }
+
+  req_covar <- "area"
   if (!all(req_covar %in% names(covariates_df))) {
     stop("`covariates_df` must contain: ", paste(req_covar, collapse = ", "))
   }
+  default_covariate_col <- .resolve_multilevel_default_covariate_col(
+    covariates_df = covariates_df,
+    income_col = income_col,
+    pop_col = pop_col
+  )
 
   if (is.null(scenario_info)) {
     scenario_info <- .resolve_multilevel_scenario(
@@ -1487,38 +1818,65 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   pop_area_map <- coverage_df |>
     dplyr::transmute(
       area = as.character(.data$origin),
-      pop_cov = as.numeric(.data$population)
+      .coverage_population = as.numeric(.data$population)
     ) |>
     dplyr::group_by(.data$area) |>
-    dplyr::summarise(pop_cov = dplyr::first(.data$pop_cov), .groups = "drop")
+    dplyr::summarise(.coverage_population = dplyr::first(.data$.coverage_population), .groups = "drop")
 
-  incomes <- covariates_df |>
-    dplyr::transmute(
-      area = as.character(.data$area),
-      income_val = as.numeric(.data[[income_col]]),
-      pop_val = if (pop_col %in% names(covariates_df)) as.numeric(.data[[pop_col]]) else NA_real_
-    ) |>
-    dplyr::left_join(pop_area_map, by = "area") |>
-    dplyr::mutate(pop_val = ifelse(is.finite(.data$pop_val), .data$pop_val, .data$pop_cov)) |>
+  area_covariates <- covariates_df |>
+    dplyr::mutate(area = as.character(.data$area)) |>
     dplyr::group_by(.data$area) |>
-    dplyr::summarise(
-      income_val = dplyr::first(.data$income_val),
-      pop_val = dplyr::first(.data$pop_val),
-      .groups = "drop"
+    dplyr::summarise(dplyr::across(dplyr::everything(), dplyr::first), .groups = "drop") |>
+    dplyr::left_join(pop_area_map, by = "area")
+
+  pop_val <- if (pop_col %in% names(area_covariates)) {
+    suppressWarnings(as.numeric(area_covariates[[pop_col]]))
+  } else {
+    rep(NA_real_, nrow(area_covariates))
+  }
+  area_covariates$pop_val <- ifelse(
+    is.finite(pop_val),
+    pop_val,
+    area_covariates$.coverage_population
+  )
+
+  join_covariates <- area_covariates |>
+    dplyr::select(-dplyr::all_of(c(".coverage_population", "pop_val")))
+
+  origin_covariates <- join_covariates |>
+    dplyr::rename_with(
+      .fn = function(x) paste0(x, "_o"),
+      .cols = -dplyr::all_of("area")
     )
+  names(origin_covariates)[names(origin_covariates) == "area"] <- "origin"
 
-  origin_incomes <- incomes |>
-    dplyr::transmute(origin = .data$area, income_o = .data$income_val, pop_o = .data$pop_val)
-  destination_incomes <- incomes |>
-    dplyr::transmute(destination = .data$area, income_d = .data$income_val, pop_d = .data$pop_val)
+  destination_covariates <- join_covariates |>
+    dplyr::rename_with(
+      .fn = function(x) paste0(x, "_d"),
+      .cols = -dplyr::all_of("area")
+    )
+  names(destination_covariates)[names(destination_covariates) == "area"] <- "destination"
+
+  origin_pop <- area_covariates |>
+    dplyr::transmute(origin = .data$area, pop_o = .data$pop_val)
+  destination_pop <- area_covariates |>
+    dplyr::transmute(destination = .data$area, pop_d = .data$pop_val)
 
   base_df <- base_df |>
     dplyr::left_join(
-      origin_incomes,
+      origin_covariates,
       by = "origin"
     ) |>
     dplyr::left_join(
-      destination_incomes,
+      destination_covariates,
+      by = "destination"
+    ) |>
+    dplyr::left_join(
+      origin_pop,
+      by = "origin"
+    ) |>
+    dplyr::left_join(
+      destination_pop,
       by = "destination"
     ) |>
     dplyr::mutate(
@@ -1529,13 +1887,24 @@ adjust_multilevel_bayes <- function(mpd_od_df,
       bias_e_origin = 1 - (.data$user_count / .data$population)
     )
 
+  if (!is.null(default_covariate_col)) {
+    default_origin_col <- paste0(default_covariate_col, "_o")
+    default_destination_col <- paste0(default_covariate_col, "_d")
+    if (default_origin_col %in% names(base_df)) {
+      base_df$income_o <- suppressWarnings(as.numeric(base_df[[default_origin_col]]))
+    }
+    if (default_destination_col %in% names(base_df)) {
+      base_df$income_d <- suppressWarnings(as.numeric(base_df[[default_destination_col]]))
+    }
+  }
+
   finite_bias <- is.finite(base_df$bias_e_origin)
   bad_bias_n <- sum(!finite_bias)
   if (bad_bias_n > 0) {
     warning(bad_bias_n, " row(s) have non-finite origin bias ratio; excluded from model fitting.")
   }
 
-  req_fit <- c("flow", "income_o", "income_d", "log_distance", "bias_e_origin")
+  req_fit <- c("flow", "log_distance", "bias_e_origin")
 
   model_df <- base_df |>
     dplyr::filter(
@@ -1568,6 +1937,7 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   list(
     base_df = base_df,
     model_df = model_df,
+    default_covariate_col = default_covariate_col,
     has_pop_terms = has_pop_terms,
     distance_source = distance_source,
     scenario_info = scenario_info

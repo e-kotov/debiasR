@@ -56,6 +56,7 @@ Last updated: 2026-05-21
 - `debiasR_example_data()` now supports optional complete-grid OD output with zero-filled absent pairs, row-status indicators, an OD audit for strict square support, and selected-area LAD distances computed from `debiasRdata::lad_centroids`.
 - `adjust_multilevel_bayes()` now supports `prediction_scope = "complete_grid"` for supplied square OD matrices; it fits on originally observed source rows when `mpd_observed` is available and predicts across the grid.
 - `adjust_multilevel_bayes()` now has explicit scenario/source/time parameters for the planned S1-S4 multilevel path, plus `model_engine = "frequentist"` for fast design and test iteration while the Bayesian method remains the goal.
+- `adjust_multilevel_bayes()` now accepts a primary R formula interface. Area covariates are prepared with origin/destination suffixes, formula random-effect terms drive model dispatch, and `income_col` remains only as a legacy default-formula helper.
 - The default frequentist S1-S4 formula contract is documented: S1 uses the base OD/covariate/bias terms, S2 adds `mpd_time`, S3 adds `mpd_source`, and S4 adds `mpd_source + mpd_time`; S4 source-time interaction remains deferred.
 - The adjustment and testing vignettes now include an S1 `model_engine = "frequentist"` placeholder example with constant source/time columns, plus parameter guidance for S2-S4 source/time structures while Bayesian transfer is incomplete.
 - Fast core tests passed after replacing the placeholder raking smoke test and removing selection-rate deprecation warnings

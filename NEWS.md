@@ -4,6 +4,7 @@
 
 - Added an S1-S4 scenario contract for `adjust_multilevel_bayes()` covering single/multiple mobile-phone-derived data sources crossed with single/multiple observation periods.
 - Added `scenario`, `source_col`, `time_col`, `repeated_observation`, and `model_engine` parameters so the multilevel path can validate and carry source/time metadata without introducing separate user-facing functions.
+- Added a primary `formula` interface for `adjust_multilevel_bayes()`, with arbitrary area covariates available as `{covariate}_o` and `{covariate}_d`, formula-specified random effects and slopes, and legacy `custom_formula` / `income_col` compatibility retained.
 - Added a frequentist development engine for fast testing of the shared multilevel data contract, complete-grid semantics, and bias-removal algebra; new S1-S4 model development should use this engine before Bayesian sampling is promoted.
 - Added `model_terms` metadata to the multilevel result contract so the resolved default fixed-effect and random-effect structure can be inspected directly.
 - Kept S2-S4 Bayesian scenario fitting explicitly deferred by returning a clear error under `model_engine = "bayesian"` when a repeated source/time scenario is resolved; use `model_engine = "frequentist"` for current S1-S4 development.

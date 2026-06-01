@@ -434,14 +434,12 @@ flows would look like after removing the estimated coverage-bias contribution.
 The method uses information about origins, destinations, covariates, distance
 and coverage bias in one modelling framework. The multilevel structure is
 designed to allow partial pooling across areas, sources or time periods when
-those data structures are available. The full S1-S4 Bayesian scenario
-implementation is still being completed, so this vignette uses
+those data structures are available. The full Bayesian scenario
+implementation is still in progress, so this vignette uses
 `model_engine = "frequentist"` as a fast placeholder for the same data and
-output contract. The example is S1: one mobile-phone data source and one
+output contract. Here, we use a simple example based on one mobile-phone data source and one
 observation period. The intended inferential target remains the Bayesian engine
 for supported scenarios. The simplified model can be written as:
-
-### Equation
 
 Observation model:
 
@@ -463,7 +461,8 @@ $$
 e_i = 1 - \frac{U_i}{P_i}
 $$
 
-Adjusted fixed-effect predictor:
+For the simple formula with a linear coverage-bias term, the adjusted
+fixed-effect predictor is:
 
 $$
 \eta^{adj}_{ij} = \eta^{fix}_{ij} - \omega e_i
@@ -476,22 +475,25 @@ F^{adj}_{ij} = \exp(\eta^{adj}_{ij})
 $$
 
 In the Bayesian implementation, this is done draw-by-draw from the posterior
-and summarized by mean or median. The frequentist engine is used here only to
-test the shared data contract, formula, and output shape quickly.
+and summarised by mean or median. More generally, the implementation computes
+a formula-aware fixed-effect counterfactual prediction with `bias_e_origin` set
+to zero, which keeps the correction valid when the formula includes interactions
+or random slopes. The frequentist form is used here only to test the shared data
+contract, formula and output shape quickly.
 
 ### Implementation
 
-To use `adjust_multilevel_bayes()`, pass the observed MPD flows to `mpd_od_df`,
+To use `adjust_multilevel_bayes()`, input the observed MPD flows to `mpd_od_df`,
 the population coverage table to `coverage_df`, area-level covariates to
 `covariates_df` and OD distances to `distance_df`. The `scenario`, `source_col`,
 `time_col` and `repeated_observation` arguments describe the source/time data
 structure. The `prediction_scope` argument controls whether the method adjusts
 only observed MPD pairs or predicts over a complete OD grid. The
-`random_intercept`, `model_family`, `model_engine` and `flow_adj_summary`
-arguments control the model structure, likelihood, fitting engine and how
-adjusted flows are summarised. This function still uses the historical argument
-name `income_col` for the selected area-level covariate; here we pass
-`rural_pct` so the model uses the real Census rural-share covariate.
+`formula`, `model_family`, `model_engine` and `flow_adj_summary` arguments
+control the model structure, likelihood, fitting engine and how adjusted flows
+are summarised. Area-level covariates are available in the formula with origin
+and destination suffixes. This example uses `rural_pct_o` and `rural_pct_d` so
+the model uses the real Census rural-share covariate.
 
 ```{r}
 mpd_s1 <- example_data$mpd_od |>
@@ -511,7 +513,7 @@ adj_multilevel <- adjust_multilevel_bayes(
   coverage_df = coverage_s1,
   covariates_df = example_data$covariates,
   distance_df = example_data$distance,
-  income_col = "rural_pct",
+  formula = flow ~ rural_pct_o + rural_pct_d + log_distance + bias_e_origin,
   model_engine = "frequentist",
   scenario = "s1",
   source_col = "mpd_source",

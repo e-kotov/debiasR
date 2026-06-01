@@ -71,8 +71,17 @@ Working recommendation:
 
 ## Current Frequentist Formula Contract
 
-Under `model_engine = "frequentist"` and no `custom_formula`, the default
-formula starts from:
+The primary user-facing model interface is now `formula`, for example:
+
+`flow ~ rural_pct_o + rural_pct_d + log_distance + bias_e_origin + (1 + log_distance | origin)`
+
+Area-level covariates are joined twice using origin and destination suffixes.
+Formula random-effect terms are treated as the source of truth when supplied.
+`custom_formula` is retained as a deprecated alias, and `income_col` is retained
+only as a legacy helper for the default formula.
+
+Under `model_engine = "frequentist"` and no `formula`, the default formula
+starts from:
 
 `flow ~ income_o + income_d + log_distance + bias_e_origin`
 
