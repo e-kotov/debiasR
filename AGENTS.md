@@ -40,3 +40,10 @@ Testing:
 Documentation:
 - Keep README, NEWS, status notes, and task board synchronized when user-facing scope changes.
 - Do not treat older migration notes as the current source of truth when `STATUS.md` or `TASK_BOARD.md` disagree.
+- When asked to preview vignettes, default to a pkgdown-style preview rather than
+  standalone `quarto preview` output. Build the site to a temporary directory
+  such as `/private/tmp/debiasr-pkgdown-preview` with
+  `RSTUDIO_PANDOC=/Applications/quarto/bin/tools/aarch64 Rscript -e "pkgdown::build_site(pkg = '.', override = list(destination = '/private/tmp/debiasr-pkgdown-preview'), new_process = FALSE, install = TRUE)"`,
+  serve that directory locally, and open the relevant `articles/*.html` page
+  (for example `/articles/v06-adjusting-biases.html`). Use standalone Quarto
+  preview only if explicitly requested.
