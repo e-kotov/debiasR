@@ -179,16 +179,11 @@ flows through `mpd_od_df` and the population coverage table through
 `coverage_df`. The `covariates_df` and `covariate_col` arguments tell the
 function which area-level characteristic to use when estimating differential
 selection. In this example, we use `rural_pct`, the rural land-share covariate
-from `debiasRdata`.
-The `weight_by` argument controls whether the correction is applied using origin
-coverage, destination coverage or both. If a benchmark OD table is available,
-`benchmark_od_df` can be supplied so that the function chooses the selection
-parameter from `r_grid`.
+from `debiasRdata`. 
+While all other parameters in `adjust_selection_rate()` have defaults, we recommend users to include specify `benchmark_od_df` for a meaningful selection-rate adjustment. This data frame corresponds to a benchmark OD table used to calibrate the selection rate parameter `r` in the equations above. 
 
-The function `calibration_aggregate` calibrates the
-parameter against origin-level benchmark totals if set to origin. This function then tries each value in `r_grid`, adjusts the MPD flows, sums adjusted and benchmark flows by origin, and chooses the r_t that minimises the absolute difference in origin totals. `r_grid` is the set of candidate values that `adjust_selection_rate()` tries when it needs to calibrate the global selection parameter `r_t`. If `calibration_aggregate` is set to `od`, it skips that origin aggregation. Instead, for each candidate `r_t`, it compares each adjusted OD cell directly with the benchmark OD cell (as described in the note below), and picks the `r_t` with the smallest total OD-level error.
 
-::: {.callout-note title="If no benchmark flow data are available"}
+::: {.callout-note title="What about if you do not have benchmark flow?"}
  `adjust_selection_rate()` has two no-benchmark routes:
 
 (1) you can provide `r_global` directly based on prior evidence, substantive knowledge or a
@@ -205,6 +200,9 @@ parameter against origin-level benchmark totals if set to origin. This function 
  flows against any aggregate or external evidence that is available.
 :::
 
+To calibrate MPD flows, `calibration_aggregate`is set to origin. This means that MDP flows are calibrated *against* origin-level benchmark totals. This function tries each value in a grid of r values (`r_grid`), adjusts the MPD flows, sums adjusted and benchmark flows by origin, and chooses the `r_t` that minimises the absolute difference in origin totals. `r_grid` is the set of candidate values that `adjust_selection_rate()` tries when it needs to calibrate the global selection parameter `r_t`. If `calibration_aggregate` is set to `od`, it skips that origin aggregation. Instead, for each candidate `r_t`, it compares each adjusted OD cell directly with the benchmark OD cell (as described in the note below), and picks the `r_t` with the smallest total OD-level error. The `weight_by` argument controls whether the correction is applied using origin coverage, destination coverage or both. 
+
+
 ```{r}
 adj_selection_rate <- adjust_selection_rate(
   mpd_od_df = example_data$mpd_od,
@@ -220,7 +218,8 @@ adj_selection_rate |>
   dplyr::select(origin, destination, flow, flow_adj) |>
   dplyr::slice_head(n = 5)
 
-tibble::tibble(r_global = attr(adj_selection_rate, "r_global"))
+tibble::tibble(r_global = attr(adj_selection_rate, 
+                               "r_global"))
 ```
 
 The table reports the original MPD flow in `flow` and the selection-rate
@@ -232,7 +231,7 @@ This method is useful when coverage alone is too simple and we believe
 representation varies with an area characteristic. Its main limitation is that
 the chosen covariate must be meaningful: if the covariate is weakly related to
 selection into the MPD
-source, the adjustment may add complexity without reducing bias.
+source, the adjustment may add complexity without reducing bias. The `weight_missing` column in the `adj_selection_rate` is a diagnostic flag if missing and / or invalid origin coverage data leads to missing and / or invalid weight inputs.
 
 ## Selection rate II
 
@@ -245,14 +244,16 @@ weighting and the fuller covariate-based selection-rate model. When benchmark
 OD flows are available, `debiasR` can calibrate $k$ so that the adjusted flows
 better match a trusted comparison. Formally:
 
-### Equation
-
 *Coverage correction factor*:
 
 $$
 CF(p; k) =
 p\frac{\exp(-k) - 1}{\exp(-kp) - 1}
 $$
+
+where $CF(p; k)$ is the coverage correction factor, $p$ is the active-user
+coverage rate for the selected origin or destination area, and $k$ is the
+curvature parameter that controls how strongly coverage is transformed. 
 
 *Adjusted flow*:
 
@@ -265,13 +266,13 @@ sides depending on `weight_by`.
 
 ### Implementation
 
-To use `adjust_selection_rate2()`, pass the observed MPD flows to `mpd_od_df`
+To use `adjust_selection_rate2()`, the strict minimum set of parameter to be specified are MPD flows and coverage data. Input the observed MPD flows to `mpd_od_df`
 and the coverage table to `coverage_df`. The `weight_by` argument controls
 whether the correction uses origin coverage, destination coverage or both. You
 can set `k` directly if you have a chosen correction curvature, or leave it as
 `NULL` and provide `benchmark_od_df` so the function calibrates `k` over
 `k_grid`. As above, `calibration_aggregate = "origin"` calibrates against
-origin-level benchmark totals.
+origin-level benchmark totals. The parameter `k` is the analog to `r` in `adjust_selection_rate()`.
 
 ```{r}
 adj_selection_rate2 <- adjust_selection_rate2(
@@ -299,16 +300,15 @@ simple when selection bias varies strongly across places or population groups.
 
 ## Raking ratio
 
+Raking ratio is also known as iterative proportional
+fitting (IPF). 
 Raking ratio adjusts origin-destination flows by iteratively rescaling the
 observed MPD matrix so that its origin and destination totals match trusted
-benchmark margins. The intuition is different from coverage weighting: instead
+benchmark margins. The intuition is different from coverage weighting. Instead
 of calculating a weight from active-user coverage, the method asks the adjusted
 OD table to satisfy known aggregate constraints. If we trust total outflows from
-each origin and total inflows to each destination, iterative proportional
-fitting updates the OD cells until the row and column totals agree with those
+each origin and total inflows to each destination, IPF updates the OD cells until the row and column totals agree with those
 benchmarks. Formally:
-
-### Equation
 
 *Margin constraints*:
 
@@ -322,10 +322,11 @@ where $O_i^{bench}$ and $D_j^{bench}$ are benchmark outflow and inflow totals.
 
 ### Implementation
 
-To use `adjust_raking_ratio()`, pass the observed MPD flows to `mpd_od_df` and
+To use `adjust_raking_ratio()`, the minimum set of parameter to specify is the MDP flows and set of constraints. Input the observed MPD flows to `mpd_od_df` and
 either provide `benchmark_od_df` or supply explicit `origin_targets` and
-`destination_targets`. In this vignette we use `benchmark_od_df`, so `debiasR`
+`destination_targets`. In this vignette, we use `benchmark_od_df`, so `debiasR`
 derives the target origin and destination margins from the benchmark OD table.
+
 The `max_iter` and `tol` arguments control the iterative fitting process:
 `max_iter` sets the maximum number of update cycles and `tol` sets the
 convergence tolerance.
@@ -367,10 +368,10 @@ The method is useful when a trusted benchmark OD table is available for the
 same origin-destination pairs. Instead of using population coverage or margins,
 it fits a regression model that estimates how MPD counts map onto benchmark
 counts, then applies that fitted relationship to the MPD table. In its simplest
-form, this is a single multiplicative coefficient; in count-model versions, the
-relationship is estimated through a log link. Formally:
-
-### Equation
+form, this is a single multiplicative coefficient. In count-model versions, the
+relationship is estimated through a log link. 
+Flow measured as proportions or probability as, for example, the number of outflows over the population at risk could be used as input, as well. 
+Formally:
 
 *Core proportional form*:
 
@@ -394,12 +395,12 @@ $$
 
 ### Implementation
 
-To use `adjust_coefficient()`, pass the observed MPD flows to `mpd_od_df` and a
+To use `adjust_coefficient()`, the minimum input requirement are the MPD and benchmark flows. Input the observed MPD flows to `mpd_od_df` and a
 benchmark OD table to `benchmark_od_df`. The `model_family` argument controls
 the regression family used to learn the MPD-to-benchmark relationship; this
 example uses `"ols"` for a simple proportional calibration. The `level`
 argument controls whether the coefficient is estimated at the OD, origin or
-destination level. Other options, such as `fit_intercept` and `by_source`, let
+destination level. Additional options, such as `fit_intercept` and `by_source`, let
 users decide whether to estimate an intercept or source-specific coefficients.
 
 ```{r}
@@ -656,75 +657,81 @@ eq_stack <- function(...) {
 }
 
 method_summary <- tibble::tribble(
-  ~Method, ~Rationale, ~Equation, ~`Benchmark<br>population`, ~`Active<br>users`, ~`Benchmark<br>OD flows`, ~`MPD<br>OD flows`, ~Covariates, ~Assumptions, ~Strengths, ~Limitations, ~`Validation<br>strategy`,
+  ~Method, ~`Correction<br>level`, ~`How the correction<br>is applied`, ~Rationale, ~Equation, ~`Benchmark<br>population`, ~`Active<br>users`, ~`Benchmark<br>OD flows`, ~Covariates, ~Strengths, ~Limitations, ~`Validation<br>strategy`,
   "Inverse Penetration Rate Weights",
+  "Area-specific coverage correction",
+  "Applies origin, destination, or both-side coverage weights using <code>weight_by</code>.",
   "Inflates observed flows using population-to-user ratios where coverage is thin.",
   eq_stack(
     "<i>w</i><sub>i</sub> = P<sub>i</sub> / U<sub>i</sub>",
     "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; <i>w</i><sub>i</sub>, <i>w</i><sub>j</sub>, or &radic;(<i>w</i><sub>i</sub><i>w</i><sub>j</sub>)"
   ),
-  "Yes", "Yes", "No", "Yes", "No",
-  "Coverage bias is roughly proportional to active-user penetration.",
+  "Yes", "Yes", "No", "No",
   "Simple, transparent, fast, and does not require benchmark OD flows.",
   "Can overinflate sparse areas and misses compositional selection bias.",
   "Use <code>validate_flow_overall()</code> for summary fit and <code>validate_flow_residuals()</code> for large OD corrections.",
 
   "Selection Rate",
+  "Area-specific selection correction",
+  "Applies origin, destination, or both-side selection weights controlled by a global <i>r</i><sub>t</sub> parameter.",
   "Uses coverage, covariates, and optional benchmark calibration to model differential selection.",
   eq_stack(
     "<i>w</i><sub>i</sub>(<i>r</i><sub>t</sub>) = 1 / (I<sub>i</sub><i>p</i><sub>i</sub> + (1 - I<sub>i</sub>)<i>r</i><sub>t</sub>)",
     "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; <i>w</i><sub>ij</sub>"
   ),
-  "Yes", "Yes", "Optional", "Yes", "Yes",
-  "The covariate is informative about selection and the calibration benchmark is representative when used.",
+  "Yes", "Yes", "Optional", "Yes",
   "More flexible than inverse penetration and can use benchmark calibration.",
   "Depends on covariate quality, calibration choices, and a meaningful selection parameter.",
   "Compare calibrated and uncalibrated outputs with <code>validate_flow_overall()</code> and inspect OD residuals.",
 
   "Selection Rate II",
+  "Area-specific nonlinear coverage correction",
+  "Applies origin, destination, or both-side coverage correction controlled by a global <code>k</code> parameter.",
   "Applies a compact coverage correction with optional <code>k</code> calibration.",
   eq_stack(
     "CF(<i>p</i>; <i>k</i>) = <i>p</i> &times; (exp(-<i>k</i>) - 1) / (exp(-<i>k</i><i>p</i>) - 1)",
     "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; CF(...)"
   ),
-  "Yes", "Yes", "Optional", "Yes", "No",
-  "A single curvature parameter can summarize the selection correction.",
+  "Yes", "Yes", "Optional", "No",
   "Parsimonious, interpretable, and lighter than a covariate-rich adjustment.",
   "Less flexible when bias varies strongly across areas.",
   "Use summary validation metrics and residual diagnostics to check whether the compact correction is adequate.",
 
   "Raking Ratio (or Iterative proportional fitting)",
+  "Margin-constrained correction",
+  "Iteratively rescales OD cells so adjusted origin and/or destination totals match supplied margins.",
   "Uses iterative proportional fitting so adjusted flows match trusted origin and destination margins.",
   eq_stack(
     "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; <i>w</i><sub>ij</sub>",
     "&Sigma;<sub>j</sub><i>F</i><sup>adj</sup><sub>ij</sub> = O<sub>i</sub> and &Sigma;<sub>i</sub><i>F</i><sup>adj</sup><sub>ij</sub> = D<sub>j</sub>"
   ),
-  "Optional as targets", "No", "Yes or user targets", "Yes", "No",
-  "Trusted margins are available and the observed OD support is adequate.",
+  "Optional as targets", "No", "Yes or user targets", "No",
   "Guarantees consistency with supplied marginal totals.",
   "Matching margins does not guarantee correct destination allocation within each origin.",
   "Check IPF convergence and margin matching, then validate OD-pair residuals and allocation fidelity.",
 
   "Coefficient regression modelling",
+  "Global coefficient correction",
+  "Estimates a multiplicative coefficient from MPD-benchmark overlap and applies it to the MPD table.",
   "Learns a direct mapping from MPD flows to benchmark flows and applies it to the MPD table.",
   eq_stack(
     "E[<i>F</i><sup>bench</sup><sub>ij</sub>] = &beta; <i>F</i><sup>mpd</sup><sub>ij</sub>",
     "log(&mu;<sub>ij</sub>) = &alpha; + log(<i>F</i><sup>mpd</sup><sub>ij</sub>)"
   ),
-  "No", "No", "Yes", "Yes", "No",
-  "The MPD-benchmark relationship is stable enough to estimate on overlapping support.",
+  "No", "No", "Yes", "No",
   "Direct benchmark-driven calibration with several model families.",
   "Benchmark quality is critical and a global coefficient can miss local heterogeneity.",
   "Compare families and levels with <code>validate_flow_overall()</code>; inspect systematic residuals.",
 
   "Bayesian multilevel modelling",
+  "Model-based corridor correction",
+  "Predicts OD-specific adjusted flows from origin, destination, distance, bias, and optional random effects.",
   "Fits a multilevel count model with coverage bias, covariates, distance, and optional hierarchical structure.",
   eq_stack(
     "log(&mu;<sup>obs</sup><sub>ij</sub>) = &alpha; + &beta;<sub>o</sub>X<sub>i</sub> + &beta;<sub>d</sub>X<sub>j</sub> + &gamma; log(<i>d</i><sub>ij</sub>) + &omega;e<sub>i</sub> + <i>u</i>",
     "<i>F</i><sup>adj</sup><sub>ij</sub> = summary(exp(&eta;<sup>fix</sup><sub>ij</sub> - &omega;e<sub>i</sub>))"
   ),
-  "Yes", "Yes", "No", "Yes", "Yes",
-  "The model family and hierarchy are well specified and coverage bias is captured by the fitted bias term.",
+  "Yes", "Yes", "No", "Yes",
   "Richer structure, no benchmark OD needed for fitting, and a path to uncertainty-aware partial pooling.",
   "Heavier runtime and dependencies; S2-S4 Bayesian fitting is still being transferred from the development contract.",
   "Use model diagnostics plus the same validation functions used for other methods when a benchmark is available."
