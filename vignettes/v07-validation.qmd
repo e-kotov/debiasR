@@ -44,7 +44,11 @@ library(ggplot2)
 ```
 
 ```{r}
-method_results <- fit_adjustment_methods(example_data)
+method_results <- fit_adjustment_methods(
+  example_data,
+  include_multilevel = TRUE,
+  multilevel_engine = "frequentist"
+)
 mpd_od <- example_data$mpd_od
 benchmark_od <- example_data$benchmark_od
 
@@ -55,10 +59,13 @@ primary_method <- if ("raking_ratio" %in% names(method_results)) {
 }
 ```
 
-The examples below use all deterministic adjustment methods for tabular method
-comparison. For detailed scatterplots and row-level diagnostics, they use
-`r primary_method` as a compact example. The same helper calls can be repeated
-for any method in `method_results`.
+The examples below use all methods that can be rendered quickly in the vignette.
+The multilevel method is included with `model_engine = "frequentist"` so the
+validation workflow reflects the formula-aware S1 contract used in the
+adjustment vignette, without requiring a slow Bayesian fit during routine
+rendering. For detailed scatterplots and row-level diagnostics, the vignette
+uses `r primary_method` as a compact example. The same helper calls can be
+repeated for any method in `method_results`.
 
 ```{r}
 safe_cor <- function(x, y, method = "pearson") {
@@ -181,6 +188,30 @@ display_metrics <- function(metrics) {
     )
 }
 
+comparison_palette <- c(
+  "Adjusted vs benchmark" = "#2B8CBE",
+  "Raw vs benchmark" = "#756BB1",
+  "Raw vs adjusted" = "#636363"
+)
+reference_line_colour <- "#D95F0E"
+
+flow_axis_label <- function(x) {
+  dplyr::case_when(
+    abs(x) >= 1e6 ~ paste0(round(x / 1e6, 1), "m"),
+    abs(x) >= 1e3 ~ paste0(round(x / 1e3, 1), "k"),
+    TRUE ~ format(round(x, 0), big.mark = ",", scientific = FALSE, trim = TRUE)
+  )
+}
+
+theme_validation <- function() {
+  theme_minimal(base_size = 11) +
+    theme(
+      legend.position = "bottom",
+      panel.grid.minor = element_blank(),
+      strip.text = element_text(face = "bold")
+    )
+}
+
 build_flow_comparison <- function(method_name, adj_df, mpd_df, benchmark_df) {
   adj_df |>
     dplyr::select(origin, destination, flow_adj) |>
@@ -241,22 +272,28 @@ build_pair_scatter <- function(data) {
     )
 }
 
-plot_pair_scatter <- function(data, title_text) {
+plot_pair_scatter <- function(data) {
   ggplot(
     build_pair_scatter(data),
     aes(x = reference_flow, y = compared_flow, colour = comparison)
   ) +
     geom_point(alpha = 0.35, size = 1, na.rm = TRUE) +
-    geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "#D95F0E") +
+    geom_abline(
+      intercept = 0,
+      slope = 1,
+      linetype = "dashed",
+      colour = reference_line_colour
+    ) +
     facet_wrap(~comparison, scales = "free") +
-    scale_colour_manual(values = c("#41AE76", "#756BB1", "#2B8CBE")) +
+    scale_colour_manual(values = comparison_palette) +
+    scale_x_continuous(labels = flow_axis_label) +
+    scale_y_continuous(labels = flow_axis_label) +
     guides(colour = "none") +
     labs(
-      title = title_text,
       x = "Reference flow",
       y = "Compared flow"
     ) +
-    theme_minimal()
+    theme_validation()
 }
 ```
 
@@ -277,6 +314,24 @@ flow_comparison <- dplyr::bind_rows(
 
 flow_comparison |>
   dplyr::count(method, name = "od_pairs")
+```
+
+```{r}
+method_engine <- function(x) {
+  engine <- attr(x, "model_engine", exact = TRUE)
+  if (is.null(engine)) "deterministic" else engine
+}
+
+tibble::tibble(
+  method = names(method_results),
+  engine = vapply(method_results, method_engine, character(1)),
+  rows = vapply(method_results, nrow, integer(1)),
+  adjusted_total = vapply(
+    method_results,
+    function(x) sum(x$flow_adj, na.rm = TRUE),
+    numeric(1)
+  )
+)
 ```
 
 ## Level 1: Overall Validation Metrics
@@ -331,22 +386,28 @@ adjusted_benchmark_metrics <- dplyr::bind_rows(
 adjusted_benchmark_metrics
 ```
 
-Scatterplots make the table easier to diagnose. Points on the dashed line have
-equal compared and reference values. Points above the line are larger than the
-reference; points below it are smaller.
+The figure below compares adjusted and benchmark flows for each method. Points
+on the dashed line have equal compared and reference values. Points above the
+line are larger than the benchmark; points below it are smaller.
 
 ```{r}
 flow_comparison |>
   ggplot(aes(x = flow_bench, y = flow_adj)) +
-  geom_point(alpha = 0.18, size = 0.7, colour = "#356859", na.rm = TRUE) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "#D95F0E") +
+  geom_point(alpha = 0.18, size = 0.7, colour = "#2B8CBE", na.rm = TRUE) +
+  geom_abline(
+    intercept = 0,
+    slope = 1,
+    linetype = "dashed",
+    colour = reference_line_colour
+  ) +
   facet_wrap(~method, scales = "free") +
+  scale_x_continuous(labels = flow_axis_label) +
+  scale_y_continuous(labels = flow_axis_label) +
   labs(
-    title = "Adjusted flows against benchmark flows, by method",
     x = "Benchmark flow",
     y = "Adjusted flow"
   ) +
-  theme_minimal()
+  theme_validation()
 ```
 
 This method-level view flags whether each adjustment sits close to the
@@ -425,22 +486,32 @@ marginal_metrics |>
   display_metrics()
 ```
 
+The figure below applies the same three comparisons to origin and destination
+margins. This makes area-level overestimation or underestimation visible before
+drilling into individual OD cells.
+
 ```{r}
 marginal_comparison |>
   dplyr::filter(method == primary_method) |>
   build_pair_scatter() |>
   ggplot(aes(x = reference_flow, y = compared_flow, colour = comparison)) +
   geom_point(alpha = 0.75, size = 2, na.rm = TRUE) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "#D95F0E") +
+  geom_abline(
+    intercept = 0,
+    slope = 1,
+    linetype = "dashed",
+    colour = reference_line_colour
+  ) +
   facet_grid(level ~ comparison, scales = "free") +
-  scale_colour_manual(values = c("#41AE76", "#756BB1", "#2B8CBE")) +
+  scale_colour_manual(values = comparison_palette) +
+  scale_x_continuous(labels = flow_axis_label) +
+  scale_y_continuous(labels = flow_axis_label) +
   guides(colour = "none") +
   labs(
-    title = paste("Origin and destination marginal comparisons for", primary_method),
     x = "Reference marginal total",
     y = "Compared marginal total"
   ) +
-  theme_minimal()
+  theme_validation()
 ```
 
 The table below names the largest remaining marginal residuals for the selected
@@ -510,9 +581,7 @@ flows.
 ```{r}
 flow_comparison |>
   dplyr::filter(method == primary_method) |>
-  plot_pair_scatter(
-    title_text = paste("Three-way OD-flow comparison for", primary_method)
-  )
+  plot_pair_scatter()
 ```
 
 `validate_flow_pairs()` returns the joined OD-pair table for direct inspection.
@@ -589,17 +658,20 @@ primary_flow |>
   dplyr::slice_head(n = 10)
 ```
 
+The residual histogram below shows the distribution of adjusted-minus-benchmark
+errors for the selected method.
+
 ```{r}
 primary_flow |>
   ggplot(aes(x = adjusted_residual)) +
   geom_vline(xintercept = 0, colour = "grey65") +
-  geom_histogram(bins = 30, fill = "#356859", colour = "white") +
+  geom_histogram(bins = 30, fill = "#2B8CBE", colour = "white") +
+  scale_x_continuous(labels = flow_axis_label) +
   labs(
-    title = paste("Distribution of adjusted-minus-benchmark residuals for", primary_method),
     x = "Adjusted flow minus benchmark flow",
     y = "OD-pair count"
   ) +
-  theme_minimal()
+  theme_validation()
 ```
 
 The residual histogram shows whether remaining errors are centred near zero or

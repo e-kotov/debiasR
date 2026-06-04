@@ -58,6 +58,33 @@ library(dplyr)
 library(tibble)
 
 has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+if (has_ggplot2) {
+  library(ggplot2)
+}
+
+comparison_palette <- c(
+  "Adjusted vs benchmark" = "#2B8CBE",
+  "Raw vs benchmark" = "#756BB1",
+  "Raw vs adjusted" = "#636363"
+)
+reference_line_colour <- "#D95F0E"
+
+flow_axis_label <- function(x) {
+  dplyr::case_when(
+    abs(x) >= 1e6 ~ paste0(round(x / 1e6, 1), "m"),
+    abs(x) >= 1e3 ~ paste0(round(x / 1e3, 1), "k"),
+    TRUE ~ format(round(x, 0), big.mark = ",", scientific = FALSE, trim = TRUE)
+  )
+}
+
+theme_validation_review <- function() {
+  ggplot2::theme_minimal(base_size = 11) +
+    ggplot2::theme(
+      legend.position = "bottom",
+      panel.grid.minor = ggplot2::element_blank(),
+      strip.text = ggplot2::element_text(face = "bold")
+    )
+}
 ```
 
 ```{r}
@@ -121,6 +148,9 @@ flow_overview |>
   )
 ```
 
+The figure below compares the simulated raw MPD and benchmark flow
+distributions on a log scale.
+
 ```{r}
 if (has_ggplot2) {
   ggplot2::ggplot(
@@ -134,13 +164,15 @@ if (has_ggplot2) {
       color = "white"
     ) +
     ggplot2::facet_wrap(ggplot2::vars(series), ncol = 1) +
+    ggplot2::scale_fill_manual(
+      values = c("Observed MPD" = "#756BB1", "Benchmark" = "#2B8CBE")
+    ) +
     ggplot2::labs(
-      title = "Distribution of Simulated OD Flows",
       x = "log1p(flow)",
       y = "OD pairs",
-      fill = "Series"
+      fill = NULL
     ) +
-    ggplot2::theme_minimal()
+    theme_validation_review()
 } else {
   hist(
     log1p(simulated_mpd.od$flow),
@@ -193,6 +225,80 @@ bind_rows(lapply(names(adjusted_outputs), function(method_name) {
       max_adjusted = max(flow_adj, na.rm = TRUE)
     )
 }))
+```
+
+The figure below uses `adjust_raking_ratio` as a compact visual check of the
+three validation comparisons: adjusted against benchmark, raw MPD against
+benchmark, and adjusted against raw MPD.
+
+```{r}
+build_review_scatter <- function(adj_df, method_name) {
+  joined <- adj_df |>
+    select(origin, destination, flow_mpd = flow, flow_adj) |>
+    inner_join(
+      simulated_benchmark.od |>
+        select(origin, destination, flow_bench = flow),
+      by = c("origin", "destination")
+    )
+
+  bind_rows(
+    joined |>
+      transmute(
+        method = method_name,
+        comparison = "Adjusted vs benchmark",
+        reference_flow = flow_bench,
+        compared_flow = flow_adj
+      ),
+    joined |>
+      transmute(
+        method = method_name,
+        comparison = "Raw vs benchmark",
+        reference_flow = flow_bench,
+        compared_flow = flow_mpd
+      ),
+    joined |>
+      transmute(
+        method = method_name,
+        comparison = "Raw vs adjusted",
+        reference_flow = flow_mpd,
+        compared_flow = flow_adj
+      )
+  ) |>
+    mutate(
+      comparison = factor(
+        comparison,
+        levels = c(
+          "Adjusted vs benchmark",
+          "Raw vs benchmark",
+          "Raw vs adjusted"
+        )
+      )
+    )
+}
+
+if (has_ggplot2) {
+  build_review_scatter(adj_raking, "adjust_raking_ratio") |>
+    ggplot(aes(x = reference_flow, y = compared_flow, colour = comparison)) +
+    geom_point(alpha = 0.55, size = 1.6, na.rm = TRUE) +
+    geom_abline(
+      intercept = 0,
+      slope = 1,
+      linetype = "dashed",
+      colour = reference_line_colour
+    ) +
+    facet_wrap(~comparison, scales = "free") +
+    scale_colour_manual(values = comparison_palette) +
+    scale_x_continuous(labels = flow_axis_label) +
+    scale_y_continuous(labels = flow_axis_label) +
+    guides(colour = "none") +
+    labs(
+      x = "Reference flow",
+      y = "Compared flow"
+    ) +
+    theme_validation_review()
+} else {
+  "Install ggplot2 to review the three-way validation scatterplot."
+}
 ```
 
 ## Helper Inputs For Residual Structure
