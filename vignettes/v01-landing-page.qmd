@@ -17,7 +17,7 @@ editor:
     wrap: 72
 ---
 
-![](figures/debias-logo-white.JPEG){width="260px"}
+![](figures/debias-hex.png){width="220px"}
 
 ## Overview
 

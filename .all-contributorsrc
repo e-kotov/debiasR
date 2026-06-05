@@ -29,6 +29,19 @@
         "tool",
         "test"
       ]
+    },
+    {
+      "login": "carmen-cabrera",
+      "name": "Carmen Cabrera",
+      "avatar_url": "https://avatars.githubusercontent.com/u/33100192?v=4",
+      "profile": "https://github.com/carmen-cabrera",
+      "contributions": [
+        "doc",
+        "code",
+        "content",
+        "ideas",
+        "research"
+      ]
     }
   ],
   "contributorsPerLine": 7,
