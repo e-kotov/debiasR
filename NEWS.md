@@ -16,6 +16,8 @@
 - Rewrote the validation workflow vignette to clarify how users can compare
   raw, adjusted, and benchmark OD flows with the current `validate_flow_*`
   diagnostics.
+- Refined the validation vignette interpretation and recommendation text for
+  the three-level validation workflow.
 
 ### Multilevel scenario development
 

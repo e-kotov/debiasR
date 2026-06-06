@@ -124,14 +124,12 @@ flow_comparison <- validation_build_flow_comparison(
 
 ## Level 1: Overall validation
 
-This level provides a single number summary metric for the whole system of origin-destination flows. Each row in the table below summarises all
-OD pairs for one method and one comparison. The two methods are **Inverse
-penetration** and **Selection rate II**.
+This level provides a single number summary metric for the whole system of origin-destination flows. Each row in the output table reports a measure for one method and one data-type comparison (e.g. adjusted vs benchmark flows or raw vs adjusted flows).
 
-The main rows are the adjusted-versus-benchmark rows. These rows tell us
-whether the adjusted outputs are close to the Census benchmark. The
+The main results are the adjusted-versus-benchmark rows. These rows indicate
+whether the adjusted flows are close to the benchmark flows. The
 raw-versus-benchmark rows show the starting point before adjustment. The
-raw-versus-adjusted rows show how much the method moved the original data.
+raw-versus-adjusted rows show how much the method adjusted the original data.
 
 ```{r}
 overall_metrics <- validation_metrics_by_method(
@@ -144,16 +142,15 @@ overall_metrics |>
   validation_display_metrics()
 ```
 
-Start with the error columns. Lower mean absolute error, RMSE and median
-absolute error mean the compared flows are closer in size. The sign of mean
-error tells us direction: a positive value means overestimation on average, and
-a negative value means underestimation on average.
+**Interpretation**
 
-Then look at the correlation columns. A high Pearson correlation means the
-method keeps the same broad pattern of large and small flows as the benchmark.
-A high Spearman correlation means the ranking of flows is similar. A method can
-have a high correlation and still have large errors if it gets the pattern
-right but the scale wrong.
+*Error metrics*. Lower mean absolute error, RMSE and median
+absolute error mean that the set of flows in the comparison are *closer in size*. The sign of mean error indicates the direction of this difference, with a positive score indicating overestimation on average, and
+a negative value indicating underestimation on average.
+
+*Correlation coefficients*. A high Pearson correlation means the
+method represents the same broad pattern of large and small flows as the benchmark.
+A high Spearman correlation indicates that the ranking of flows is similar. A key point here is that the focus of correlation coefficients is to offer an assessment of the overall correspondence or proportionality between two distributions. Hence, a correlation coefficient can be high and still have large errors as correlation may provide a good assessment of the pattern but of the scale of flows.
 
 ```{r}
 level1_primary <- overall_metrics |>
@@ -168,22 +165,12 @@ level1_highest_r <- level1_primary |>
   dplyr::pull(method_label)
 ```
 
-In this example, `r level1_lowest_mae` has the lower mean absolute error in the
-adjusted-versus-benchmark comparison. `r level1_highest_r` has the stronger
-Pearson correlation. These two statements answer different questions: one is
-about distance from the benchmark, and the other is about similarity in the
-overall pattern of flows.
+## Level 2: Marginal validation
 
-## Level 2: Origin and destination marginals
-
-This level compares area totals. An **origin marginal** adds together all flows
-leaving each area. It asks whether each area has the right total outflow. A
-**destination marginal** adds together all flows arriving in each area. It asks
-whether each area has the right total inflow.
-
-We again compare **Inverse penetration** and **Selection rate II**. This level
-is useful because a method can look reasonable overall while still putting too
-many flows into some areas and too few into others.
+Level 2 compares geographical area totals across origins and destinations. It complements the level-1 assessment. The adjusted flows can look reasonable overall while still significantly over- or under-estimating specific origins and destinations.
+An **origin marginal** adds together all flows
+from an individual area. We therefore assess the performance of an adjustment method to produce adjusted flows which are close to the benchmark total outflow. A
+**destination marginal** adds together all flows arriving in each area. In this case, we assess the performance of an adjustment method to produce adjusted flows which are close to the benchmark total inflow.
 
 ```{r}
 marginal_comparison <- validation_build_margins(flow_comparison)
@@ -194,27 +181,17 @@ marginal_metrics |>
   validation_display_metrics()
 ```
 
-The error metrics now refer to area totals rather than individual OD pairs.
-For example, a lower origin-marginal MAE means the method is closer to the
-benchmark total outflow for the typical origin area. A lower
-destination-marginal MAE means it is closer to the benchmark total inflow for
-the typical destination area. As before, the adjusted-versus-benchmark rows are
-the main validation rows. The raw-versus-benchmark rows show the starting
-bias in area totals, and the raw-versus-adjusted rows show how much each method
-changed those totals.
-
-The scatterplots below show the same idea visually for the three comparisons.
-Each point is an area total. Points near the dashed line have similar values in
-the two flow tables being compared. Points above the line are larger in the
-compared table on the vertical axis. Points below the line are smaller in that
-compared table.
+We can use scatterplots to explore the data underpinning the results. We plotted the three sets of comparisons described at the start of this vignette: adjusted vs benchmark, raw vs benchmark, and raw vs adjusted flows.
+Each point represents an area total of inflows or outflows. Points near the dashed line have similar flow values. Points above the line are larger in the
+flow dataset on the vertical axis. Points below the line are smaller in that
+same dataset.
 
 ```{r}
 validation_plot_margin_scatter(marginal_comparison)
 ```
 
-The table below lists the largest remaining marginal errors. It helps identify
-whether the remaining error is concentrated in a small number of areas.
+We can also use the resulting assessment metrics to identify the largest (*remaining*) marginal errors post adjustment. It helps determine
+if the remaining error is concentrated in a small number of areas.
 
 ```{r}
 area_names <- example_data$covariates |>
@@ -237,7 +214,6 @@ marginal_patterns |>
   dplyr::select(
     method = method_label,
     level,
-    area,
     name,
     flow_adj,
     flow_bench,
@@ -264,16 +240,13 @@ level2_destination_best <- level2_best |>
 
 In this example, `r level2_origin_best` is closer to benchmark origin totals by
 mean absolute error, while `r level2_destination_best` is closer to benchmark
-destination totals. If the same method is closer at both margins, the marginal
-evidence points in one direction. If the two margins favour different methods,
-the choice depends on whether origin outflows or destination inflows matter
+destination totals. We therefore have clear evidence as the same method is closer at both margins. If the two margins favoured different methods,
+the choice would depend on whether origin outflows or destination inflows matter
 more for the analysis.
 
-## Level 3: Individual OD-flow validation
+## Level 3: Origin-destination pair validation
 
-This level compares each origin-destination pair directly. The methods are
-again **Inverse penetration** and **Selection rate II**. This is the most
-detailed level, and it is where large local errors become visible.
+Level 3 focuses on comparing individual origin-destination pairs. It zooms in to provide more granular detail and identify specific origin-destination interactions where large local errors are brought to light.
 
 ```{r}
 flow_level_metrics <- validation_metrics_by_method(
@@ -286,25 +259,18 @@ flow_level_metrics |>
   validation_display_metrics()
 ```
 
-The scatterplot below repeats the three comparisons for individual OD pairs.
-Each point is one origin-destination flow. Points close to the dashed line are
-similar in the two flow tables being compared. Points far from the line are OD
-flows where the compared value differs strongly from the reference value.
+*Scatterplots*
+
+We produce a similar scatterplot as we did for marginal totals.
+Here each point is a single origin-destination pair. Points close to the dashed line are more similar. Points far from the line are more dissimilar reflecting differences from the reference origin-destination pair.
 
 ```{r}
 validation_plot_od_scatter(flow_comparison)
 ```
 
-The next scatterplot highlights outliers by colouring each point according to
-the signed adjusted-minus-benchmark difference. Blue points are adjusted flows
-below the benchmark. Red points are adjusted flows above the benchmark. Darker
-points have larger residuals.
+*Largest residuals and heatmap*
 
-```{r}
-validation_plot_residual_outliers(flow_comparison)
-```
-
-The table below ranks individual OD pairs by the largest remaining
+We can also rank individual origin-destination pairs by the largest remaining
 adjusted-minus-benchmark residuals. Positive values mean the adjusted estimate
 is larger than the benchmark. Negative values mean it is smaller.
 
@@ -312,14 +278,13 @@ is larger than the benchmark. Negative values mean it is smaller.
 validation_rank_largest_residuals(flow_comparison, n = 12)
 ```
 
-The compact heatmap-style table below groups OD-flow residuals by standard
-deviation bands. The residual for each adjustment method is the
+More usefully, we can create a compact heatmap to understand and summarise the full set of origin-destination pair residuals by standard
+deviation (SD) bands. The residual for each adjustment method is the
 adjusted-minus-benchmark difference, $F^{adj}_{ij} - F^{bench}_{ij}$. The SD
 bands are defined from the pooled adjusted-minus-benchmark residuals across
 the two adjustment methods, so a band means the same thing in each column.
 
-Each cell is the percentage of OD pairs in that residual band, rounded to two
-decimal places. For example, a value of 0.16 means that 0.16% of OD pairs in
+Each cell is the percentage of origin-destination pairs in that residual band. For example, a value of 0.16 means that 0.16% of origin-destination pairs in
 that column fall in the residual-size band named on the row. Lower percentages
 in the high-SD rows indicate fewer large outliers.
 
@@ -328,12 +293,11 @@ residual_heatmap <- validation_build_residual_heatmap(flow_comparison)
 validation_plot_residual_heatmap(residual_heatmap)
 ```
 
-The heatmap also includes the unadjusted raw MPD baseline. This baseline uses
-the raw-minus-benchmark difference, $F^{mpd}_{ij} - F^{bench}_{ij}$, but it is
-classified using the same adjusted-residual SD bands. This makes the visual
-comparison direct: if an adjustment reduces the share of flows above 2, 3 or 4
-standard deviations, it has reduced the number of large OD-flow errors in this
-example.
+The heatmap also includes the unadjusted raw MPD as a baseline. This baseline uses
+the raw-minus-benchmark difference, $F^{mpd}_{ij} - F^{bench}_{ij}$, and is
+classified using the same adjusted-residual SD bands. The heatmap offers a way to enable visual
+comparison. If an adjustment reduces the share of flows above 2, 3 or 4
+standard deviations, it contributes to reducing the number of large origin-destination-pair errors.
 
 ```{r}
 level3_best <- flow_level_metrics |>
@@ -352,23 +316,20 @@ level3_outlier_best <- large_outlier_summary |>
   dplyr::pull(method_label)
 ```
 
-At the individual-flow level, `r level3_best` has the lower mean absolute error
+At the individual origin-destination pair level, `r level3_best` has the lower mean absolute error
 against the benchmark in this example. Looking only at the largest residual
 bands, `r level3_outlier_best` has the smaller share of OD pairs above three
-standard deviations. These results should be read together: average error tells
-us about typical performance, while the outlier table shows whether a method
-still leaves a few very large local errors.
+standard deviations.
 
-## Summary
+## Recommendation
 
-Validation works best as a sequence. First, check the overall metrics to see
-whether adjusted flows are broadly closer to the benchmark. Then check origin
-and destination marginals to see whether area totals are plausible. Finally,
-inspect individual OD pairs to find large local errors.
+Our recommendation is to adopt a sequence approach to validation. First, we suggest to analyse the overall metrics to assess
+if the resulting adjusted flows are broadly closer to the benchmark. Second, we recommend evaluating origin
+and destination marginal diagnostics to determine the precision of correction for area totals, and identify systematic under- or over-estimation for specific areas. Third,
+we suggest inspecting individual origin-destinations pairs to evaluate corridors of special interest, such as origin-destinations pairs that typically have large amounts of interaction.
 
-In this vignette, the two methods answer slightly different needs. Inverse
-penetration is simple and transparent. Selection rate II adds a calibrated
-nonlinear correction. The validation tables and figures show which method is
-closer to the benchmark for this example, but the right choice in another
-application should depend on the available data, the validation target, and the
-flows that matter most for the analysis.
+The validation methods presented here offer quantitative evidence to assist in the selection of which method to use. However, this decision is not binary and depends on a combination of qualitative and quantitative factors:
+
+- *Data availability*. Adjustment methods require different levels of inputs. Simpler deterministic adjustment methods generally require fewer data inputs. Yet, they often require target benchmark flow data, and these are precisely the data inputs that we often do not have. Benchmark flow data often come from censuses, which are considered the gold standard, but these data are generally collected every ten or five years and are outdated when a crisis occurs or a new evaluation of mobility is needed to support humanitarian operations, planning or policy decisions. Hence, using an adjustment method requiring census benchmark data would produce misleading results if it represented the mobility network at the time of the census rather than the mobility system during the period of interest. An adjustment method, such as the proposed Bayesian multilevel modelling approach, that is not reliant on such inputs may be more appropriate in such scenarios.
+- *Required measurement precision*. Adjustment methods have varying levels of precision in terms of scale reproducing population numbers. Historically, prior work has focused on satisfying the requirement of proportionality by assessing the linear correlation between raw and/or adjusted mobile-phone-derived flows and benchmark flows. Yet, such assessment does not guarantee that raw or adjusted flows provide an accurate estimate in population numbers. They often still represent number of devices, rather than people. Except for the selection rate II method, all the methods in `debiasR` seek to provide population numbers.
+- *Time constraint*. The adjustment methods in `debiasR` may demand more or less time. Such demand will depend on processes such as data gathering, data processing and calibrating adjustment methods. These demands normally intersect and often come into conflict with the speed at which flow estimates are needed. As suggested above, the use of digital trace data is often triggered by the rapid and urgent need to have "rough" population numbers to inform humanitarian, planning or policy decisions, to address a crisis or new intervention.
