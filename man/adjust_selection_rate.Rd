@@ -18,6 +18,7 @@ adjust_selection_rate(
   clip_min = 0,
   clip_max = Inf,
   keep_cols = character(),
+  engine = c("dplyr", "duckdb", "data.table"),
   ...
 )
 }
@@ -59,6 +60,9 @@ Default \code{seq(0, 3, by = 0.01)} as in Chi et al.}
 \item{clip_max}{Upper bound used to clamp weights. Default Inf.}
 
 \item{keep_cols}{Extra columns from \code{mpd_od_df} to keep.}
+
+\item{engine}{One of \code{"dplyr"} (default), \code{"duckdb"}, or \code{"data.table"}.
+The optional backends accelerate calibration grid searches on large inputs.}
 
 \item{...}{Deprecated arguments. \code{income_col} is accepted here as a legacy
 alias for \code{covariate_col}.}

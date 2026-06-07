@@ -72,6 +72,8 @@
 #' @param clip_min Lower bound used to clamp weights. Default 0.
 #' @param clip_max Upper bound used to clamp weights. Default Inf.
 #' @param keep_cols Extra columns from `mpd_od_df` to keep.
+#' @param engine One of `"dplyr"` (default), `"duckdb"`, or `"data.table"`.
+#'   The optional backends accelerate calibration grid searches on large inputs.
 #' @param ... Deprecated arguments. `income_col` is accepted here as a legacy
 #'   alias for `covariate_col`.
 #'
@@ -95,9 +97,11 @@ adjust_selection_rate <- function(mpd_od_df,
                                    clip_min = 0,
                                    clip_max = Inf,
                                    keep_cols = character(),
+                                   engine = c("dplyr", "duckdb", "data.table"),
                                    ...) {
   weight_by <- match.arg(weight_by)
   calibration_aggregate <- match.arg(calibration_aggregate)
+  engine <- match.arg(engine)
 
   dots <- list(...)
   legacy_income_col <- dots$income_col
@@ -436,32 +440,66 @@ adjust_selection_rate <- function(mpd_od_df,
       stop("`r_grid` is empty; provide candidate values for r_t.")
     }
 
-    losses <- numeric(0)
-    rs     <- numeric(0)
+    if (engine == "duckdb") {
+      calib_diag <- .calibrate_selection_rate_duckdb(
+        mpd_od_df = mpd_od_df,
+        bench_df = bench_df,
+        r_grid = r_grid,
+        weight_by = weight_by,
+        calibration_aggregate = calibration_aggregate,
+        has_new = has_new,
+        cov_o_pre = if (has_new) cov_o_pre else NULL,
+        cov_d_pre = if (has_new) cov_d_pre else NULL,
+        cov_base_pre = if (!has_new) cov_base_pre else NULL,
+        clip_min = clip_min,
+        clip_max = clip_max
+      )
+      rs <- calib_diag$r
+      losses <- calib_diag$loss
+    } else if (engine == "data.table") {
+      calib_diag <- .calibrate_selection_rate_data_table(
+        mpd_od_df = mpd_od_df,
+        bench_df = bench_df,
+        r_grid = r_grid,
+        weight_by = weight_by,
+        calibration_aggregate = calibration_aggregate,
+        has_new = has_new,
+        cov_o_pre = if (has_new) cov_o_pre else NULL,
+        cov_d_pre = if (has_new) cov_d_pre else NULL,
+        cov_base_pre = if (!has_new) cov_base_pre else NULL,
+        clip_min = clip_min,
+        clip_max = clip_max
+      )
+      rs <- calib_diag$r
+      losses <- calib_diag$loss
+    } else {
+      losses <- numeric(0)
+      rs     <- numeric(0)
 
-    for (r in r_grid) {
-      adj_r <- compute_with_r(r) %>%
-        dplyr::select(origin, destination, flow_adj)
+      for (r in r_grid) {
+        adj_r <- compute_with_r(r) %>%
+          dplyr::select(origin, destination, flow_adj)
 
-      joined <- dplyr::inner_join(adj_r, bench_df,
-                                  by = c("origin", "destination"))
-      if (nrow(joined) == 0L) next
+        joined <- dplyr::inner_join(adj_r, bench_df,
+                                    by = c("origin", "destination"))
+        if (nrow(joined) == 0L) next
 
-      if (calibration_aggregate == "origin") {
-        agg <- joined %>%
-          dplyr::group_by(origin) %>%
-          dplyr::summarise(
-            adj   = sum(flow_adj, na.rm = TRUE),
-            bench = sum(flow_bench, na.rm = TRUE),
-            .groups = "drop"
-          )
-        loss <- sum(abs(agg$adj - agg$bench), na.rm = TRUE)
-      } else { # "od"
-        loss <- sum(abs(joined$flow_adj - joined$flow_bench), na.rm = TRUE)
+        if (calibration_aggregate == "origin") {
+          agg <- joined %>%
+            dplyr::group_by(origin) %>%
+            dplyr::summarise(
+              adj   = sum(flow_adj, na.rm = TRUE),
+              bench = sum(flow_bench, na.rm = TRUE),
+              .groups = "drop"
+            )
+          loss <- sum(abs(agg$adj - agg$bench), na.rm = TRUE)
+        } else { # "od"
+          loss <- sum(abs(joined$flow_adj - joined$flow_bench), na.rm = TRUE)
+        }
+
+        rs     <- c(rs, r)
+        losses <- c(losses, loss)
       }
-
-      rs     <- c(rs, r)
-      losses <- c(losses, loss)
     }
 
     if (length(rs) == 0L) {
@@ -507,4 +545,278 @@ adjust_selection_rate <- function(mpd_od_df,
   }
 
   out_final
+}
+
+.calibrate_selection_rate_duckdb <- function(mpd_od_df,
+                                              bench_df,
+                                              r_grid,
+                                              weight_by,
+                                              calibration_aggregate,
+                                              has_new,
+                                              cov_o_pre = NULL,
+                                              cov_d_pre = NULL,
+                                              cov_base_pre = NULL,
+                                              clip_min = 0,
+                                              clip_max = Inf) {
+  if (!requireNamespace("duckdb", quietly = TRUE) ||
+      !requireNamespace("DBI", quietly = TRUE)) {
+    stop("Packages 'duckdb' and 'DBI' are required for the duckdb engine.")
+  }
+
+  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+
+  DBI::dbWriteTable(con, "mpd_od", mpd_od_df)
+  DBI::dbWriteTable(con, "bench", bench_df)
+  DBI::dbWriteTable(
+    con,
+    "r_grid",
+    data.frame(r_order = seq_along(r_grid), r = r_grid)
+  )
+
+  if (has_new) {
+    if (weight_by %in% c("origin", "both")) {
+      DBI::dbWriteTable(con, "cov_o", cov_o_pre)
+    }
+    if (weight_by %in% c("destination", "both")) {
+      DBI::dbWriteTable(con, "cov_d", cov_d_pre)
+    }
+  } else {
+    DBI::dbWriteTable(con, "cov_base", cov_base_pre)
+  }
+
+  weight_expr_o <- if (has_new) {
+    "1.0 / (Income_o * pen_o + (1.0 - Income_o) * r)"
+  } else {
+    "1.0 / (Income * pen + (1.0 - Income) * r)"
+  }
+
+  weight_expr_d <- "1.0 / (Income_d * pen_d + (1.0 - Income_d) * r)"
+
+  origin_join <- if (weight_by %in% c("origin", "both")) {
+    "LEFT JOIN cov_o co
+     ON m.origin = co.origin AND m.mpd_source = co.mpd_source"
+  } else {
+    ""
+  }
+  destination_join <- if (weight_by %in% c("destination", "both")) {
+    "LEFT JOIN cov_d cd
+     ON m.destination = cd.destination AND m.mpd_source = cd.mpd_source"
+  } else {
+    ""
+  }
+
+  clamp_sql <- function(expr) {
+    out <- expr
+    if (is.finite(clip_min)) {
+      out <- sprintf(
+        "GREATEST(%s, %s)",
+        format(clip_min, scientific = FALSE),
+        out
+      )
+    }
+    if (is.finite(clip_max)) {
+      out <- sprintf(
+        "LEAST(%s, %s)",
+        format(clip_max, scientific = FALSE),
+        out
+      )
+    }
+    sprintf(
+      "CASE WHEN isfinite(%1$s) AND (%1$s) > 0 THEN %2$s ELSE NULL END",
+      expr,
+      out
+    )
+  }
+
+  weight_final_sql <- if (weight_by == "origin") {
+    clamp_sql(weight_expr_o)
+  } else if (weight_by == "destination") {
+    clamp_sql(weight_expr_d)
+  } else {
+    sprintf("sqrt(%s * %s)", clamp_sql(weight_expr_o), clamp_sql(weight_expr_d))
+  }
+
+  sql_base <- if (has_new) {
+    sprintf("
+      SELECT
+        m.origin, m.destination, m.mpd_source, m.flow,
+        %s as pen_o, %s as Income_o,
+        %s as pen_d, %s as Income_d,
+        b.flow_bench
+      FROM mpd_od m
+      %s
+      %s
+      JOIN bench b ON m.origin = b.origin AND m.destination = b.destination
+    ",
+    if (weight_by %in% c("origin", "both")) "co.pen_o" else "0",
+    if (weight_by %in% c("origin", "both")) "co.Income_o" else "1",
+    if (weight_by %in% c("destination", "both")) "cd.pen_d" else "0",
+    if (weight_by %in% c("destination", "both")) "cd.Income_d" else "1",
+    origin_join,
+    destination_join
+    )
+  } else {
+    "
+      SELECT
+        m.origin, m.destination, m.mpd_source, m.flow,
+        co.pen as pen, co.Income as Income,
+        cd.pen as pen_d, cd.Income as Income_d,
+        b.flow_bench
+      FROM mpd_od m
+      LEFT JOIN cov_base co ON m.origin = co.area AND m.mpd_source = co.mpd_source
+      LEFT JOIN cov_base cd ON m.destination = cd.area AND m.mpd_source = cd.mpd_source
+      JOIN bench b ON m.origin = b.origin AND m.destination = b.destination
+    "
+  }
+
+  sql <- sprintf("
+    WITH base AS (%s),
+    grid AS (SELECT b.*, g.r_order, g.r FROM base b CROSS JOIN r_grid g),
+    adjusted AS (
+      SELECT
+        r_order, r, origin, destination,
+        flow * %s as flow_adj,
+        flow_bench
+      FROM grid
+    ),
+    losses AS (
+      %s
+    )
+    SELECT r, loss FROM losses ORDER BY r_order
+  ",
+  sql_base,
+  weight_final_sql,
+  if (calibration_aggregate == "origin") {
+    "SELECT r_order, r, sum(abs(adj_total - bench_total)) as loss
+     FROM (
+       SELECT r_order, r, origin,
+         coalesce(sum(flow_adj), 0) as adj_total,
+         sum(flow_bench) as bench_total
+       FROM adjusted
+       GROUP BY r_order, r, origin
+     )
+     GROUP BY r_order, r"
+  } else {
+    "SELECT r_order, r, coalesce(sum(abs(flow_adj - flow_bench)), 0) as loss
+     FROM adjusted
+     GROUP BY r_order, r"
+  }
+  )
+
+  res <- DBI::dbGetQuery(con, sql)
+  res
+}
+
+.calibrate_selection_rate_data_table <- function(mpd_od_df,
+                                                  bench_df,
+                                                  r_grid,
+                                                  weight_by,
+                                                  calibration_aggregate,
+                                                  has_new,
+                                                  cov_o_pre = NULL,
+                                                  cov_d_pre = NULL,
+                                                  cov_base_pre = NULL,
+                                                  clip_min = 0,
+                                                  clip_max = Inf) {
+  if (!requireNamespace("data.table", quietly = TRUE)) {
+    stop("Package 'data.table' is required for the data.table engine.")
+  }
+
+  dt_mpd <- data.table::as.data.table(mpd_od_df)
+  dt_bench <- data.table::as.data.table(bench_df)
+
+  if (has_new) {
+    if (weight_by %in% c("origin", "both")) {
+      dt_cov_o <- data.table::as.data.table(cov_o_pre)
+      dt_mpd <- merge(dt_mpd, dt_cov_o, by = c("origin", "mpd_source"), all.x = TRUE)
+    }
+    if (weight_by %in% c("destination", "both")) {
+      dt_cov_d <- data.table::as.data.table(cov_d_pre)
+      dt_mpd <- merge(dt_mpd, dt_cov_d, by = c("destination", "mpd_source"), all.x = TRUE)
+    }
+  } else {
+    dt_cov <- data.table::as.data.table(cov_base_pre)
+
+    if (weight_by %in% c("origin", "both")) {
+      dt_mpd <- merge(
+        dt_mpd,
+        dt_cov,
+        by.x = c("origin", "mpd_source"),
+        by.y = c("area", "mpd_source"),
+        all.x = TRUE
+      )
+      data.table::setnames(
+        dt_mpd,
+        c("pen", "Income"),
+        c("pen_o", "Income_o"),
+        skip_absent = TRUE
+      )
+    }
+    if (weight_by %in% c("destination", "both")) {
+      dt_mpd <- merge(
+        dt_mpd,
+        dt_cov,
+        by.x = c("destination", "mpd_source"),
+        by.y = c("area", "mpd_source"),
+        all.x = TRUE
+      )
+      data.table::setnames(
+        dt_mpd,
+        c("pen", "Income"),
+        c("pen_d", "Income_d"),
+        skip_absent = TRUE
+      )
+    }
+  }
+
+  dt_base <- merge(dt_mpd, dt_bench, by = c("origin", "destination"))
+
+  clamp_v <- function(x) {
+    x[!(is.finite(x) & x > 0)] <- NA_real_
+    pmax(clip_min, pmin(clip_max, x), na.rm = FALSE)
+  }
+
+  losses <- numeric(length(r_grid))
+
+  for (i in seq_along(r_grid)) {
+    r <- r_grid[i]
+
+    w_o <- if (weight_by %in% c("origin", "both")) {
+      1 / (dt_base[["Income_o"]] * dt_base[["pen_o"]] +
+        (1 - dt_base[["Income_o"]]) * r)
+    } else {
+      NULL
+    }
+    w_d <- if (weight_by %in% c("destination", "both")) {
+      1 / (dt_base[["Income_d"]] * dt_base[["pen_d"]] +
+        (1 - dt_base[["Income_d"]]) * r)
+    } else {
+      NULL
+    }
+
+    w_final <- if (weight_by == "origin") {
+      clamp_v(w_o)
+    } else if (weight_by == "destination") {
+      clamp_v(w_d)
+    } else {
+      sqrt(clamp_v(w_o) * clamp_v(w_d))
+    }
+
+    f_adj <- dt_base[["flow"]] * w_final
+
+    if (calibration_aggregate == "origin") {
+      adj_sums <- base::rowsum(f_adj, dt_base[["origin"]], na.rm = TRUE)
+      bench_sums <- base::rowsum(
+        dt_base[["flow_bench"]],
+        dt_base[["origin"]],
+        na.rm = TRUE
+      )
+      losses[i] <- sum(abs(adj_sums - bench_sums), na.rm = TRUE)
+    } else {
+      losses[i] <- sum(abs(f_adj - dt_base[["flow_bench"]]), na.rm = TRUE)
+    }
+  }
+
+  data.frame(r = r_grid, loss = losses)
 }
