@@ -28,6 +28,9 @@
   README GitHub installation instructions have been followed, load `debiasR`
   and `debiasRdata` directly, and keep package, helper-loading, and
   data-loading steps in separate chunks where needed.
+- Hid vignette-only helper-loading code in the adjustment and validation
+  workflow articles while keeping notes that explain where those helpers live
+  and how source users can load them.
 - Refined the validation vignette interpretation and recommendation text for
   the three-level validation workflow.
 - Improved validation vignette tables and scatterplots with smaller table text,

@@ -68,10 +68,11 @@ library(debiasR)
 library(debiasRdata)
 ```
 
-Next, we source helper functions used only inside this vignette to run the
-compact all-method comparison near the end.
+This vignette also uses helper functions defined in `vignettes/_common.R` to
+run the compact all-method comparison near the end. When working from the
+package source, you can load them with `source("vignettes/_common.R")`.
 
-```{r load-adjustment-helpers}
+```{r load-adjustment-helpers, include=FALSE}
 helper_candidates <- c(
   "vignettes/_common.R",
   "_common.R",

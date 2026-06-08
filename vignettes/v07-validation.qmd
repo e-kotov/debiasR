@@ -83,10 +83,12 @@ library(debiasR)
 library(debiasRdata)
 ```
 
-Next, we source helper functions used only inside this vignette to format
-validation tables and plots.
+This vignette also uses validation helper functions defined in
+`vignettes/_validation_helpers.R` to format tables and plots. When working from
+the package source, you can load them with
+`source("vignettes/_validation_helpers.R")`.
 
-```{r load-validation-helpers}
+```{r load-validation-helpers, include=FALSE}
 helper_candidates <- c(
   "vignettes/_validation_helpers.R",
   "_validation_helpers.R",
