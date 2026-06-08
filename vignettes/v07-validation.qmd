@@ -75,29 +75,39 @@ table uses adjusted-versus-benchmark notation.[^validation-measure-reuse]
 
 ## Getting ready
 
-We now get ready reading helper files, data and visualisation
-tools.
+We now get ready by installing the companion data package if needed, then
+loading the empirical data, helper functions and visualisation tools.
 
 ```{r setup}
-input_file <- knitr::current_input(dir = TRUE)
-input_dir <- if (is.null(input_file)) {
-  candidates <- c(".", "vignettes", "../vignettes", "../../vignettes")
-  candidates[file.exists(file.path(candidates, "_common.R"))][1]
-} else {
-  dirname(input_file)
+if (!requireNamespace("debiasRdata", quietly = TRUE)) {
+  if (!requireNamespace("remotes", quietly = TRUE)) {
+    install.packages("remotes", repos = "https://cloud.r-project.org")
+  }
+  remotes::install_github("de-bias/debiasRdata", upgrade = "never")
 }
-if (is.na(input_dir)) {
+
+library(debiasRdata)
+library(ggplot2)
+
+helper_candidates <- c(
+  "vignettes/_validation_helpers.R",
+  "_validation_helpers.R",
+  "../vignettes/_validation_helpers.R",
+  "../../vignettes/_validation_helpers.R"
+)
+helper_file <- helper_candidates[file.exists(helper_candidates)][1]
+if (is.na(helper_file)) {
   stop(
-    "Could not find vignettes/_common.R. ",
+    "Could not find vignettes/_validation_helpers.R. ",
     "Set the working directory to the debiasR package root or vignettes folder."
   )
 }
-input_dir <- normalizePath(input_dir, mustWork = TRUE)
-debiasr_pkg_root <- normalizePath(file.path(input_dir, ".."), mustWork = FALSE)
-source(file.path(input_dir, "_common.R"))
-source(file.path(input_dir, "_validation_helpers.R"))
-example_data <- load_workshop_example(n_areas = 25, complete_grid = TRUE)
-library(ggplot2)
+source(helper_file)
+
+example_data <- debiasR::debiasR_example_data(
+  n_areas = 25,
+  complete_grid = TRUE
+)
 ```
 
 In this vignette, we will illustrate the validation methods in `debiasR` comparing the two adjustment methods. We compare the inverse penetration and selection rate II methods. First,
