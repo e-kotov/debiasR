@@ -81,6 +81,9 @@ Last updated: 2026-06-12
 - `validate_flow_distribution()` now supports `comparisons = "all"` so raw
   MPD, adjusted MPD-derived, and benchmark OD-flow allocation distributions can
   be compared through the same KL/JSD contract.
+- The validation vignette now classifies this destination-share diagnostic as
+  Level 4 distributional allocation validation, keeping Level 3 focused on
+  individual origin-destination pair magnitudes, residuals, and outliers.
 - The default S1-S4 formula contract is documented for both engines: S1 uses the base OD/covariate/bias terms, S2 adds `mpd_time`, S3 adds `mpd_source`, and S4 adds `mpd_source + mpd_time`; S4 source-time interaction remains deferred.
 - The adjustment vignette now keeps the Bayesian walkthrough focused on the
   default coverage-offset example with constant source/time columns and

@@ -2,6 +2,10 @@
 
 ### Latent Bayesian backend
 
+- Clarified the validation framework terminology by keeping individual
+  origin-destination flow checks as Level 3 and presenting
+  `validate_flow_distribution()` as Level 4 distributional allocation
+  validation.
 - Replaced the `observation_model = "latent_two_level"` random-intercept
   prototype with an experimental custom Stan backend selected by
   `backend = "stan_latent"` or `backend = "auto"`.

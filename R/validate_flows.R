@@ -429,12 +429,15 @@ validate_flow_all <- function(...) {
 #' Validate origin-conditioned destination-share distributions
 #'
 #' Compares OD-flow distributions after normalizing each origin's destination
-#' flows into shares. By default, the function compares adjusted OD flows with
+#' flows into shares. This is a distributional allocation validation diagnostic:
+#' it checks whether each origin allocates its flows across destinations in a
+#' similar way to a reference OD table, rather than checking individual OD-cell
+#' magnitudes. By default, the function compares adjusted OD flows with
 #' benchmark OD flows and reports \code{KL(benchmark || adjusted)} plus
 #' Jensen-Shannon divergence. It can also compare raw MPD versus benchmark and
 #' raw MPD versus adjusted flows through \code{comparisons}. Lower values
 #' indicate closer destination-allocation fidelity. These metrics assess
-#' spatial allocation, not total flow scale.
+#' spatial allocation, not total flow scale or individual OD-pair residual size.
 #'
 #' @param adj_df Data frame with at least \code{origin}, \code{destination},
 #'   and an adjusted flow column (default \code{"flow_adj"}).

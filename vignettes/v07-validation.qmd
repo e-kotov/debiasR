@@ -33,12 +33,11 @@ It also enables comparisons between:
   extent of bias before adjustment.
 - raw *versus* adjusted flows, to evaluate the extent of adjustment made to the raw data.
 
-The validation methods included in `debiasR` allows the assessment of adjustment outputs at three levels: overall, OD marginal and individual OD-pair adjustment. Tree type of assessment tools are included:
- error metrics, correlation coefficients and visual tools. These diagnostics provide flexibility to assess particular dimensions of the data which may vary depending on the target use of the adjusted flows.
+The validation methods included in `debiasR` allow the assessment of adjustment outputs at four levels: overall, OD marginal, individual OD-pair, and distributional allocation validation. The main assessment tools are error metrics, correlation coefficients, visual tools, and distributional allocation metrics. The allocation metrics use KL divergence and Jensen-Shannon divergence for origin-conditioned destination-share distributions. These diagnostics provide flexibility to assess particular dimensions of the data which may vary depending on the target use of the adjusted flows.
 
 ## Intuition
 
-A practical way to think of assessing the output of the various adjustment methods is to adopt a overall system-wide perspective of the flow system, move to an intermediate and then more granular origin-destination pair level. We use three levels.
+A practical way to think of assessing the output of the various adjustment methods is to adopt an overall system-wide perspective of the flow system, move to an intermediate marginal perspective, then to individual origin-destination pairs, and finally to the allocation of destinations within each origin. We use four levels.
 
 The **Level 1** summarises the performance of flow adjustment methods across the whole origin-destination system.
 
@@ -46,7 +45,9 @@ The **Level 2** assesses the performance of flow adjustment methods by origin an
 
 The **Level 3** provides the performance of flow adjustment methods between individual origin-destination pairs.
 
-Correlation coefficients offer a measure of correspondence between, for example, adjusted and benchmark flows, and they are better interpreted as a general measure. Error measures provide a measure of the level of difference between these sets of flows. They provide a general measure to assess the precision of the flow adjustment across the whole network of flows, but they also offer a way to measure and assess the precision of the flow adjustment for individual origin-destination pairs.
+The **Level 4** assesses whether each origin allocates its flows across destinations in a similar way to the benchmark, after converting OD flows into destination-share distributions.
+
+Correlation coefficients offer a measure of correspondence between, for example, adjusted and benchmark flows, and they are better interpreted as a general measure. Error measures provide a measure of the level of difference between these sets of flows. They provide a general measure to assess the precision of the flow adjustment across the whole network of flows, but they also offer a way to measure and assess the precision of the flow adjustment for individual origin-destination pairs. Distributional allocation metrics answer a different question: whether the relative allocation of destinations from each origin is preserved, regardless of total scale.
 
 ## Validation measures
 
@@ -66,8 +67,8 @@ table uses adjusted-versus-benchmark notation.[^validation-measure-reuse]
 | Mean absolute percentage error | Average absolute error as a percentage of the benchmark flow. | $\frac{100}{n}\sum_{ij}\lvert \frac{e_{ij}}{F^{bench}_{ij}} \rvert$ |
 | Pearson's r | Linear correlation; shows whether large benchmark flows also tend to be large adjusted flows. | $\mathrm{cor}(F^{adj}_{ij}, F^{bench}_{ij})$ |
 | Spearman's rho | Rank correlation; shows whether the ordering of flows is similar. | $\mathrm{cor}(\mathrm{rank}(F^{adj}_{ij}), \mathrm{rank}(F^{bench}_{ij}))$ |
-| Kullback-Leibler divergence | Directional difference between origin-conditioned destination-share distributions. Lower values mean the comparison flow allocates destinations more like the reference flow. | $\sum_i\sum_j p^{ref}_{j\mid i}\log\frac{p^{ref}_{j\mid i}}{p^{comp}_{j\mid i}}$ |
-| Jensen-Shannon divergence | Symmetric companion to KL divergence for the same origin-conditioned destination-share distributions. Lower values mean closer allocation. | $\frac{1}{2} KL(p^{ref}\mid\mid m) + \frac{1}{2} KL(p^{comp}\mid\mid m)$ |
+| Kullback-Leibler divergence | Level 4 metric. Directional difference between origin-conditioned destination-share distributions. Lower values mean the comparison flow allocates destinations more like the reference flow. | $\sum_i\sum_j p^{ref}_{j\mid i}\log\frac{p^{ref}_{j\mid i}}{p^{comp}_{j\mid i}}$ |
+| Jensen-Shannon divergence | Level 4 metric. Symmetric companion to KL divergence for the same origin-conditioned destination-share distributions. Lower values mean closer allocation. | $\frac{1}{2} KL(p^{ref}\mid\mid m) + \frac{1}{2} KL(p^{comp}\mid\mid m)$ |
 
 [^validation-measure-reuse]: The equations are written for
     adjusted-versus-benchmark flows. The same formulas can be reused for
@@ -356,13 +357,15 @@ against the benchmark in this example. Looking only at the largest residual
 bands, `r level3_outlier_best` has the smaller share of OD pairs above three
 standard deviations.
 
-## Distributional allocation validation
+## Level 4: Distributional allocation validation
 
-The previous levels compare scale, residuals and outliers. A final check is
-whether each origin sends its flows to destinations in similar proportions
-across the raw, adjusted and benchmark OD matrices. This is useful because a
-method can improve total flow scale while still allocating an origin's flows to
-the wrong destinations.
+The previous levels compare scale, residuals and outliers. Level 4 asks a
+different question: whether each origin sends its flows to destinations in
+similar proportions across the raw, adjusted and benchmark OD matrices. This is
+not primarily an individual OD-flow magnitude check. It is an origin-conditioned
+allocation check, because it evaluates the destination-share distribution within
+each origin. This is useful because a method can improve total flow scale while
+still allocating an origin's flows to the wrong destinations.
 
 `validate_flow_distribution()` computes origin-conditioned destination-share
 metrics. For each origin, the function converts flows to destination shares and
@@ -420,7 +423,7 @@ flows is correct.
 Our recommendation is to adopt a sequence approach to validation. First, we suggest to analyse the overall metrics to assess
 if the resulting adjusted flows are broadly closer to the benchmark. Second, we recommend evaluating origin
 and destination marginal diagnostics to determine the precision of correction for area totals, and identify systematic under- or over-estimation for specific areas. Third,
-we suggest inspecting individual origin-destinations pairs to evaluate corridors of special interest, such as origin-destinations pairs that typically have large amounts of interaction.
+we suggest inspecting individual origin-destinations pairs to evaluate corridors of special interest, such as origin-destinations pairs that typically have large amounts of interaction. Fourth, we recommend checking distributional allocation to assess whether each origin sends similar shares of flow to the same destinations as the benchmark.
 
 The validation methods presented here offer quantitative evidence to assist in the selection of which method to use. However, this decision is not binary and depends on a combination of qualitative and quantitative factors:
 

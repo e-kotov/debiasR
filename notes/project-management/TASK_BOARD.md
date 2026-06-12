@@ -165,6 +165,9 @@ Tasks:
 - Implemented `KL(benchmark || adjusted)` as the directional allocation-fidelity metric.
 - Implemented Jensen-Shannon divergence as the symmetric companion metric.
 - Decision: use union support, configurable positive smoothing with default `epsilon = 1e-8`, origin-level metrics, and optional benchmark-origin-total weighted summaries.
+- Classification update: treat this as Level 4 distributional allocation
+  validation in the public validation framework, while keeping Level 3 focused
+  on individual OD-pair flow magnitudes, residuals, and outliers.
 
 6. Explore a method-assessment penalty indicator.
 - Decision: keep this out of the package API for now.
