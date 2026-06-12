@@ -1,0 +1,335 @@
+---
+title: "Advanced Bayesian multilevel adjustment"
+vignette: >
+  %\VignetteIndexEntry{Advanced Bayesian multilevel adjustment}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+format:
+  html:
+    html-math-method: mathml
+    toc: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{=html}
+<style>
+main table {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+main table th,
+main table td {
+  vertical-align: top;
+}
+</style>
+```
+
+## Aim
+
+This vignette explains the advanced Bayesian options in
+`adjust_multilevel_bayes()`. The main adjustment vignette introduces the
+recommended default, `observation_model = "coverage_offset"`, because it is the
+most practical starting point for routine adjustment. Start with
+[Adjusting origin-destination flows](v06-adjusting-biases.html) if you want the
+default workflow first. Here we compare all Bayesian observation-model choices
+and explain when the experimental latent two-level backend is useful.
+
+The guiding principle is progressive complexity: use the simplest model that
+matches the data structure and inferential goal.
+
+## Why more than one Bayesian model?
+
+`adjust_multilevel_bayes()` supports three Bayesian observation-model ideas:
+
+```{r echo=FALSE}
+bayesian_modes <- tibble::tribble(
+  ~Mode, ~Status, ~Main_use, ~Core_idea,
+  "`coverage_offset`",
+  "Recommended default",
+  "Routine true-flow adjustment and teaching examples",
+  "Treat MPD flows as coverage-scaled observations of true flows, with coverage fixed as an offset.",
+  "`latent_two_level`",
+  "Experimental advanced backend",
+  "Repeated source/time data where multiple MPD observations can share a hidden OD or OD-time state",
+  "Create a latent-flow state and treat repeated MPD rows as observations of that state.",
+  "`reduced_form`",
+  "Legacy/backward-compatible",
+  "Reproducing earlier analyses or sensitivity checks on the MPD observation scale",
+  "Fit observed MPD flows directly and adjust by setting fitted bias terms to zero."
+)
+
+knitr::kable(bayesian_modes)
+```
+
+The default coverage-offset model and the latent two-level model both aim to
+return adjusted flows on a true-flow scale. They differ in what is estimated
+inside the model. The coverage-offset model estimates the true-flow scale by
+removing a fixed coverage offset from an observed-flow likelihood. The latent
+backend estimates a shared latent-flow intensity directly, so it is most useful
+when the same underlying OD or OD-time flow is observed by multiple sources.
+
+## Choosing a Bayesian model
+
+```{r echo=FALSE}
+decision_table <- tibble::tribble(
+  ~Data_or_goal, ~Recommended_mode, ~Reason,
+  "One source and one time period, or a small teaching example",
+  "`coverage_offset`",
+  "The latent split is weakly identified when each OD pair is observed once.",
+  "Complete-grid prediction over supplied OD rows",
+  "`coverage_offset`",
+  "The model can predict true-flow scale for supplied rows using the coverage offset and mobility formula.",
+  "Multiple sources observing the same OD pairs",
+  "`latent_two_level`",
+  "Repeated source observations can share an OD-level latent state.",
+  "Multiple sources and multiple time periods",
+  "`latent_two_level` with care",
+  "Repeated source observations can share OD-time states, but time and source effects need careful interpretation.",
+  "Fast design, tests or method comparison",
+  "`model_engine = \"frequentist\"` with non-latent modes",
+  "The frequentist engine preserves the S1-S4 data contract but does not fit the latent Bayesian backend.",
+  "Backward compatibility with earlier reduced-form analyses",
+  "`reduced_form`",
+  "This preserves the older MPD-scale counterfactual behaviour."
+)
+
+knitr::kable(decision_table)
+```
+
+As a rule of thumb, start with `coverage_offset`. Move to
+`latent_two_level` only when the repeated-observation structure gives the model
+real information about the hidden flow state.
+
+## Default coverage-offset model
+
+The default true-flow model is:
+
+$$
+F^{mpd}_{ij} \sim \mathrm{Poisson}(q_{ij}F^{true}_{ij})
+$$
+
+$$
+\log E(F^{mpd}_{ij}) = \log(q_{ij}) + \eta^{true}_{ij}
+$$
+
+where $q_{ij}$ is derived from active-user coverage. With
+`coverage_scale = "origin"`, $q_{ij} = c_i = U_i / P_i$. The returned
+`flow_adj` is a posterior summary of:
+
+$$
+F^{true,pred}_{ij} = \exp(\eta^{true}_{ij})
+$$
+
+This is the model explained in the main adjustment vignette. It is usually the
+best option for S1 examples and for users who want readable, reproducible
+Bayesian adjustment without modelling source-specific observation layers.
+
+```{r eval=FALSE}
+adj_default <- adjust_multilevel_bayes(
+  mpd_od_df = mpd_od,
+  coverage_df = coverage,
+  covariates_df = covariates,
+  distance_df = distance,
+  mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance,
+  bias_formula = ~ bias_e_origin,
+  target_scale = "true_flow",
+  observation_model = "coverage_offset",
+  coverage_scale = "origin",
+  model_engine = "bayesian",
+  model_family = "poisson"
+)
+```
+
+With richer data, the coverage-offset model can include multilevel structure in
+the true-flow formula. Random-effect terms represent origin, destination and
+corridor structure: `(1 | origin)` for an origin intercept, `(1 | destination)`
+for a destination intercept, and `(1 | od_id)` for an OD-corridor intercept.
+Use these terms when the data contain enough repeated information to estimate
+the pooling structure.
+
+```{r eval=FALSE}
+adj_default_multilevel <- adjust_multilevel_bayes(
+  mpd_od_df = mpd_od,
+  coverage_df = coverage,
+  covariates_df = covariates,
+  distance_df = distance,
+  mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance +
+    (1 | origin) + (1 | destination) + (1 | od_id),
+  bias_formula = ~ bias_e_origin,
+  target_scale = "true_flow",
+  observation_model = "coverage_offset",
+  coverage_scale = "origin",
+  model_engine = "bayesian",
+  scenario = "s1",
+  repeated_observation = "none",
+  prediction_scope = "complete_grid",
+  model_family = "poisson",
+  flow_adj_summary = "median",
+  iter = 1000,
+  chains = 4,
+  seed = 123,
+  refresh = 0
+)
+```
+
+## Latent two-level backend
+
+The latent two-level backend is for repeated source/time settings. It keeps
+the true-flow target but introduces a shared latent-flow state. Conceptually:
+
+$$
+Y_{ijst} \sim \mathrm{Poisson}(\mu_{ijst})
+$$
+
+$$
+\log(\mu_{ijst}) =
+\log(q_{ijst}) + \theta_{g(i,j,t)} + z_{ijst}\gamma
+$$
+
+where:
+
+- $Y_{ijst}$ is the observed MPD flow for origin $i$, destination $j$, source
+  $s$ and time $t$.
+- $q_{ijst}$ is the coverage-derived observation probability.
+- $\lambda^{true}_{g(i,j,t)}$ is the shared latent true-flow intensity for an
+  OD or OD-time group.
+- $z_{ijst}\gamma$ represents observation-layer structure such as coverage,
+  source and time effects.
+
+In the current experimental backend, `adjust_multilevel_bayes()` represents
+this shared state through `latent_flow_id` and estimates it with the custom
+`stan_latent` backend. The returned `flow_adj` and `flow_true_pred` summarize
+posterior draws of the latent true-flow intensity, while `flow_mpd_pred`
+summarizes the source/time-specific MPD observation mean.
+
+```{r eval=FALSE}
+adj_latent <- adjust_multilevel_bayes(
+  mpd_od_df = mpd_repeated,
+  coverage_df = coverage_repeated,
+  covariates_df = covariates,
+  distance_df = distance,
+  mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance,
+  bias_formula = ~ bias_e_origin,
+  target_scale = "true_flow",
+  observation_model = "latent_two_level",
+  backend = "auto",
+  coverage_scale = "origin",
+  latent_flow_unit = "auto",
+  model_engine = "bayesian",
+  scenario = "s3",
+  source_col = "mpd_source",
+  time_col = "mpd_time",
+  repeated_observation = "source",
+  prediction_scope = "observed",
+  model_family = "poisson",
+  flow_adj_summary = "median",
+  iter = 1000,
+  chains = 4,
+  seed = 123,
+  refresh = 0
+)
+```
+
+The returned table includes `latent_flow_id`, `latent_flow_unit`,
+`flow_adj_mean`, `flow_adj_median`, and 95% interval columns for the true-flow
+and MPD observation scales. The result metadata also records the custom backend,
+the number of latent states, the true-flow and observation formulas, latent
+prior/sampler controls, ignored formula random-effect terms, and identifiability
+notes.
+Because this mode relies on repeated observations, it is most informative for
+S3 and S4 designs. In S1 and S2, use it mainly as a sensitivity or compatibility
+check.
+
+## Source-time structures
+
+The same S1-S4 scenario language is used across the Bayesian and frequentist
+engines.
+
+```{r echo=FALSE}
+source_time_table <- tibble::tribble(
+  ~Structure, ~Scenario, ~Latent_state, ~Bayesian_guidance,
+  "One source, one time",
+  "`s1`",
+  "OD state, but each state is observed once",
+  "Prefer `coverage_offset`; latent mode is weakly identified.",
+  "One source, multiple times",
+  "`s2`",
+  "OD or OD-time state, depending on the research question",
+  "Use care: time variation can reflect true mobility change rather than observation bias.",
+  "Multiple sources, one time",
+  "`s3`",
+  "OD state shared across sources",
+  "Best first use case for the experimental `latent_two_level` backend.",
+  "Multiple sources, multiple times",
+  "`s4`",
+  "OD-time state shared across sources within each time period",
+  "Useful but more demanding; inspect source and time diagnostics carefully."
+)
+
+knitr::kable(source_time_table)
+```
+
+## Reduced-form compatibility mode
+
+The reduced-form mode preserves the earlier observed-flow workflow:
+
+```{r eval=FALSE}
+adj_reduced_form <- adjust_multilevel_bayes(
+  mpd_od_df = mpd_od,
+  coverage_df = coverage,
+  covariates_df = covariates,
+  distance_df = distance,
+  mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance,
+  bias_formula = ~ bias_e_origin,
+  target_scale = "mpd_counterfactual",
+  observation_model = "reduced_form",
+  model_engine = "bayesian",
+  model_family = "poisson"
+)
+```
+
+Use this mode only when you need to reproduce older analyses or compare the
+newer true-flow scale against the earlier MPD-scale counterfactual. For most
+new analyses, prefer `coverage_offset`.
+
+## Diagnostics
+
+For any Bayesian fit, inspect:
+
+- sampler diagnostics from `attr(result, "diagnostics")`;
+- model metadata from `attr(result, "result_metadata")`;
+- model terms from `attr(result, "model_terms")`;
+- posterior summaries and, when requested, draw-level outputs;
+- whether the source/time structure supplies enough repeated observations for
+  the chosen observation model.
+
+```{r eval=FALSE}
+attr(adj_latent, "result_metadata")
+attr(adj_latent, "diagnostics")
+attr(adj_latent, "model_terms")
+```
+
+For the custom latent backend, `attr(adj_latent, "diagnostics")$convergence`
+reports divergence and treedepth rates, acceptance summaries, effective sample
+size, and R-hat for core model parameters. The `latent_*_prior_scale`,
+`latent_phi_prior_rate`, `latent_adapt_delta`, `latent_max_treedepth`, and
+`latent_rng_eta_max` arguments are available for sensitivity checks when the
+default weakly regularizing settings are not appropriate.
+
+The latent backend should be treated as an advanced sensitivity model until
+larger repeated-source/time examples, stronger prior checks, and richer
+posterior predictive diagnostics are validated.
+
+## Practical recommendation
+
+Use `coverage_offset` as the default Bayesian implementation. It is readable,
+fast enough for small workflows, and directly returns a true-flow scale from a
+coverage-aware observation model.
+
+Use `latent_two_level` when the data structure justifies it: especially
+multiple MPD sources observing the same OD or OD-time state. Keep the older
+`reduced_form` mode for reproducibility and backward compatibility.

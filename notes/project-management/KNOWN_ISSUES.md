@@ -1,6 +1,6 @@
 # Known Issues
 
-Last updated: 2026-05-18
+Last updated: 2026-06-12
 
 ## High Priority
 
@@ -14,8 +14,8 @@ Last updated: 2026-05-18
 - Impact: unreliable signal in local and CI usage.
 - Suggested fix: keep contributors and CI on `Rscript scripts/run_fast_tests.R` for the fast tier, and reserve raw `test_dir()` runs for explicit development/debugging.
 
-3. Prototype Bayesian pathway still needs empirical runtime guidance
-- Description: `adjust_multilevel_bayes()` supports observed-flow and complete-grid prediction scopes, but the empirical LAD runtime envelope has not been documented yet.
+3. Experimental Bayesian pathway still needs empirical runtime guidance
+- Description: `adjust_multilevel_bayes()` supports observed-flow and complete-grid prediction scopes, including an experimental custom Stan latent backend, but the empirical LAD runtime envelope has not been documented yet.
 - Impact: users may over-interpret readiness/scope.
 - Suggested fix: keep the README and status page explicit that the Bayesian path is experimental, and record feasible LAD grid sizes after empirical validation.
 

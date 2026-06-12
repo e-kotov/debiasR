@@ -10,6 +10,7 @@ fast_test_files <- c(
   "tests/testthat/test-adjust-selection-rate2.R",
   "tests/testthat/test-adjust-raking-ratio.R",
   "tests/testthat/test-adjust-coefficient.R",
+  "tests/testthat/test-adjust-multilevel-latent-contract.R",
   "tests/testthat/test-adjust-multilevel-frequentist-dev.R",
   "tests/testthat/test-validate-flow-overall.R",
   "tests/testthat/test-validate-flow-pairs.R",
@@ -33,9 +34,32 @@ if (!requireNamespace("testthat", quietly = TRUE)) {
 
 devtools::load_all(".", quiet = TRUE)
 
+count_test_failures <- function(results) {
+  sum(vapply(
+    results,
+    function(test_result) {
+      sum(vapply(
+        test_result$results,
+        function(expectation) {
+          inherits(expectation, "expectation_failure") ||
+            inherits(expectation, "expectation_error")
+        },
+        logical(1)
+      ))
+    },
+    integer(1)
+  ))
+}
+
+failure_count <- 0L
 for (test_file in fast_test_files) {
   message("Running ", test_file)
-  testthat::test_file(test_file, reporter = "summary")
+  result <- testthat::test_file(test_file, reporter = "summary")
+  failure_count <- failure_count + count_test_failures(result)
+}
+
+if (failure_count > 0L) {
+  stop("Fast deterministic test tier failed with ", failure_count, " failure/error expectation(s).")
 }
 
 message("Fast deterministic test tier completed successfully.")

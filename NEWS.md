@@ -1,3 +1,25 @@
+# debiasR 0.0.0.9002
+
+### Latent Bayesian backend
+
+- Replaced the `observation_model = "latent_two_level"` random-intercept
+  prototype with an experimental custom Stan backend selected by
+  `backend = "stan_latent"` or `backend = "auto"`.
+- The latent backend estimates source-invariant OD or OD-time true-flow
+  intensities and models each MPD source/time row as a coverage-scaled noisy
+  observation of that latent state.
+- Added posterior summary columns for true-flow and MPD-scale means, medians,
+  and 95% intervals while preserving the existing `flow_adj`,
+  `flow_true_pred`, and `flow_mpd_pred` columns.
+- Added deterministic latent-contract tests for backend routing, S1-S4 latent
+  state keys, formula partitioning, Stan data construction, and clear backend
+  availability errors.
+- Updated the optional Bayesian test runner and workflow to include `rstan`
+  for the custom latent backend.
+- Added explicit latent prior and sampler controls, richer Stan diagnostics,
+  generated-quantity overflow guards, and split optional Bayesian test scopes
+  for `rstanarm` smoke/full checks and latent Stan checks.
+
 # debiasR 0.0.0.9001
 
 ### Bias distribution and latent Bayesian development

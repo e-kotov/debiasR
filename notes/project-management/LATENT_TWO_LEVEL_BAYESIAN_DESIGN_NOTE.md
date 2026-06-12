@@ -5,10 +5,11 @@ Last updated: 2026-06-12
 ## Purpose
 
 This note scopes enhancement issue #18: a genuinely latent two-level Bayesian
-model for `adjust_multilevel_bayes()`. It now also records the first
-experimental package prototype added on 2026-06-12. The prototype is useful for
-testing the public API and S1-S4 data contract, but it does not replace the
-full latent-backend design described below.
+model for `adjust_multilevel_bayes()`. It records both the first package
+prototype added on 2026-06-12 and the follow-up experimental custom Stan
+backend. The backend estimates explicit latent true-flow intensities, but it
+should remain experimental until prior sensitivity, diagnostics, and larger
+S3/S4 empirical workflows are hardened.
 
 The current implementation can separate `mobility_formula` and `bias_formula`,
 and `target_scale = "true_flow"` with `observation_model = "coverage_offset"`
@@ -26,20 +27,21 @@ The current development branch includes:
   state key;
 - internal `latent_flow_id` and `latent_flow_unit` columns in the returned
   result;
-- a Bayesian shared random intercept `(1 | latent_flow_id)` added to the fitted
-  observation model;
+- an experimental `backend = "stan_latent"` custom Stan path selected by
+  `backend = "auto"` for latent models;
+- source-invariant OD or OD-time latent true-flow intensities estimated
+  directly by the custom backend;
 - coverage-offset true-flow prediction with `flow_true_pred`, `flow_mpd_pred`,
   and `flow_adj`;
 - metadata for the number of latent states and weak-identification warnings;
 - fast tests for argument/data-contract behavior and an optional tiny Bayesian
   smoke test for repeated-source observations.
 
-This is intentionally a prototype. It represents the latent state through a
-Bayesian random intercept in the existing fitting path. The fuller target model
-below would use a custom joint latent backend with stronger priors,
-observation-layer source/time effects, posterior predictive checks, and richer
-diagnostics. Issue #18 should therefore remain open until those hardening
-tasks are resolved or deliberately split into follow-up issues.
+This is intentionally experimental. The custom backend now represents the
+latent state explicitly, but the fuller target model below still needs stronger
+prior controls, observation-layer source/time effects, posterior predictive
+checks, and richer diagnostics. Issue #18 should therefore remain open until
+those hardening tasks are resolved or deliberately split into follow-up issues.
 
 ## Model Target
 
@@ -207,7 +209,7 @@ route to a backend that can fit a custom joint model.
 Recommended policy:
 
 - `backend = "auto"` chooses the current `rstanarm` path for existing models
-  and a custom Stan path for `latent_two_level`.
+  and `backend = "stan_latent"` for `latent_two_level`.
 - The latent path should error clearly if the custom backend is unavailable.
 - `brms` can remain an exploratory backend only if the model can be expressed
   transparently without hiding the shared latent state.

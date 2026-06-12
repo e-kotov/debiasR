@@ -20,15 +20,18 @@ The staged track below is intended to be implemented one stage per chat window. 
   review.
 
 2. Harden latent two-level Bayesian enhancement - `1-2 days`
-- Enhancement issue #18 now has a design note and first experimental
-  `observation_model = "latent_two_level"` prototype in
+- Enhancement issue #18 now has a design note and an experimental custom Stan
+  backend for `observation_model = "latent_two_level"` in
   `adjust_multilevel_bayes()`.
-- The prototype creates `latent_flow_id` states, adds a shared latent-state
-  random intercept in the Bayesian observation model, and records latent-state
-  metadata and identifiability notes.
-- Remaining work is to evaluate whether a custom latent backend is needed for
-  stronger priors, source/time observation-layer effects, posterior predictive
-  diagnostics, and larger S3/S4 empirical workflows.
+- The backend creates `latent_flow_id` states, estimates source-invariant OD or
+  OD-time true-flow intensities, and models MPD source/time rows as
+  coverage-scaled noisy observations of those latent states.
+- The branch now exposes latent prior and sampler controls, records richer
+  sampler diagnostics, and splits optional Bayesian validation into standard
+  `rstanarm-smoke`, full `rstanarm`, and latent-Stan scopes.
+- Remaining work is to run hosted/manual Bayesian validation and larger S3/S4
+  empirical stress tests before promoting the latent backend beyond
+  experimental status.
 
 3. Validate optional Bayesian CI workflow - `1-2h`
 - Fast core GitHub Actions validation passed on merged PR #11.
@@ -53,12 +56,13 @@ The staged track below is intended to be implemented one stage per chat window. 
   `observation_model = "latent_two_level"` option for repeated source/time
   structures while preserving the frequentist engine for shared S1-S4 data
   contract testing.
-- This is a prototype milestone for issue #18, not the final closure of the
-  latent-model enhancement; custom-backend hardening remains in Now.
+- This opened the path for issue #18. The follow-up `0.0.0.9002` work adds the
+  first custom Stan latent backend; empirical and diagnostic hardening remains
+  in Now.
 - Vignettes and project notes were updated to explain the new package-level
-  functions and the latent prototype status. The main adjustment vignette now
+  functions and the latent backend status. The main adjustment vignette now
   teaches the default coverage-offset Bayesian implementation, while the
-  advanced Bayesian adjustment vignette carries the latent prototype,
+  advanced Bayesian adjustment vignette carries the experimental latent backend,
   reduced-form compatibility, S1-S4 source/time, and diagnostics material.
 
 1. Make repository public on GitHub - `complete`

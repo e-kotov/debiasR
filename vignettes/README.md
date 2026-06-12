@@ -19,6 +19,7 @@ optional data package is not installed.
 5. `v06-adjusting-biases.qmd`
 6. `v07-validation.qmd`
 7. `v08-data.qmd`
+8. `v09-advanced-bayesian-adjustment.qmd`
 
 Supporting package-vignette assets belong in:
 

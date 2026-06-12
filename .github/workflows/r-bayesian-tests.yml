@@ -26,7 +26,12 @@ jobs:
           extra-packages: |
             any::devtools
             any::testthat
+            any::rstan
 
-      - name: Run Bayesian tests
-        timeout-minutes: 20
-        run: Rscript scripts/run_bayesian_tests.R
+      - name: Run rstanarm Bayesian smoke tests
+        timeout-minutes: 15
+        run: Rscript scripts/run_bayesian_tests.R rstanarm-smoke
+
+      - name: Run latent Stan smoke tests
+        timeout-minutes: 10
+        run: Rscript scripts/run_bayesian_tests.R latent-smoke

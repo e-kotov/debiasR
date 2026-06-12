@@ -1,12 +1,12 @@
 Package: debiasR
 Title: Bias Correction for Mobile-Phone-Derived Mobility Data
-Version: 0.0.0.9001
+Version: 0.0.0.9002
 Authors@R:
     c(
       person("Francisco", "Rowe", email = "fcorowe@liverpool.ac.uk", role = c("aut","cre")),
       person("Carmen", "Cabrera", email = "c.cabrera@liverpool.ac.uk", role = "aut")
     )
-Description: Tools to correct biases in origin-destination mobility data derived from mobile phone sources. Implements stable deterministic bias-adjustment methods plus a Bayesian multilevel prototype with observed and complete-grid origin-destination prediction modes.
+Description: Tools to correct biases in origin-destination mobility data derived from mobile phone sources. Implements stable deterministic bias-adjustment methods plus Bayesian multilevel adjustment with coverage-offset and experimental latent true-flow models for observed and complete-grid origin-destination prediction modes.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -27,6 +27,7 @@ Suggests:
     MASS,
     lme4,
     pscl,
+    rstan,
     brms,
     ggplot2,
     ggthemes,

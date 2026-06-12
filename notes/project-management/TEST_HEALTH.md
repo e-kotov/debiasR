@@ -9,11 +9,14 @@ Last updated: 2026-06-12
 - Recommended broad local development runner:
   - `Rscript scripts/run_dev_tests.R`
 - Optional Bayesian runner:
-  - `Rscript scripts/run_bayesian_tests.R`
+  - `Rscript scripts/run_bayesian_tests.R rstanarm-smoke`
+  - `Rscript scripts/run_bayesian_tests.R rstanarm`
+  - `Rscript scripts/run_bayesian_tests.R latent-smoke`
+  - `Rscript scripts/run_bayesian_tests.R all`
 - The runner loads the package with `devtools::load_all(".")` before executing targeted tests.
 - Full suite still includes a slower Bayesian test file with MCMC runtime and optional `brms` coverage.
 - Observed behavior today:
-  - `Rscript scripts/run_fast_tests.R` passes, most recently on 2026-06-12 after adding `measure_bias_distribution()`, extended `validate_flow_distribution()` comparisons, and latent two-level contract checks.
+  - `Rscript scripts/run_fast_tests.R` passes, most recently on 2026-06-12 after adding `measure_bias_distribution()`, extended `validate_flow_distribution()` comparisons, and the custom latent two-level Stan data-contract checks.
   - merged PR #11 (`Codex/validation distribution`) passed the GitHub Actions fast deterministic workflow for commit `59705b376c26a4b33ecbbc9cd1063b037fd61572`.
   - the current working tree has been validated locally; the pushed head still needs remote GitHub Actions confirmation.
   - package-readiness check with tests/vignettes/manual skipped now completes with 0 errors, 0 warnings, and 1 note:
@@ -32,7 +35,7 @@ Last updated: 2026-06-12
   - `validate_bias_residual_structure()` now has a regression test for the documented `population_lm` residual option.
   - `test-adjust-coefficient.R` skips one optional `pscl`-dependent case when `pscl` is not installed.
   - the Bayesian draw-summary names mismatch has been fixed in the optional Bayesian test file.
-  - local optional Bayesian test-file run completed with `rstanarm` installed: no failures, one expected skip for the unavailable-backend fallback path, and expected warnings from locale handling, synthetic-distance fallback, and deliberately low-iteration MCMC diagnostics.
+  - local optional Bayesian smoke checks completed with `rstanarm` and `rstan` installed, including a tiny `stan_latent` repeated-source fit. The optional Bayesian runner is now split into `rstanarm-smoke`, full `rstanarm`, and `latent-smoke` scopes; smoke scopes should pass before opening a ready PR, and full scopes should run before closing #18.
   - running `test_dir()` without loading package can produce false failures (`function not found`, data object not found).
 
 ## Test Tiers (Recommended)
@@ -48,6 +51,7 @@ Last updated: 2026-06-12
 - `tests/testthat/test-adjust-selection-rate2.R`
 - `tests/testthat/test-adjust-raking-ratio.R`
 - `tests/testthat/test-adjust-coefficient.R`
+- `tests/testthat/test-adjust-multilevel-latent-contract.R`
 - `tests/testthat/test-adjust-multilevel-frequentist-dev.R`
 - `tests/testthat/test-validate-flow-overall.R`
 - `tests/testthat/test-validate-flow-pairs.R`
@@ -59,13 +63,17 @@ Last updated: 2026-06-12
 ### Tier 2: Bayesian / slow / dependency-sensitive
 
 - `tests/testthat/test-adjust-multilevel-bayes.R`
-- Requires longer runtime; `brms` remains optional for extra model families.
+- `tests/testthat/test-adjust-multilevel-bayes-rstanarm-smoke.R`
+- `tests/testthat/test-adjust-multilevel-bayes-latent.R`
+- Requires longer runtime; `rstanarm-smoke` and full `rstanarm` scopes require
+  `rstanarm`, the `latent-smoke` scope requires `rstan`, and `brms` remains
+  optional for extra model families.
 
 ## Current Known Test Issues
 
 1. Direct `testthat::test_dir("tests/testthat")` without package load context may fail.
-2. Bayesian tests are slower and environment-sensitive because of MCMC runtime and optional `brms` support.
-3. Full package checks that run the optional Bayesian lane may still be slow because `rstanarm` is now a default dependency.
+2. Bayesian tests are slower and environment-sensitive because of MCMC runtime, `rstanarm`, `rstan`, and optional `brms` support.
+3. Full package checks that run the optional Bayesian lane may still be slow because `rstanarm` is now a default dependency and the latent backend compiles a custom Stan model.
 4. Empirical tests that require `debiasRdata` should remain conditional because the companion package is optional.
 5. Some warnings are locale-related (`LC_ALL='C.UTF-8'`) and mostly non-blocking.
 6. The optional tiny-data `lme4` mixed-model smoke path may print a singular-fit message; this is expected for the deliberately small fixture.

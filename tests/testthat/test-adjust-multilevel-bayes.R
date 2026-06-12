@@ -30,6 +30,10 @@ test_that("backend auto-selection resolves to the expected engine", {
   expect_equal(debiasR:::.resolve_multilevel_backend("zip", "auto"), "brms")
   expect_equal(debiasR:::.resolve_multilevel_backend("zinb", "auto"), "brms")
   expect_equal(debiasR:::.resolve_multilevel_backend("poisson", "brms"), "brms")
+  expect_equal(
+    debiasR:::.resolve_multilevel_backend("poisson", "auto", "latent_two_level"),
+    "stan_latent"
+  )
 })
 
 test_that("formula builder reflects the requested random-intercept structure", {
@@ -708,51 +712,6 @@ test_that("Bayesian engine fits an S4 repeated source/time scenario", {
   expect_equal(metadata$n_fit_rows, nrow(toy$mpd_od) - 1L)
   expect_equal(metadata$n_zero_filled_prediction_rows, 1L)
   expect_equal(res$model_fit_status[res$mpd_zero_filled], "predicted")
-})
-
-test_that("Bayesian latent two-level prototype fits repeated source observations", {
-  skip_if_not_installed("rstanarm")
-
-  toy <- make_multilevel_scenario_toy(
-    sources = c("src1", "src2"),
-    periods = "t1"
-  )
-
-  res <- suppressWarnings(
-    adjust_multilevel_bayes(
-      mpd_od_df = toy$mpd_od,
-      coverage_df = toy$coverage,
-      covariates_df = toy$covariates,
-      distance_df = toy$distance,
-      mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance,
-      bias_formula = ~ bias_e_origin,
-      model_engine = "bayesian",
-      scenario = "s3",
-      target_scale = "true_flow",
-      observation_model = "latent_two_level",
-      coverage_scale = "origin",
-      latent_flow_unit = "auto",
-      model_family = "poisson",
-      flow_adj_summary = "median",
-      iter = 50,
-      chains = 1,
-      seed = 918,
-      refresh = 0
-    )
-  )
-
-  metadata <- attr(res, "result_metadata")
-
-  expect_equal(attr(res, "observation_model"), "latent_two_level")
-  expect_equal(attr(res, "stage"), "latent_two_level_prototype")
-  expect_equal(attr(res, "latent_flow_unit"), "od")
-  expect_true(all(c("latent_flow_id", "latent_flow_unit") %in% names(res)))
-  expect_equal(as.numeric(res$flow_adj), as.numeric(res$flow_true_pred))
-  expect_true(all(is.finite(res$flow_adj)))
-  expect_true(all(is.finite(res$flow_mpd_pred)))
-  expect_equal(metadata$n_latent_flows, length(unique(res$latent_flow_id)))
-  expect_false(metadata$latent_identifiability$weak_identification_warning)
-  expect_match(attr(res, "prototype_notes"), "Latent two-level prototype")
 })
 
 test_that("adjust_multilevel_bayes can attach draw-level summaries when requested", {

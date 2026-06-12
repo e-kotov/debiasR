@@ -6,7 +6,7 @@
 \alias{debiasR-package}
 \title{debiasR: Bias Correction for Mobile-Phone-Derived Mobility Data}
 \description{
-Tools to correct biases in origin-destination mobility data derived from mobile phone sources. Implements stable deterministic bias-adjustment methods plus a Bayesian multilevel prototype with observed and complete-grid origin-destination prediction modes.
+Tools to correct biases in origin-destination mobility data derived from mobile phone sources. Implements stable deterministic bias-adjustment methods plus Bayesian multilevel adjustment with coverage-offset and experimental latent true-flow models for observed and complete-grid origin-destination prediction modes.
 }
 \seealso{
 Useful links:
