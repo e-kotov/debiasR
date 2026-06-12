@@ -62,7 +62,7 @@ percentage of residents in routine occupations and percentage of rural land.
 head(covariates)
 ```
 
-Next, we calculate the coverage score and coverage bias.
+Next, we calculate the active-user coverage rate and coverage bias.
 
 ```{r}
 bias_lad <- debiasR::measure_bias(coverage)
@@ -74,7 +74,7 @@ bias_lad |>
 
 The previous vignette introduced the idea of a proportional baseline. If
 every LAD were covered at the same overall rate, each local coverage
-score would sit close to the national coverage score. Residuals show
+rate would sit close to the national active-user coverage rate. Residuals show
 locations (LADs) where a place departs from that simple expectation.
 
 ```{r}

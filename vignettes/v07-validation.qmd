@@ -24,11 +24,11 @@ execute:
 
 ## Aim
 
-This vignette describes the range of validation methods included in `debiasR`, to assess the extent of difference between our adjusted mobile-phone-derived flow estimates and target benchmark flows.
+This vignette describes the range of validation methods included in `debiasR`, to assess our adjusted mobile-phone-derived flow estimates against a set of target benchmark flows.
 
-The methods assess differences between:
+The methods assess differences between adjusted *versus* benchmark flows, to evaluate the final adjustment.
 
-- adjusted *versus* benchmark flows, to evaluate the final adjustment.
+It also enables comparisons between:
 - raw mobile-phone-derived *versus* benchmark flows, to evaluate the
   extent of bias before adjustment.
 - raw *versus* adjusted flows, to evaluate the extent of adjustment made to the raw data.

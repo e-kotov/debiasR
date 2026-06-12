@@ -424,12 +424,14 @@ adjust_multilevel_bayes <- function(mpd_od_df,
     lin_mpd <- .posterior_linpred_fixef(
       fit = fit,
       backend = backend,
-      newdata = mpd_pred_df
+      newdata = mpd_pred_df,
+      offset_col = "log_observation_probability"
     )
     lin_true <- .posterior_linpred_fixef(
       fit = fit,
       backend = backend,
-      newdata = true_pred_df
+      newdata = true_pred_df,
+      offset_col = "log_observation_probability"
     )
     flow_mpd_pred_draws <- exp(lin_mpd)
     flow_adj_draws <- exp(lin_true)
@@ -2079,13 +2081,18 @@ adjust_multilevel_bayes <- function(mpd_od_df,
   stop("Unsupported backend: ", backend)
 }
 
-.posterior_linpred_fixef <- function(fit, backend, newdata) {
+.posterior_linpred_fixef <- function(fit, backend, newdata, offset_col = NULL) {
   if (backend == "rstanarm") {
+    offset <- NULL
+    if (!is.null(offset_col) && offset_col %in% names(newdata)) {
+      offset <- newdata[[offset_col]]
+    }
     lp <- rstanarm::posterior_linpred(
       fit,
       newdata = newdata,
       transform = FALSE,
-      re.form = NA
+      re.form = NA,
+      offset = offset
     )
     return(as.matrix(lp))
   }

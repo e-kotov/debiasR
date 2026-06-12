@@ -21,20 +21,20 @@ We use the notation introduced in the previous vignette. For each Local Authorit
 
 - $U_i$ be the observed digital trace user count
 - $P_i$ be the benchmark population count from the 2021 Census
-- $p_i$ be the coverage score
+- $c_i$ be the active-user coverage rate
 - $b_i$ be the coverage bias
 
 The two core quantities are:
 
 $$
-p_i = \frac{U_i}{P_i}
+c_i = \frac{U_i}{P_i}
 $$
 
 $$
-b_i = 1 - p_i
+b_i = 1 - c_i
 $$
 
-So, if an area has $p_i = 0.04$, the digital trace data cover about 4 people per 100 residents, and the coverage bias is $b_i = 0.96$. Lower values of $b_i$ mean better coverage. Values above zero usually mean undercoverage relative to the Census benchmark.
+So, if an area has $c_i = 0.04$, the digital trace data cover about 4 people per 100 residents, and the coverage bias is $b_i = 0.96$. Lower values of $b_i$ mean better coverage. Values above zero usually mean undercoverage relative to the Census benchmark.
 
 ## Load data
 
@@ -66,11 +66,11 @@ head(coverage)
 
 ## Measure coverage bias
 
-`measure_bias()` calculates the coverage score $p_i = U_i / P_i$ and the coverage bias $b_i = 1 - p_i$.
+`measure_bias()` calculates the active-user coverage rate $c_i = U_i / P_i$ and the coverage bias $b_i = 1 - c_i$.
 
 The function returns these as:
 
-- `coverage_score`, which is $p_i$
+- `coverage_score`, which is $c_i$
 - `coverage_bias`, which is $b_i$
 
 ```{r}
@@ -146,7 +146,7 @@ ggplot(bias_lad, aes(x = population, y = coverage_bias)) +
 
 A common approach to assess whether digital trace data are a reasonable population proxy is to check whether observed user counts are proportional to benchmark population counts across areas. The logic is that areas with larger benchmark populations should also have larger observed user counts.
 
-We refer to this as the proportional baseline because it assumes that the digital trace data capture the same share of the population in every LAD. Under this assumption, observed user counts should increase in proportion to benchmark population counts and differences in observed user counts should mainly reflect differences in population size. The comparison above showed, however, that coverage scores vary across LADs. This means that a proportional relationship is useful to check, but it does not fully describe whether the data represent all areas equally.
+We refer to this as the proportional baseline because it assumes that the digital trace data capture the same share of the population in every LAD. Under this assumption, observed user counts should increase in proportion to benchmark population counts and differences in observed user counts should mainly reflect differences in population size. The comparison above showed, however, that active-user coverage rates vary across LADs. This means that a proportional relationship is useful to check, but it does not fully describe whether the data represent all areas equally.
 
 We can use the function `validate_bias_residual_structure()` from `debiasR` to estimate this proportional baseline and inspect the
 residual structure, i.e. the differences between observed and expected user counts.
@@ -164,7 +164,7 @@ bias_residuals <- debiasR::validate_bias_residual_structure(
 The object returned by `validate_bias_residual_structure()` is a list. Each
 component gives different information:
 
-- `summary` gives the overall coverage score, the number of areas and summary
+- `summary` gives the overall active-user coverage rate, the number of areas and summary
   measures of the residuals
 - `residual_definitions` records how the different residuals are defined and how
   to interpret their sign
@@ -178,7 +178,7 @@ component gives different information:
   selected area-level covariate when one is supplied; here it is returned with
   missing values because we have not yet added covariates
 - `area_level` contains one row per LAD with the observed count, expected count,
-  coverage score and residuals
+  active-user coverage rate and residuals
 - `map_data` contains the same area-level residuals, optionally joined to
   geometry or coordinate data when these are supplied
 
@@ -233,10 +233,10 @@ bias_residuals$area_level |>
 The default residual, `coverage_score_residual`, is local coverage minus overall coverage:
 
 $$
-p_i - \bar{p}
+c_i - \bar{c}
 $$
 
-Here, $\bar{p}$ is the overall coverage score. Positive values mean the LAD is covered more than expected under the proportional baseline. Negative values mean the LAD is covered less than expected.
+Here, $\bar{c}$ is the overall active-user coverage rate. Positive values mean the LAD is covered more than expected under the proportional baseline. Negative values mean the LAD is covered less than expected.
 
 Because the vignette focuses on bias, we also create a bias residual:
 
@@ -244,7 +244,7 @@ $$
 r_i = b_i - \bar{b}
 $$
 
-where $\bar{b} = 1 - \bar{p}$. Positive values of $r_i$ mean the LAD has more coverage bias than expected under the proportional baseline. Negative values mean it has less coverage bias than expected.
+where $\bar{b} = 1 - \bar{c}$. Positive values of $r_i$ mean the LAD has more coverage bias than expected under the proportional baseline. Negative values mean it has less coverage bias than expected.
 
 ```{r}
 residual_lad <- bias_residuals$area_level |>

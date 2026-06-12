@@ -497,6 +497,73 @@ test_that("adjust_multilevel_bayes supports complete-grid prediction when rstana
   expect_true(metadata$runtime_seconds >= 0)
 })
 
+test_that("Bayesian coverage-offset predictions separate MPD and true-flow scales", {
+  skip_if_not_installed("rstanarm")
+
+  areas <- c("A", "B", "C")
+  mpd <- expand.grid(
+    origin = areas,
+    destination = areas,
+    KEEP.OUT.ATTRS = FALSE,
+    stringsAsFactors = FALSE
+  )
+  mpd$flow <- c(18, 4, 5, 6, 15, 7, 3, 5, 14)
+
+  coverage <- data.frame(
+    origin = areas,
+    population = c(100, 120, 90),
+    user_count = c(20, 30, 18)
+  )
+  covariates <- data.frame(
+    area = areas,
+    rural_pct = c(0.2, 0.5, 0.8),
+    population = c(100, 120, 90)
+  )
+  distance <- expand.grid(
+    origin = areas,
+    destination = areas,
+    KEEP.OUT.ATTRS = FALSE,
+    stringsAsFactors = FALSE
+  )
+  distance$distance_km <- abs(
+    match(distance$origin, areas) - match(distance$destination, areas)
+  ) + 1
+
+  res <- suppressWarnings(
+    adjust_multilevel_bayes(
+      mpd_od_df = mpd,
+      coverage_df = coverage,
+      covariates_df = covariates,
+      distance_df = distance,
+      mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance,
+      bias_formula = ~ bias_e_origin,
+      target_scale = "true_flow",
+      observation_model = "coverage_offset",
+      coverage_scale = "origin",
+      model_engine = "bayesian",
+      prediction_scope = "complete_grid",
+      random_intercept = "none",
+      model_family = "poisson",
+      flow_adj_summary = "median",
+      iter = 100,
+      chains = 1,
+      seed = 99,
+      refresh = 0
+    )
+  )
+
+  expect_equal(attr(res, "backend"), "rstanarm")
+  expect_equal(attr(res, "target_scale"), "true_flow")
+  expect_equal(attr(res, "observation_model"), "coverage_offset")
+  expect_equal(as.numeric(res$flow_adj), as.numeric(res$flow_true_pred))
+  expect_equal(
+    as.numeric(res$flow_mpd_pred),
+    as.numeric(res$flow_true_pred * res$observation_probability),
+    tolerance = 1e-6
+  )
+  expect_true(all(res$flow_true_pred > res$flow_mpd_pred))
+})
+
 test_that("adjust_multilevel_bayes can attach draw-level summaries when requested", {
   skip_if_not_installed("rstanarm")
 

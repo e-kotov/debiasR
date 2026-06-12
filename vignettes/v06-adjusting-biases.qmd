@@ -38,7 +38,8 @@ Where, let us recall:
 | $F^{adj}_{ij}$ | Adjusted flow returned by an adjustment method. |
 | $P_i, P_j$ | Population at origin and destination. |
 | $U_i, U_j$ | Active-user count at origin and destination. |
-| $p_i = U_i/P_i$ | Active-user coverage rate. |
+| $c_i = U_i/P_i$ | Active-user coverage rate. |
+| $b_i = 1 - c_i$ | Active-user coverage bias. |
 | $d_{ij}$ | Distance between origin $i$ and destination $j$. |
 | $X_i, X_j$ | Origin and destination covariates, such as rural share. |
 
@@ -101,16 +102,53 @@ od_flow <- example_data$lad_OD_travel2work
 head(od_flow)
 ```
 
+The method examples below use a common comparison view so the reported flow
+columns have the same meaning throughout the vignette:
+
+- `flow_mpd_raw`: the raw, unadjusted MPD flow used as input.
+- `flow_mpd_adjusted`: the adjusted MPD-derived estimate returned by the
+  adjustment method.
+- `flow_benchmark`: the observed Census benchmark flow, shown for interpretation
+  and validation.
+
+```{r}
+benchmark_flow_lookup <- example_data$benchmark_od |>
+  dplyr::select(
+    origin,
+    destination,
+    flow_benchmark = flow
+  )
+
+show_adjustment_comparison <- function(adjusted_df,
+                                       extra_cols = character(),
+                                       n = 5) {
+  adjusted_df |>
+    dplyr::left_join(
+      benchmark_flow_lookup,
+      by = c("origin", "destination")
+    ) |>
+    dplyr::select(
+      origin,
+      destination,
+      flow_mpd_raw = flow,
+      flow_mpd_adjusted = flow_adj,
+      flow_benchmark,
+      dplyr::any_of(extra_cols)
+    ) |>
+    dplyr::slice_head(n = n)
+}
+```
+
 
 ## Inverse penetration rate
 
-The inverse penetration rate adjusts origin-destination flows by scaling observed mobile-phone-derived flows according to how well the population is represented in the mobile-phone data. For each area, we calculate the coverage or penetration rate ($p_i$) as the number of observed active users ($U_i$) divided by the benchmark population ($P_i$). The inverse of this rate becomes the adjustment weight ($w_i$). Areas with lower coverage receive larger weights because their flows are assumed to be more undercounted. For example, if only 5% of residents in an origin area appear in the mobile-phone data, flows from that origin can be scaled up by a factor of 20; that is $1 / 0.05 = 20$, so each observed flow is treated as representing about twenty times as many people in the benchmark population. The adjustment can use origin coverage, destination coverage or a combination of both. This makes the method simple and transparent, but it assumes that bias is mainly proportional to population coverage and does not directly account for differences in who is represented among mobile-phone users. Formally:
+The inverse penetration rate adjusts origin-destination flows by scaling observed mobile-phone-derived flows according to how well the population is represented in the mobile-phone data. For each area, we calculate the active-user coverage rate ($c_i$) as the number of observed active users ($U_i$) divided by the benchmark population ($P_i$). The inverse of this rate becomes the adjustment weight ($w_i$). Areas with lower coverage receive larger weights because their flows are assumed to be more undercounted. For example, if only 5% of residents in an origin area appear in the mobile-phone data, flows from that origin can be scaled up by a factor of 20; that is $1 / 0.05 = 20$, so each observed flow is treated as representing about twenty times as many people in the benchmark population. The adjustment can use origin coverage, destination coverage or a combination of both. This makes the method simple and transparent, but it assumes that bias is mainly proportional to population coverage and does not directly account for differences in who is represented among mobile-phone users. Formally:
 
 *Penetration rate and inverse penetration rate weight*:
 
 $$
-p_i = \frac{U_i}{P_i}, \qquad
-w_i = \frac{1}{p_i} = \frac{P_i}{U_i}
+c_i = \frac{U_i}{P_i}, \qquad
+w_i = \frac{1}{c_i} = \frac{P_i}{U_i}
 $$
 
 *Origin-weighted adjustment*:
@@ -135,7 +173,7 @@ $$
 
 To use `adjust_inverse_penetration()`, we input our observed mobile-phone-derived origin-destination flows via `mpd_od_df` and coverage data to `coverage_df` in tabular format. The coverage table should contain the benchmark population and active-user counts needed to calculate how strongly each area is underrepresented. The `weight_by` argument lets you choose where the correction is applied: "origin" adjusts flows using coverage at the origin, "destination" uses coverage at the destination and "both" combines both sides. The result is a data frame that preserves the original observed flow in `flow` and adds `flow_adj`, the adjusted flow after inverse penetration weighting.
 
-If we implement inverse penetration weighting adjusting by origins only, we set `weight_by` to "origin" as done below. The resulting table shows the original observed MPD flow in `flow` and the inverse-penetration-adjusted estimate in `flow_adj`. The difference between the two columns gives a quick idea as to how good the adjustment process is. Though, this needs to be formally tested, we do this in the validation vignette.
+If we implement inverse penetration weighting adjusting by origins only, we set `weight_by` to "origin" as done below. The resulting table compares the original observed MPD flow, the inverse-penetration-adjusted estimate and the Census benchmark flow. The difference between the adjusted and benchmark columns gives a quick descriptive view of the adjustment, though we assess it formally in the validation vignette.
 
 ```{r}
 adj_inverse_penetration <- adjust_inverse_penetration(
@@ -144,9 +182,7 @@ adj_inverse_penetration <- adjust_inverse_penetration(
   weight_by = "origin"
 )
 
-adj_inverse_penetration |>
-  dplyr::select(origin, destination, flow, flow_adj) |>
-  dplyr::slice_head(n = 5)
+show_adjustment_comparison(adj_inverse_penetration)
 ```
 
 This method is a useful first adjustment when the main known source of bias is uneven population coverage across areas. It is especially helpful when we have reliable benchmark population counts and active-user counts, but no trusted benchmark origin-destination flow table. In that setting, inverse penetration weighting provides a transparent way to rescale observed MPD flows so that areas with lower mobile-phone coverage contribute more strongly to the adjusted flow estimates. Its main limitation is that it treats coverage as the correction mechanism. It assumes that the observed users in an area are broadly representative of the residents who are missing from the data. It therefore cannot directly account for social, demographic, behavioural or spatial differences in who appears in the MPD source. If mobile-phone users are systematically different from non-users, or if the relationship between coverage and mobility varies across places, this method may reduce undercounting while still leaving important selection bias in the adjusted flows.
@@ -169,14 +205,14 @@ calibration choice. Formally:
 
 $$
 w_i^{(O)}(r_t) =
-\frac{1}{I_i p_i^{(O)} + (1 - I_i) r_t}
+\frac{1}{I_i c_i^{(O)} + (1 - I_i) r_t}
 $$
 
 *Destination-side selection weight*:
 
 $$
 w_j^{(D)}(r_t) =
-\frac{1}{I_j p_j^{(D)} + (1 - I_j) r_t}
+\frac{1}{I_j c_j^{(D)} + (1 - I_j) r_t}
 $$
 
 *Adjusted flow*:
@@ -230,16 +266,14 @@ adj_selection_rate <- adjust_selection_rate(
   calibration_aggregate = "origin"
 )
 
-adj_selection_rate |>
-  dplyr::select(origin, destination, flow, flow_adj) |>
-  dplyr::slice_head(n = 5)
+show_adjustment_comparison(adj_selection_rate)
 
 tibble::tibble(r_global = attr(adj_selection_rate, 
                                "r_global"))
 ```
 
-The table reports the original MPD flow in `flow` and the selection-rate
-adjusted estimate in `flow_adj`. Because this example uses
+The comparison table reports the original MPD flow, the selection-rate adjusted
+estimate and the Census benchmark flow. Because this example uses
 `weight_by = "origin"`, all flows leaving a given origin are adjusted using that
 origin's coverage and selected covariate value. The reported `r_global`
 attribute is the calibrated selection-rate parameter chosen by the function.
@@ -263,18 +297,18 @@ better match a trusted comparison. Formally:
 *Coverage correction factor*:
 
 $$
-CF(p; k) =
-p\frac{\exp(-k) - 1}{\exp(-kp) - 1}
+CF(c; k) =
+c\frac{\exp(-k) - 1}{\exp(-kc) - 1}
 $$
 
-where $CF(p; k)$ is the coverage correction factor, $p$ is the active-user
+where $CF(c; k)$ is the coverage correction factor, $c$ is the active-user
 coverage rate for the selected origin or destination area, and $k$ is the
 curvature parameter that controls how strongly coverage is transformed. 
 
 *Adjusted flow*:
 
 $$
-F^{adj}_{ij} = F^{mpd}_{ij}CF(p; k)
+F^{adj}_{ij} = F^{mpd}_{ij}CF(c; k)
 $$
 
 The same correction can be applied on the origin side, destination side, or both
@@ -299,15 +333,13 @@ adj_selection_rate2 <- adjust_selection_rate2(
   calibration_aggregate = "origin"
 )
 
-adj_selection_rate2 |>
-  dplyr::select(origin, destination, flow, flow_adj) |>
-  dplyr::slice_head(n = 5)
+show_adjustment_comparison(adj_selection_rate2)
 
 tibble::tibble(k = attr(adj_selection_rate2, "k"))
 ```
 
-The output keeps the observed MPD count in `flow` and returns the adjusted flow
-in `flow_adj`. In this origin-weighted example, the correction applied to a flow
+The comparison table reports the observed MPD count, the adjusted flow and the
+Census benchmark flow. In this origin-weighted example, the correction applied to a flow
 depends on the origin area's coverage rate and the calibrated $k$ value. The
 reported `k` attribute shows the curvature parameter used by the adjustment.
 This method is useful when coverage is the dominant concern and a compact
@@ -353,9 +385,7 @@ adj_raking_ratio <- adjust_raking_ratio(
   benchmark_od_df = example_data$benchmark_od
 )
 
-adj_raking_ratio |>
-  dplyr::select(origin, destination, flow, flow_adj) |>
-  dplyr::slice_head(n = 5)
+show_adjustment_comparison(adj_raking_ratio)
 
 adj_raking_ratio |>
   dplyr::summarise(
@@ -367,8 +397,9 @@ adj_raking_ratio |>
   )
 ```
 
-The first table shows how individual observed flows in `flow` have been
-converted into adjusted flows in `flow_adj`. The summary reports whether the
+The first table shows how individual observed MPD flows have been converted into
+adjusted flows and how those adjusted flows compare with the Census benchmark.
+The summary reports whether the
 IPF routine converged, how many iterations it used, and how much the total flow
 changed after adjustment. Raking is useful when trusted marginal totals are
 available and consistency with those totals is a priority. Its main limitation
@@ -427,15 +458,13 @@ adj_coefficient <- adjust_coefficient(
   level = "od"
 )
 
-adj_coefficient |>
-  dplyr::select(origin, destination, flow, flow_adj) |>
-  dplyr::slice_head(n = 5)
+show_adjustment_comparison(adj_coefficient)
 
 attr(adj_coefficient, "coef")
 ```
 
-The output shows the original observed MPD flow in `flow` and the regression
-adjusted estimate in `flow_adj`. The coefficient attribute reports the fitted
+The comparison table shows the original observed MPD flow, the regression
+adjusted estimate and the Census benchmark flow. The coefficient attribute reports the fitted
 scaling relationship used to convert MPD flows into benchmark-like flows. This
 method is direct and easy to validate because the benchmark is part of the
 model-fitting process. Its main limitation is that benchmark quality is
@@ -445,33 +474,37 @@ chosen model family and estimation level capture the relevant structure.
 ## Bayesian multilevel modelling
 
 Bayesian multilevel modelling adjusts origin-destination flows by fitting a
-structured count model to the observed MPD flows and then predicting what those
-flows would look like after removing the estimated coverage-bias contribution.
-The method uses information about origins, destinations, covariates, distance
-and coverage bias in one modelling framework. The multilevel structure is
-designed to allow partial pooling across areas, sources or time periods when
-those data structures are available. The Bayesian implementation can take time,
-so this vignette uses `model_engine = "frequentist"` as a fast option. Here, we
-use a simple example based on one mobile-phone data source and one observation
-period. In reduced form, the model can be written as:
+structured count model to the observed MPD flows and estimating the underlying
+true-flow scale. The new coverage-offset mode treats MPD flows as coverage-scaled
+observations of true flows, rather than as flows that are only adjusted after
+fitting by switching off a bias covariate. The multilevel structure can borrow
+information across origins, destinations, sources or time periods when those
+data structures are available. The Bayesian implementation can take time, so the
+example below uses deliberately short sampler settings to keep the vignette
+renderable. For analysis, increase the number of iterations and chains and check
+the sampler diagnostics before interpreting the posterior summaries.
+
+In coverage-offset true-flow mode, the model can be written as:
 
 *_Level 1: MPD observation model_*
 
 $$
-F^{mpd}_{ij} \sim \text{Poisson}(\mu^{mpd}_{ij})
+F^{mpd}_{ij} \sim \text{Poisson}(q_{ij} F^{true}_{ij})
 $$
 
 $$
-\log \mu^{mpd}_{ij}
-= \log F^{true}_{ij} + B^{mpd}_{ij} + \varepsilon^{mpd}_{ij}
+\log E(F^{mpd}_{ij}) = \log(q_{ij}) + \eta^{true}_{ij}
 $$
 
-where $B^{mpd}_{ij}$ captures the MPD observation-bias component.
+where $q_{ij}$ is the observation probability derived from active-user coverage.
+With `coverage_scale = "origin"`, $q_{ij} = c_i = U_i/P_i$. The term
+$\log(q_{ij})$ is an offset: it fixes the observation-process scale and is not
+estimated as a regression coefficient.
 
 *_Level 2: true mobility-flow model_*
 
 $$
-\log F^{true}_{ij}
+\eta^{true}_{ij}
 = \alpha + \beta_o X_i + \beta_d X_j + \gamma \log d_{ij}
 + u_i + v_j + w_{ij} + \xi_{ij}
 $$
@@ -481,10 +514,13 @@ origin-destination distance, and $u_i$, $v_j$ and $w_{ij}$ capture origin,
 destination and origin-destination structure.
 
 Intuitively, Level 1 recognises that we observe MPD flows, not the true mobility
-flows themselves. The observed MPD flow $F^{mpd}_{ij}$ is treated as an
-imperfect measurement of an underlying true flow $F^{true}_{ij}$. The term
-$B^{mpd}_{ij}$ represents the part of the MPD observation process that may push
-the recorded flow above or below the true flow.
+flows themselves. The observed MPD flow $F^{mpd}_{ij}$ is treated as a
+coverage-scaled measurement of an underlying true flow $F^{true}_{ij}$. If an
+origin has 20% active-user coverage, the fitted MPD-scale expectation is the
+true-flow expectation multiplied by 0.20 under the origin-offset assumption.
+For example, if the model estimates 500 true trips from origin $i$ to
+destination $j$ and origin $i$ has 20% active-user coverage, the corresponding
+MPD observation-scale prediction is $0.20 \times 500 = 100$ trips.
 
 Level 2 describes the underlying mobility pattern learned from covariates,
 distance and origin/destination/corridor structure. It assumes that the true flow
@@ -493,37 +529,34 @@ persistent origin, destination and corridor structure. This gives the model a
 way to borrow information across related places instead of treating every OD
 corridor as a completely separate unit.
 
-The model is estimated using the MPD flows as observed, including the observed
-coverage gaps across areas. The model learns whether areas with different
-coverage levels tend to have MPD flows that are systematically smaller or larger
-than expected, while also learning the broader mobility pattern.
+$F^{true}_{ij}$ is not itself a random intercept. It is the estimated true-flow
+scale for a specific origin-destination pair, computed from the full true-flow
+linear predictor $\eta^{true}_{ij}$. Random intercepts, when included, are
+components of that predictor. An origin random intercept $u_i$ shifts all flows
+leaving origin $i$ up or down; a destination random intercept $v_j$ shifts flows
+arriving at destination $j$; and an OD random intercept $w_{ij}$ captures a
+corridor-specific deviation. In the small S1 example below we set
+`random_intercept = "none"` because each corridor appears once, so
+$F^{true}_{ij}$ is estimated from the fixed-effect predictors and the coverage
+offset rather than from random intercepts.
 
-The model adjusts the observed MPD flows after estimation is complete. Once the
-relationships have been learned, `adjust_multilevel_bayes()` keeps the fitted
-model fixed and asks a counterfactual question: for this same OD pair, what flow
-would the model predict if the MPD observation-bias component were switched off?
-In the simple example below, that bias component is represented with the origin
-coverage-bias term:
-
-$$
-e_i = 1 - \frac{U_i}{P_i}
-$$
-
-For a linear bias term, $B^{mpd}_{ij} = \omega e_i$, so subtracting
-$\omega e_i$ removes the learned coverage-bias contribution from the predictor:
+The model adjusts flows by predicting on two scales. The fitted MPD-scale
+prediction keeps the coverage offset:
 
 $$
-\eta^{adj}_{ij} = \eta^{fix}_{ij} - \omega e_i
+F^{mpd,pred}_{ij} = \exp(\log(q_{ij}) + \eta^{true}_{ij})
 $$
 
-Adjusted flow:
+The adjusted true-flow prediction removes the observation offset:
 
 $$
-F^{adj}_{ij} = \exp(\eta^{adj}_{ij})
+F^{adj}_{ij} = F^{true,pred}_{ij} = \exp(\eta^{true}_{ij})
 $$
 
-In a Bayesian framework, this post-estimation prediction is computed
-draw-by-draw from the posterior and summarised by mean or median.
+In a Bayesian framework, these predictions are computed draw-by-draw from the
+posterior and summarised by mean or median. This means `flow_adj` is a posterior
+summary of the true-flow prediction, not a single deterministic rescaling of the
+observed MPD count.
 
 ### Implementation
 
@@ -535,24 +568,23 @@ structure.
 Specifically, four scenarios can be accommodated through `scenario` for different source/time structures in the MPD data: one source and one time (s1), one source across times (s2), multiple sources at one time (s3), multiple sources across times (s4), or auto to infer this from the data.
 The `prediction_scope` argument controls whether the method adjusts
 only observed MPD pairs or predicts over a complete OD grid. The
-`formula`, `model_family`, `model_engine` and `flow_adj_summary` arguments
-control the model structure, likelihood, fitting engine and how adjusted flows
-are summarised.
+`target_scale`, `observation_model`, `coverage_scale`, `model_family`,
+`model_engine` and `flow_adj_summary` arguments control the output scale,
+observation model, coverage offset, likelihood, fitting engine and how adjusted
+flows are summarised.
 
 The equations above translate into two conceptual formula components.
-`mobility_formula` defines the Level 2 true-flow model. For example, we can include `rural_pct_o`,
-`rural_pct_d` and `log_distance` to represent the terms $X_i$, $X_j$ and
-$d_{ij}$. Random-effect terms represent the origin, destination and corridor
-structure: `(1 | origin)` for $u_i$, `(1 | destination)` for $v_j$, and
-`(1 | od_id)` for $w_{ij}$. The package creates `od_id` internally before
-fitting. `bias_formula` defines the Level 1 MPD observation-bias component. This is
-`bias_e_origin` and represents $B^{mpd}_{ij}$ through the coverage-bias measure
-$e_i$.
+`mobility_formula` defines the Level 2 true-flow model. For example, we can
+include `rural_pct_o`, `rural_pct_d` and `log_distance` to represent the terms
+$X_i$, $X_j$ and $d_{ij}$. Random-effect terms represent the origin,
+destination and corridor structure: `(1 | origin)` for $u_i$,
+`(1 | destination)` for $v_j$, and `(1 | od_id)` for $w_{ij}$. The package
+creates `od_id` internally before fitting. In coverage-offset mode, the
+observation model is selected with `target_scale = "true_flow"` and
+`observation_model = "coverage_offset"`, while `coverage_scale` selects whether
+the offset uses origin, destination or geometric-mean coverage.
 
-The current implementation combines these two components into one reduced-form
-count model for the observed MPD flow.
-
-A full specification matching the reduced two-level description is:
+A full specification matching the true-flow description is:
 
 ```{r eval=FALSE}
 mobility_formula_full <- ~ rural_pct_o + rural_pct_d + log_distance +
@@ -564,7 +596,8 @@ bias_formula_origin <- ~ bias_e_origin
 Use this model specification when the data support origin, destination and
 corridor partial pooling. In an S1 scenario, like the example below, each OD
 corridor appears once, so the corridor random effect is weakly identified. We
-recommend not using it in such scenarios. We use it below for illustration purposes only.
+recommend not using it in such scenarios. The example below therefore runs a
+Bayesian fixed-effect true-flow model with an origin coverage offset.
 
 ```{r}
 mpd_s1 <- example_data$mpd_od |>
@@ -579,28 +612,51 @@ coverage_s1 <- example_data$coverage |>
     mpd_time = "2021_q1"
   )
 
-adj_multilevel <- adjust_multilevel_bayes(
-  mpd_od_df = mpd_s1,
-  coverage_df = coverage_s1,
-  covariates_df = example_data$covariates,
-  distance_df = example_data$distance,
-  mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance,
-  bias_formula = ~ bias_e_origin,
-  model_engine = "frequentist",
-  scenario = "s1",
-  source_col = "mpd_source",
-  time_col = "mpd_time",
-  repeated_observation = "none",
-  prediction_scope = "complete_grid",
-  random_intercept = "none",
-  model_family = "poisson",
-  flow_adj_summary = "median"
-)
+adj_multilevel <- NULL
 
-adj_multilevel |>
-  dplyr::select(origin, destination, flow, flow_adj) |>
-  dplyr::slice_head(n = 5)
+if (!requireNamespace("rstanarm", quietly = TRUE)) {
+  tibble::tibble(
+    note = "Install rstanarm to run this Bayesian example."
+  )
+} else {
+  adj_multilevel <- adjust_multilevel_bayes(
+    mpd_od_df = mpd_s1,
+    coverage_df = coverage_s1,
+    covariates_df = example_data$covariates,
+    distance_df = example_data$distance,
+    mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance,
+    bias_formula = ~ bias_e_origin,
+    target_scale = "true_flow",
+    observation_model = "coverage_offset",
+    coverage_scale = "origin",
+    model_engine = "bayesian",
+    scenario = "s1",
+    source_col = "mpd_source",
+    time_col = "mpd_time",
+    repeated_observation = "none",
+    prediction_scope = "complete_grid",
+    random_intercept = "none",
+    model_family = "poisson",
+    flow_adj_summary = "median",
+    iter = 100,
+    chains = 1,
+    seed = 123,
+    refresh = 0
+  )
+
+  show_adjustment_comparison(
+    adj_multilevel,
+    extra_cols = c("observation_probability", "flow_mpd_pred")
+  )
+}
 ```
+
+For the Bayesian model, `flow_mpd_adjusted` is the adjusted MPD-derived estimate
+returned by the model; in `target_scale = "true_flow"` mode, it equals
+`flow_adj` and `flow_true_pred`. The benchmark column is shown for
+interpretation and validation, but it is not used to fit the Bayesian model.
+The column `flow_mpd_pred` is the fitted expected flow on the MPD observation
+scale, before removing the coverage offset.
 
 For a richer dataset, use the full multilevel formula in the function call:
 
@@ -613,19 +669,59 @@ adj_multilevel_full <- adjust_multilevel_bayes(
   mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance +
     (1 | origin) + (1 | destination) + (1 | od_id),
   bias_formula = ~ bias_e_origin,
-  model_engine = "frequentist",
+  target_scale = "true_flow",
+  observation_model = "coverage_offset",
+  coverage_scale = "origin",
+  model_engine = "bayesian",
   scenario = "s1",
   source_col = "mpd_source",
   time_col = "mpd_time",
   repeated_observation = "none",
   prediction_scope = "complete_grid",
   model_family = "poisson",
-  flow_adj_summary = "median"
+  flow_adj_summary = "median",
+  iter = 1000,
+  chains = 4,
+  seed = 123,
+  refresh = 0
 )
 
 adj_multilevel_full |>
-  dplyr::select(origin, destination, flow, flow_adj) |>
-  dplyr::slice_head(n = 5)
+  show_adjustment_comparison(
+    extra_cols = c("observation_probability", "flow_mpd_pred")
+  )
+```
+
+The short sampler settings above are only for vignette rendering. For applied
+analysis, run more iterations and multiple chains and inspect the diagnostics:
+
+```{r eval=FALSE}
+adj_multilevel_bayes <- adjust_multilevel_bayes(
+  mpd_od_df = mpd_s1,
+  coverage_df = coverage_s1,
+  covariates_df = example_data$covariates,
+  distance_df = example_data$distance,
+  mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance,
+  bias_formula = ~ bias_e_origin,
+  target_scale = "true_flow",
+  observation_model = "coverage_offset",
+  coverage_scale = "origin",
+  model_engine = "bayesian",
+  scenario = "s1",
+  source_col = "mpd_source",
+  time_col = "mpd_time",
+  repeated_observation = "none",
+  prediction_scope = "complete_grid",
+  random_intercept = "none",
+  model_family = "poisson",
+  flow_adj_summary = "median",
+  iter = 1000,
+  chains = 4,
+  seed = 123,
+  refresh = 0
+)
+
+attr(adj_multilevel_bayes, "diagnostics")
 ```
 
 *Additional outputs*
@@ -636,6 +732,11 @@ You can inspect the metadata to confirm the scenario and formula fitted.
 if (!is.null(adj_multilevel)) {
   attr(adj_multilevel, "result_metadata")[c(
     "model_engine",
+    "backend",
+    "target_scale",
+    "observation_model",
+    "coverage_scale",
+    "offset_column",
     "scenario",
     "repeated_observation",
     "n_sources",
@@ -649,14 +750,19 @@ if (!is.null(adj_multilevel)) {
 }
 ```
 
-The output returns the observed MPD flow in `flow` and the model-based
-adjusted estimate in `flow_adj`. The source and time columns confirm that this
+The output returns the observed MPD flow in `flow`, the fitted MPD-scale
+prediction in `flow_mpd_pred`, and the estimated true-flow adjustment in
+`flow_true_pred` and `flow_adj`. The source and time columns confirm that this
 example is using the S1 contract: one MPD source and one observation period.
-The metadata report the engine, resolved scenario, repeated-observation
-structure, prediction scope and model terms used to fit the adjustment model.
+The metadata report the engine, target scale, observation model, coverage
+offset, resolved scenario, repeated-observation structure, prediction scope and
+model terms used to fit the adjustment model.
 This method is useful when users need a structured model that can combine
-coverage bias, covariates, distance and hierarchical data structure. Its main
-limitation is that it i more data hungry than other methods and require significantly more runtime, dependencies and diagnostic checking if implemented via full Bayesian specification. The key strength is that the model does not require a benchmark dataset of flows.
+coverage, covariates, distance and hierarchical data structure. Its main
+limitation is that it is more data hungry than other methods and requires
+significantly more runtime, dependencies and diagnostic checking when fitted
+with the full Bayesian engine. The key strength is that the model does not
+require a benchmark dataset of flows.
 
 *Alternative source-time structures*
 
@@ -673,7 +779,10 @@ tibble::tribble(
 )
 ```
 
-For now, only the `frequentist` engine is enabled. So please only use `model_engine = "frequentist"` for S1-S4 examples until our Bayesian implementation is complete. Then, you will be able to use `model_engine = "bayesian"`.
+For now, use `model_engine = "frequentist"` for S2-S4 source-time examples until
+the Bayesian transfer for repeated source/time observations is complete. For S1
+examples, `model_engine = "bayesian"` is available when the optional Bayesian
+dependencies are installed.
 
 ## Fit all methods
 
@@ -736,7 +845,7 @@ method_summary <- tibble::tribble(
   "Applies origin, destination, or both-side selection weights controlled by a global <i>r</i><sub>t</sub> parameter.",
   "Uses coverage, covariates, and optional benchmark calibration to model differential selection.",
   eq_stack(
-    "<i>w</i><sub>i</sub>(<i>r</i><sub>t</sub>) = 1 / (I<sub>i</sub><i>p</i><sub>i</sub> + (1 - I<sub>i</sub>)<i>r</i><sub>t</sub>)",
+    "<i>w</i><sub>i</sub>(<i>r</i><sub>t</sub>) = 1 / (I<sub>i</sub><i>c</i><sub>i</sub> + (1 - I<sub>i</sub>)<i>r</i><sub>t</sub>)",
     "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; <i>w</i><sub>ij</sub>"
   ),
   "Yes", "Yes", "Optional", "Yes",
@@ -748,7 +857,7 @@ method_summary <- tibble::tribble(
   "Applies origin, destination, or both-side coverage correction controlled by a global <code>k</code> parameter.",
   "Applies a compact coverage correction with optional <code>k</code> calibration.",
   eq_stack(
-    "CF(<i>p</i>; <i>k</i>) = <i>p</i> &times; (exp(-<i>k</i>) - 1) / (exp(-<i>k</i><i>p</i>) - 1)",
+    "CF(<i>c</i>; <i>k</i>) = <i>c</i> &times; (exp(-<i>k</i>) - 1) / (exp(-<i>k</i><i>c</i>) - 1)",
     "<i>F</i><sup>adj</sup><sub>ij</sub> = <i>F</i><sup>mpd</sup><sub>ij</sub> &times; CF(...)"
   ),
   "Yes", "Yes", "Optional", "No",
@@ -781,12 +890,12 @@ method_summary <- tibble::tribble(
 
   "Bayesian multilevel modelling",
   "Model-based corridor correction",
-  "Predicts OD-specific adjusted flows from separate mobility and bias formula components with optional random effects.",
-  "Fits a reduced-form count model using <code>mobility_formula</code> for true-flow predictors and <code>bias_formula</code> for MPD observation-bias terms.",
+  "Predicts OD-specific adjusted flows from a true-flow formula and a coverage-offset observation model.",
+  "Fits a count model where active-user coverage enters as a fixed observation-process offset, then returns the estimated true-flow scale.",
   eq_stack(
-    "mobility: ~ X<sub>i</sub> + X<sub>j</sub> + log(<i>d</i><sub>ij</sub>) + ( ... | group )",
-    "bias: ~ e<sub>i</sub>",
-    "<i>F</i><sup>adj</sup><sub>ij</sub> = summary(exp(&eta;<sup>fix</sup><sub>ij</sub>(e<sub>i</sub> = 0)))"
+    "log E(<i>F</i><sup>mpd</sup><sub>ij</sub>) = log(<i>q</i><sub>ij</sub>) + &eta;<sup>true</sup><sub>ij</sub>",
+    "&eta;<sup>true</sup><sub>ij</sub> = &alpha; + X<sub>i</sub>&beta;<sub>o</sub> + X<sub>j</sub>&beta;<sub>d</sub> + &gamma;log(<i>d</i><sub>ij</sub>)",
+    "<i>F</i><sup>adj</sup><sub>ij</sub> = exp(&eta;<sup>true</sup><sub>ij</sub>)"
   ),
   "Yes", "Yes", "No", "Yes",
   "Richer structure, no benchmark OD needed for fitting, and a path to uncertainty-aware partial pooling.",

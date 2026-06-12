@@ -41,10 +41,10 @@ We use the same notation throughout:
 -   $j$: destination identifier
 -   $P_i$: benchmark population for area $i$
 -   $U_i$: observed digital trace population for area $i$
--   $p_i = U_i / P_i$: coverage score
--   $b_i = 1 - p_i$: coverage bias
--   $\bar{p} = \sum_i U_i / \sum_i P_i$: global coverage score
--   $e_i = p_i - \bar{p}$: coverage-score residual
+-   $c_i = U_i / P_i$: active-user coverage rate
+-   $b_i = 1 - c_i$: coverage bias
+-   $\bar{c} = \sum_i U_i / \sum_i P_i$: global active-user coverage rate
+-   $e_i = c_i - \bar{c}$: coverage-rate residual
 -   $F^{trace}_{ij}$: observed digital-trace-derived OD flow
 -   $F^{mpd}_{ij}$: observed mobile-phone-derived OD flow in the running
     example
@@ -142,5 +142,5 @@ head(coverage)
 
 The key comparison is between $U_i$, the observed digital trace user count,
 and $P_i$, the benchmark population count. The next vignette uses these values
-to calculate coverage score $p_i = U_i / P_i$ and coverage bias
-$b_i = 1 - p_i$.
+to calculate active-user coverage rate $c_i = U_i / P_i$ and coverage bias
+$b_i = 1 - c_i$.
