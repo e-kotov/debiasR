@@ -8,7 +8,7 @@ separate prototype mode, but empirical runtime guidance remains pending.
 
 Reference note:
 
-- [BAYESIAN_DEVELOPMENT_PLAN.md](/Users/franciscorowe/Library/CloudStorage/Dropbox/Francisco/Research/grants/2023/digital-footprint-accelerator/debias/github/debiasR/notes/project-management/BAYESIAN_DEVELOPMENT_PLAN.md)
+- [BAYESIAN_DEVELOPMENT_PLAN.md](BAYESIAN_DEVELOPMENT_PLAN.md)
 
 ## Stage 1 Contract
 

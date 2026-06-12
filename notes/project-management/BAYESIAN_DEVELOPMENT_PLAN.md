@@ -4,7 +4,7 @@ Last updated: 2026-05-18
 
 ## Purpose
 
-This note captures the next development steps for the Bayesian path in `debiasR`, centered on [`adjust_multilevel_bayes()`](/Users/franciscorowe/Library/CloudStorage/Dropbox/Francisco/Research/grants/2023/digital-footprint-accelerator/debias/github/debiasR/R/adjust_multilevel_bayes.R).
+This note captures the next development steps for the Bayesian path in `debiasR`, centered on [`adjust_multilevel_bayes()`](../../R/adjust_multilevel_bayes.R).
 
 The current state is:
 

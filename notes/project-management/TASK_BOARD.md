@@ -8,18 +8,7 @@ The staged track below is intended to be implemented one stage per chat window. 
 
 ## Now
 
-1. Post-public repository hygiene pass - `1-2h`
-- The `debiasR` repository is public on GitHub as of 2026-06-04.
-- Treat tracked files, documentation, vignettes, GitHub workflows, issues, and
-  pull requests as public-facing.
-- Review public-facing docs, pkgdown output, repository metadata, and tracked
-  assets for release hygiene.
-- Keep `NEWS.md` updated, but keep the changelog hidden from pkgdown previews
-  and deployed vignette sites unless Francisco explicitly asks for it.
-- Keep all changes to `main` flowing through pull requests with code-owner
-  review.
-
-2. Harden latent two-level Bayesian enhancement - `1-2 days`
+1. Harden latent two-level Bayesian enhancement - `1-2 days`
 - Enhancement issue #18 now has a design note and an experimental custom Stan
   backend for `observation_model = "latent_two_level"` in
   `adjust_multilevel_bayes()`.
@@ -33,7 +22,7 @@ The staged track below is intended to be implemented one stage per chat window. 
   empirical stress tests before promoting the latent backend beyond
   experimental status.
 
-3. Validate optional Bayesian CI workflow - `1-2h`
+2. Validate optional Bayesian CI workflow - `1-2h`
 - Fast core GitHub Actions validation passed on merged PR #11.
 - Current branch fast core tests pass locally.
 - Local Bayesian smoke checks use the default `rstanarm` backend; the remaining workflow check is the manual/optional GitHub Actions lane when broader Bayesian validation is required.
@@ -44,6 +33,20 @@ The staged track below is intended to be implemented one stage per chat window. 
   `debiasRdata::lad_centroids`.
 
 ## Recently Completed
+
+1. Post-public repository hygiene pass - `complete`
+- Completed on 2026-06-12.
+- Reviewed public-facing docs, pkgdown article exposure, repository metadata,
+  GitHub workflows, branch-protection metadata, tracked assets, and obvious
+  sensitive-content patterns.
+- Removed public exposure of a workshop planning `.docx` with embedded Word
+  comments/people metadata, cleaned absolute local links from tracked notes,
+  updated GitHub-owned Actions to current tags, restricted manual pkgdown
+  deploys to `main`, clarified code-of-conduct reporting, added explicit
+  CC BY 4.0 non-code license text, and removed stale/duplicated public docs
+  scaffolding.
+- Confirmed branch protection requires the fast-tests and pkgdown checks on
+  `main`, with direct updates limited to Francisco Rowe and Carmen Cabrera.
 
 1. Implement distributional bias API and latent prototype scaffolding - `complete`
 - Completed on 2026-06-12 for the current development branch.

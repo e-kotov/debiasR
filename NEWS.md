@@ -2,6 +2,9 @@
 
 ### Latent Bayesian backend
 
+- Completed a public-repository hygiene pass covering public docs, pkgdown
+  exposure, workflow deploy guards, conduct/reporting text, non-code license
+  clarity, local-path cleanup, and tracked development artifacts.
 - Clarified the validation framework terminology by keeping individual
   origin-destination flow checks as Level 3 and presenting
   `validate_flow_distribution()` as Level 4 distributional allocation
@@ -87,7 +90,7 @@
   workflow articles while keeping notes that explain where those helpers live
   and how source users can load them.
 - Refined the validation vignette interpretation and recommendation text for
-  the three-level validation workflow.
+  the validation workflow.
 - Improved validation vignette tables and scatterplots with smaller table text,
   clearer marginal labels, explicit x/y comparison labels, and centred
   difference colours.

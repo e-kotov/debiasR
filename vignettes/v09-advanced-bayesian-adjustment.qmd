@@ -195,8 +195,8 @@ where:
 - $Y_{ijst}$ is the observed MPD flow for origin $i$, destination $j$, source
   $s$ and time $t$.
 - $q_{ijst}$ is the coverage-derived observation probability.
-- $\lambda^{true}_{g(i,j,t)}$ is the shared latent true-flow intensity for an
-  OD or OD-time group.
+- $\theta_{g(i,j,t)} = \log(\lambda^{true}_{g(i,j,t)})$ is the log shared
+  latent true-flow intensity for an OD or OD-time group.
 - $z_{ijst}\gamma$ represents observation-layer structure such as coverage,
   source and time effects.
 

@@ -58,9 +58,6 @@ articles:
   navbar: Validate
   contents:
   - v07-validation
-- title: internal
-  contents:
-  - v08-data
 
 reference:
 - title: Example data

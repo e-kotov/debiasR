@@ -22,12 +22,12 @@ All contributors and users should:
 - Bullying, intimidation, harassment, derogatory comments, or personal attacks.
 - Discriminatory jokes or language related to gender, sexual orientation, disability, ethnicity, religion, or age.
 - Plagiarism, falsification, or misrepresentation of contributions or data.
-- Any conduct that disrupts the community, damages Imago’s reputation, or brings affiliated organisations into disrepute.
+- Any conduct that disrupts the community, damages the DEBIAS project or `debiasR` community, or brings affiliated organisations into disrepute.
 - Use of threatening, violent, or improper language—offline, online, or within the codebase.
 
 ## 4. Reporting and Enforcement
 
-- Concerns regarding breaches of this code should be reported confidentially to the project maintainers or lead institution (e.g., [University of Liverpool](https://www.liverpool.ac.uk/) contact).
+- Concerns regarding breaches of this code should be reported confidentially to the maintainers by emailing Francisco Rowe at <fcorowe@liverpool.ac.uk>. Please avoid opening a public GitHub issue for sensitive conduct reports.
 - Reports will be handled with respect, discretion, and good faith.
 - Breaches may result in corrective actions including warnings, temporary or permanent exclusion from the project or its channels (e.g., repositories, online forums).
 - Severe breaches may be escalated to host institutions.

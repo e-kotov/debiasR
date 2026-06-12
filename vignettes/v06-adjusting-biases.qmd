@@ -59,7 +59,10 @@ This vignette covers the bias adjustment methods currently available in
 
 ## Data
 
-We will use data on travel-to-work flows between local authority districts (LADs) from `debiasRdata`. The dataset is described the Data vignette. The data captures origin-destination flows derived from [Locomizer](https://locomizer.com).
+We will use data on travel-to-work flows between local authority districts
+(LADs) from `debiasRdata`. The data capture origin-destination flows derived
+from [Locomizer](https://locomizer.com), paired with Census benchmark flows in
+the companion data package.
 
 The README shows how to install `debiasR` and the companion `debiasRdata`
 package from GitHub. We start by loading those packages.

@@ -18,8 +18,7 @@ optional data package is not installed.
 4. `v05-identifying-and-explaining-bias.qmd`
 5. `v06-adjusting-biases.qmd`
 6. `v07-validation.qmd`
-7. `v08-data.qmd`
-8. `v09-advanced-bayesian-adjustment.qmd`
+7. `v09-advanced-bayesian-adjustment.qmd`
 
 Supporting package-vignette assets belong in:
 
@@ -27,8 +26,10 @@ Supporting package-vignette assets belong in:
 - `data/`
 - `exercises/`
 
-Longer workshop, teaching, and method-testing notebooks live outside the
-package vignette tree in `notes/workshop/`.
+Longer workshop, teaching, method-testing notebooks, and draft articles that
+are not ready for the public pkgdown index live outside the package vignette
+tree in `notes/`. The draft data article is currently kept at
+`notes/project-management/v08-data-draft.qmd`.
 
 Generated render artifacts such as `.html`, extracted `.R`, `.knit.md`,
 `.rmarkdown`, `.quarto/`, `*_files/`, and `.quarto_ipynb` files should not be
