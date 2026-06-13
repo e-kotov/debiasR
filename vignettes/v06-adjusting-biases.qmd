@@ -18,14 +18,13 @@ execute:
 
 This vignette describes the set of adjustment methods included in `debiasR`, to correct mobile-phone-derived origin-destination mobility counts.
 
-The vignette describes how each adjustment method works, associated functions and parameters, and how to implement it.
-All the methods in `debiasR` use mobile-phone-derived flows as input data and return an adjusted flow `flow_adj`. However, they differ in fundamental ways, in terms of data input requirements, how they derive adjustment weights and the extent they can adjust biases in the data. These differences are described in more detail below. The practical choice of which methods to use should be guided by what data
+The vignette describes how each adjustment method works, associated functions and parameters, and how to implement it. All the methods in `debiasR` use mobile-phone-derived flows as input data and return an adjusted flow `flow_adj`. However, they differ in fundamental ways, in terms of data input requirements, how they derive adjustment weights and the extent they can adjust biases in the data. These differences are described in more detail below. The practical choice of which methods to use should be guided by what data
 are available and validation against a credible benchmark. A key innovation of `debiasR` is the introduction of a Bayesian multilevel modelling approach which we also explain below.
 
 
 ## Intuition
 
-Let us very quickly recall the challenge we face when working with mobile-phone-derived mobility flows. These flows are typically represent an small proportion of the resident population, hence we end up under-counting these populations. Though we can also over-count populations if individuals have multiple mobile devices and they are recorded in the data. So the idea of the methods included in `debiasR` is to adjust these counts to make these counts more representative of the actual observed flow. Formally, let $F^{mpd}_{ij}$ denote the observed mobile-phone-derived flow from origin $i$ to destination $j$, and let $F^{adj}_{ij}$ denote the adjusted flow. If a method treats the observed MPD flow as under-counted, it increases
+Let us quickly recall the challenge we face when working with mobile-phone-derived mobility flows. These flows are typically represent an small proportion of the resident population, hence we end up under-counting these populations. Though we can also over-count populations if individuals have multiple mobile devices and they are recorded in the data. So the idea of the methods included in `debiasR` is to adjust these counts to make these counts more representative of the actual observed flow. Formally, let $F^{mpd}_{ij}$ denote the observed mobile-phone-derived flow from origin $i$ to destination $j$, and let $F^{adj}_{ij}$ denote the adjusted flow. If a method treats the observed MPD flow as under-counted, it increases
 $F^{adj}_{ij}$. If it treats the observed MPD flow as over-counted, it reduces
 $F^{adj}_{ij}$.
 
@@ -50,19 +49,21 @@ This vignette covers the bias adjustment methods currently available in
 
 | Method | Function | Reference |
 |:--|:--|:--|
-| Inverse Penetration Rate Weights | `adjust_inverse_penetration()` | Chi et al. (2025) |
-| Selection Rate | `adjust_selection_rate()` | Chi et al. (2025) |
-| Selection Rate II | `adjust_selection_rate2()` | Zagheni and Weber (2012) |
-| Raking Ratio (or Iterative proportional fitting) | `adjust_raking_ratio()` | Chi et al. (2025) |
-| Coefficient regression modelling | `adjust_coefficient()` | Chi et al. (2025) |
-| Bayesian multilevel modelling | `adjust_multilevel_bayes()` | Rowe and Cabrera (in progress); Raymer et al. (2013); Aparicio Castro et al. (2024) |
+| Inverse Penetration Rate Weights | `debiasR::adjust_inverse_penetration()` | Chi et al. (2025) |
+| Selection Rate | `debiasR::adjust_selection_rate()` | Chi et al. (2025) |
+| Selection Rate II | `debiasR::adjust_selection_rate2()` | Zagheni and Weber (2012) |
+| Raking Ratio (or Iterative proportional fitting) | `debiasR::adjust_raking_ratio()` | Chi et al. (2025) |
+| Coefficient regression modelling | `debiasR::adjust_coefficient()` | Chi et al. (2025) |
+| Bayesian multilevel modelling | `debiasR::adjust_multilevel_bayes()` | Rowe and Cabrera (in progress); Raymer et al. (2013); Aparicio Castro et al. (2024) |
 
 ## Data
 
-We will use data on travel-to-work flows between local authority districts
-(LADs) from `debiasRdata`. The data capture origin-destination flows derived
-from [Locomizer](https://locomizer.com), paired with Census benchmark flows in
-the companion data package.
+We use the same empirical local authority district (LAD) travel-to-work example
+introduced in the earlier vignettes. The observed origin-destination flow table
+comes from Locomizer-derived mobile phone data and the benchmark
+origin-destination flow table comes from the 2021 UK Census. The data are
+provided through the optional `debiasRdata` companion package and described in
+more detail in the Data vignette.
 
 The README shows how to install `debiasR` and the companion `debiasRdata`
 package from GitHub. We start by loading those packages.
@@ -70,11 +71,8 @@ package from GitHub. We start by loading those packages.
 ```{r load-packages}
 library(debiasR)
 library(debiasRdata)
+library(dplyr)
 ```
-
-This vignette also uses helper functions defined in `vignettes/_common.R` to
-run the compact all-method comparison near the end. When working from the
-package source, you can load them with `source("vignettes/_common.R")`.
 
 ```{r load-adjustment-helpers, include=FALSE}
 helper_candidates <- c(
@@ -93,16 +91,39 @@ if (is.na(helper_file)) {
 source(helper_file)
 ```
 
-We then load a small LAD travel-to-work example from `debiasRdata` through the
-exported `debiasR_example_data()` helper.
+First, we identify the main LAD data objects directly from `debiasRdata`.
 
-```{r load-adjustment-data}
-example_data <- debiasR_example_data(n_areas = 25, complete_grid = TRUE)
+```{r}
+OD_travel2work <- debiasRdata::lad_OD_travel2work
+census_OD_travel2work <- debiasRdata::census_lad_OD_travel2work
+coverage <- debiasRdata::coverage_lad |>
+  dplyr::rename(area = code)
+covariates <- debiasRdata::lad_covariates
+centroids <- debiasRdata::lad_centroids
 ```
 
 ```{r}
-od_flow <- example_data$lad_OD_travel2work
-head(od_flow)
+head(OD_travel2work)
+head(census_OD_travel2work)
+head(coverage)
+```
+
+For the adjustment examples, we use `debiasR::debiasR_example_data()` to prepare
+a small, aligned version of these data. This keeps the vignette fast to render
+and creates the complete-grid OD structure and distance table used by some
+methods below.
+
+```{r load-adjustment-data}
+example_data <- debiasR::debiasR_example_data(
+  n_areas = 25,
+  complete_grid = TRUE
+)
+
+mpd_od <- example_data$mpd_od
+benchmark_od <- example_data$benchmark_od
+coverage_adjustment <- example_data$coverage
+covariates_adjustment <- example_data$covariates
+distance <- example_data$distance
 ```
 
 The method examples below use a common comparison view so the reported flow
@@ -115,7 +136,7 @@ columns have the same meaning throughout the vignette:
   and validation.
 
 ```{r}
-benchmark_flow_lookup <- example_data$benchmark_od |>
+benchmark_flow_lookup <- benchmark_od |>
   dplyr::select(
     origin,
     destination,
@@ -174,14 +195,14 @@ $$
 
 ### Implementation
 
-To use `adjust_inverse_penetration()`, we input our observed mobile-phone-derived origin-destination flows via `mpd_od_df` and coverage data to `coverage_df` in tabular format. The coverage table should contain the benchmark population and active-user counts needed to calculate how strongly each area is underrepresented. The `weight_by` argument lets you choose where the correction is applied: "origin" adjusts flows using coverage at the origin, "destination" uses coverage at the destination and "both" combines both sides. The result is a data frame that preserves the original observed flow in `flow` and adds `flow_adj`, the adjusted flow after inverse penetration weighting.
+To use `debiasR::adjust_inverse_penetration()`, we input our observed mobile-phone-derived origin-destination flows via `mpd_od_df` and coverage data to `coverage_df` in tabular format. The coverage table should contain the benchmark population and active-user counts needed to calculate how strongly each area is underrepresented. The `weight_by` argument lets you choose where the correction is applied: "origin" adjusts flows using coverage at the origin, "destination" uses coverage at the destination and "both" combines both sides. The result is a data frame that preserves the original observed flow in `flow` and adds `flow_adj`, the adjusted flow after inverse penetration weighting.
 
 If we implement inverse penetration weighting adjusting by origins only, we set `weight_by` to "origin" as done below. The resulting table compares the original observed MPD flow, the inverse-penetration-adjusted estimate and the Census benchmark flow. The difference between the adjusted and benchmark columns gives a quick descriptive view of the adjustment, though we assess it formally in the validation vignette.
 
 ```{r}
-adj_inverse_penetration <- adjust_inverse_penetration(
-  mpd_od_df = example_data$mpd_od,
-  coverage_df = example_data$coverage,
+adj_inverse_penetration <- debiasR::adjust_inverse_penetration(
+  mpd_od_df = mpd_od,
+  coverage_df = coverage_adjustment,
   weight_by = "origin"
 )
 
@@ -229,17 +250,17 @@ parameter; and, $w_{ij}$ is the origin, destination or both-side correction.
 
 ### Implementation
 
-To use `adjust_selection_rate()`, we again input the observed MPD origin-destination
+To use `debiasR::adjust_selection_rate()`, we again input the observed MPD origin-destination
 flows through `mpd_od_df` and the population coverage table through
 `coverage_df`. The `covariates_df` and `covariate_col` arguments tell the
 function which area-level characteristic to use when estimating differential
 selection. In this example, we use `rural_pct`, the rural land-share covariate
 from `debiasRdata`. 
-While all other parameters in `adjust_selection_rate()` have defaults, we recommend users to include specify `benchmark_od_df` for a meaningful selection-rate adjustment. This data frame corresponds to a benchmark OD table used to calibrate the selection rate parameter `r` in the equations above. 
+While all other parameters in `debiasR::adjust_selection_rate()` have defaults, we recommend users to include specify `benchmark_od_df` for a meaningful selection-rate adjustment. This data frame corresponds to a benchmark OD table used to calibrate the selection rate parameter `r` in the equations above. 
 
 
 ::: {.callout-note title="What about if you do not have benchmark flow?"}
- `adjust_selection_rate()` has two no-benchmark routes:
+ `debiasR::adjust_selection_rate()` has two no-benchmark routes:
 
 (1) you can provide `r_global` directly based on prior evidence, substantive knowledge or a
  sensitivity-analysis design.
@@ -255,17 +276,17 @@ While all other parameters in `adjust_selection_rate()` have defaults, we recomm
  flows against any aggregate or external evidence that is available.
 :::
 
-To calibrate MPD flows, `calibration_aggregate`is set to origin. This means that MDP flows are calibrated *against* origin-level benchmark totals. This function tries each value in a grid of r values (`r_grid`), adjusts the MPD flows, sums adjusted and benchmark flows by origin, and chooses the `r_t` that minimises the absolute difference in origin totals. `r_grid` is the set of candidate values that `adjust_selection_rate()` tries when it needs to calibrate the global selection parameter `r_t`. If `calibration_aggregate` is set to `od`, it skips that origin aggregation. Instead, for each candidate `r_t`, it compares each adjusted OD cell directly with the benchmark OD cell (as described in the note below), and picks the `r_t` with the smallest total OD-level error. The `weight_by` argument controls whether the correction is applied using origin coverage, destination coverage or both. 
+To calibrate MPD flows, `calibration_aggregate`is set to origin. This means that MDP flows are calibrated *against* origin-level benchmark totals. This function tries each value in a grid of r values (`r_grid`), adjusts the MPD flows, sums adjusted and benchmark flows by origin, and chooses the `r_t` that minimises the absolute difference in origin totals. `r_grid` is the set of candidate values that `debiasR::adjust_selection_rate()` tries when it needs to calibrate the global selection parameter `r_t`. If `calibration_aggregate` is set to `od`, it skips that origin aggregation. Instead, for each candidate `r_t`, it compares each adjusted OD cell directly with the benchmark OD cell (as described in the note below), and picks the `r_t` with the smallest total OD-level error. The `weight_by` argument controls whether the correction is applied using origin coverage, destination coverage or both. 
 
 
 ```{r}
-adj_selection_rate <- adjust_selection_rate(
-  mpd_od_df = example_data$mpd_od,
-  coverage_df = example_data$coverage,
-  covariates_df = example_data$covariates,
+adj_selection_rate <- debiasR::adjust_selection_rate(
+  mpd_od_df = mpd_od,
+  coverage_df = coverage_adjustment,
+  covariates_df = covariates_adjustment,
   covariate_col = "rural_pct",
   weight_by = "origin",
-  benchmark_od_df = example_data$benchmark_od,
+  benchmark_od_df = benchmark_od,
   calibration_aggregate = "origin"
 )
 
@@ -319,20 +340,20 @@ sides depending on `weight_by`.
 
 ### Implementation
 
-To use `adjust_selection_rate2()`, the strict minimum set of parameter to be specified are MPD flows and coverage data. Input the observed MPD flows to `mpd_od_df`
+To use `debiasR::adjust_selection_rate2()`, the strict minimum set of parameter to be specified are MPD flows and coverage data. Input the observed MPD flows to `mpd_od_df`
 and the coverage table to `coverage_df`. The `weight_by` argument controls
 whether the correction uses origin coverage, destination coverage or both. You
 can set `k` directly if you have a chosen correction curvature, or leave it as
 `NULL` and provide `benchmark_od_df` so the function calibrates `k` over
 `k_grid`. As above, `calibration_aggregate = "origin"` calibrates against
-origin-level benchmark totals. The parameter `k` is the analog to `r` in `adjust_selection_rate()`.
+origin-level benchmark totals. The parameter `k` is the analog to `r` in `debiasR::adjust_selection_rate()`.
 
 ```{r}
-adj_selection_rate2 <- adjust_selection_rate2(
-  mpd_od_df = example_data$mpd_od,
-  coverage_df = example_data$coverage,
+adj_selection_rate2 <- debiasR::adjust_selection_rate2(
+  mpd_od_df = mpd_od,
+  coverage_df = coverage_adjustment,
   weight_by = "origin",
-  benchmark_od_df = example_data$benchmark_od,
+  benchmark_od_df = benchmark_od,
   calibration_aggregate = "origin"
 )
 
@@ -373,7 +394,7 @@ where $O_i^{bench}$ and $D_j^{bench}$ are benchmark outflow and inflow totals.
 
 ### Implementation
 
-To use `adjust_raking_ratio()`, the minimum set of parameter to specify is the MDP flows and set of constraints. Input the observed MPD flows to `mpd_od_df` and
+To use `debiasR::adjust_raking_ratio()`, the minimum set of parameter to specify is the MDP flows and set of constraints. Input the observed MPD flows to `mpd_od_df` and
 either provide `benchmark_od_df` or supply explicit `origin_targets` and
 `destination_targets`. In this vignette, we use `benchmark_od_df`, so `debiasR`
 derives the target origin and destination margins from the benchmark OD table.
@@ -383,9 +404,9 @@ The `max_iter` and `tol` arguments control the iterative fitting process:
 convergence tolerance.
 
 ```{r}
-adj_raking_ratio <- adjust_raking_ratio(
-  mpd_od_df = example_data$mpd_od,
-  benchmark_od_df = example_data$benchmark_od
+adj_raking_ratio <- debiasR::adjust_raking_ratio(
+  mpd_od_df = mpd_od,
+  benchmark_od_df = benchmark_od
 )
 
 show_adjustment_comparison(adj_raking_ratio)
@@ -445,7 +466,7 @@ $$
 
 ### Implementation
 
-To use `adjust_coefficient()`, the minimum input requirement are the MPD and benchmark flows. Input the observed MPD flows to `mpd_od_df` and a
+To use `debiasR::adjust_coefficient()`, the minimum input requirement are the MPD and benchmark flows. Input the observed MPD flows to `mpd_od_df` and a
 benchmark OD table to `benchmark_od_df`. The `model_family` argument controls
 the regression family used to learn the MPD-to-benchmark relationship; this
 example uses `"ols"` for a simple proportional calibration. The `level`
@@ -454,9 +475,9 @@ destination level. Additional options, such as `fit_intercept` and `by_source`, 
 users decide whether to estimate an intercept or source-specific coefficients.
 
 ```{r}
-adj_coefficient <- adjust_coefficient(
-  mpd_od_df = example_data$mpd_od,
-  benchmark_od_df = example_data$benchmark_od,
+adj_coefficient <- debiasR::adjust_coefficient(
+  mpd_od_df = mpd_od,
+  benchmark_od_df = benchmark_od,
   model_family = "ols",
   level = "od"
 )
@@ -604,7 +625,7 @@ observed MPD count.
 
 ### Implementation
 
-To use `adjust_multilevel_bayes()`, input the observed MPD flows to `mpd_od_df`,
+To use `debiasR::adjust_multilevel_bayes()`, input the observed MPD flows to `mpd_od_df`,
 the population coverage table to `coverage_df`, area-level covariates to
 `covariates_df` and OD distances to `distance_df`. The compact default example
 below uses a single source and a single observation period. The
@@ -649,23 +670,23 @@ the rendered table is loaded from a precomputed package artifact so routine
 vignette updates do not rerun MCMC.
 
 ```{r eval=FALSE}
-mpd_s1 <- example_data$mpd_od |>
+mpd_s1 <- mpd_od |>
   dplyr::mutate(
     mpd_source = "operator_a",
     mpd_time = "2021_q1"
   )
 
-coverage_s1 <- example_data$coverage |>
+coverage_s1 <- coverage_adjustment |>
   dplyr::mutate(
     mpd_source = "operator_a",
     mpd_time = "2021_q1"
   )
 
-adj_multilevel <- adjust_multilevel_bayes(
+adj_multilevel <- debiasR::adjust_multilevel_bayes(
   mpd_od_df = mpd_s1,
   coverage_df = coverage_s1,
-  covariates_df = example_data$covariates,
-  distance_df = example_data$distance,
+  covariates_df = covariates_adjustment,
+  distance_df = distance,
   mobility_formula = ~ rural_pct_o + rural_pct_d + log_distance,
   bias_formula = ~ bias_e_origin,
   target_scale = "true_flow",
