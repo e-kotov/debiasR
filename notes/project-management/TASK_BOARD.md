@@ -1,6 +1,6 @@
 # Task Board
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 This board turns the current roadmap into a short execution plan. Estimated effort is in rough person-hours.
 
@@ -18,15 +18,17 @@ The staged track below is intended to be implemented one stage per chat window. 
 - The branch now exposes latent prior and sampler controls, records richer
   sampler diagnostics, and splits optional Bayesian validation into standard
   `rstanarm-smoke`, full `rstanarm`, and latent-Stan scopes.
-- Remaining work is to run hosted/manual Bayesian validation and larger S3/S4
-  empirical stress tests before promoting the latent backend beyond
-  experimental status.
+- The optional runner now includes a `latent-stress` scope for larger S3
+  repeated-source and S4 source-time complete-grid synthetic fixtures. Remaining
+  work is to run and record the hosted/manual stress lane, then add prior
+  sensitivity notes before promoting the latent backend beyond experimental
+  status.
 
 2. Validate optional Bayesian CI workflow - `1-2h`
 - Fast core GitHub Actions validation passed on merged PR #11.
 - Current branch fast core tests pass locally.
 - Local Bayesian smoke checks use the default `rstanarm` backend; the remaining workflow check is the manual/optional GitHub Actions lane when broader Bayesian validation is required.
-- Confirm the optional/manual Bayesian lane on GitHub Actions when Bayesian-lane validation is required.
+- Confirm the optional/manual Bayesian lane on GitHub Actions when Bayesian-lane validation is required; maintainers can now select `smoke`, `latent-stress`, or `all` from the manual workflow.
 - The Stage-1 Bayesian implementation now supports S1-S4 source/time scenarios;
   the frequentist engine remains available for fast testing and experimentation.
 - The default LAD empirical route now has selected-area distance support through
@@ -324,15 +326,17 @@ Software-development tasks:
   `model_terms` metadata. S1 has no source/time term; S2 adds `mpd_time`; S3
   adds `mpd_source`; S4 adds `mpd_source + mpd_time`.
 
-3. Test against MSOA-scale inputs.
-- Use MSOA data for internal software tests and runtime checks because it is the
-  stricter scale for grid size and repeated observations.
+3. Test against MSOA-like and empirical inputs.
+- Use synthetic MSOA-like data for internal software tests and runtime checks
+  because it is the stricter shape for grid size and repeated observations.
+  Keep real `debiasRdata` empirical tests as a separate runtime gate.
 - Add focused tests for scenario detection, required columns, output metadata,
   and compatibility with existing Bayesian prediction scopes.
 - Implementation update: the fast tier includes deterministic MSOA-like S1-S4
   fixtures for default frequentist formula terms, metadata, and S4
   complete-grid prediction. Optional Bayesian tests cover repeated S2-S4
-  source/time fitting with the rstanarm backend when installed.
+  source/time fitting with the rstanarm backend when installed, and the
+  `latent-stress` scope covers synthetic S3/S4 `stan_latent` stress fixtures.
 
 Vignette and teaching-material tasks:
 

@@ -16,6 +16,7 @@
 - [ ] I have added labels to the PR
 - [ ] This change is proposed through a branch and PR, not a direct push to `main`
 - [ ] I have run `Rscript scripts/run_fast_tests.R` or explained why it is not relevant
+- [ ] If this touches Bayesian code, I have run the relevant optional Bayesian scope (`rstanarm-smoke`, `latent-smoke`, `latent-stress`, or `all`) or explained why it is not relevant
 - [ ] Documentation or pkgdown-impacting changes have been checked with a local site build or CI
 
 ## Related Issues

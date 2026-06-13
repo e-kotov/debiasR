@@ -2,11 +2,21 @@ name: Bayesian tests
 
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Bayesian validation scope to run
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - latent-stress
+          - all
 
 jobs:
   bayesian-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     permissions:
       contents: read
     env:
@@ -29,9 +39,16 @@ jobs:
             any::rstan
 
       - name: Run rstanarm Bayesian smoke tests
+        if: ${{ inputs.scope == 'smoke' || inputs.scope == 'all' }}
         timeout-minutes: 15
         run: Rscript scripts/run_bayesian_tests.R rstanarm-smoke
 
       - name: Run latent Stan smoke tests
+        if: ${{ inputs.scope == 'smoke' || inputs.scope == 'all' }}
         timeout-minutes: 10
         run: Rscript scripts/run_bayesian_tests.R latent-smoke
+
+      - name: Run latent Stan S3/S4 stress tests
+        if: ${{ inputs.scope == 'latent-stress' || inputs.scope == 'all' }}
+        timeout-minutes: 45
+        run: Rscript scripts/run_bayesian_tests.R latent-stress

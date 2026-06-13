@@ -1,6 +1,6 @@
 # Test Health
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 ## Summary
 
@@ -9,9 +9,12 @@ Last updated: 2026-06-12
 - Recommended broad local development runner:
   - `Rscript scripts/run_dev_tests.R`
 - Optional Bayesian runner:
+  - `Rscript scripts/run_bayesian_tests.R` (defaults to `smoke`)
+  - `Rscript scripts/run_bayesian_tests.R smoke`
   - `Rscript scripts/run_bayesian_tests.R rstanarm-smoke`
   - `Rscript scripts/run_bayesian_tests.R rstanarm`
   - `Rscript scripts/run_bayesian_tests.R latent-smoke`
+  - `Rscript scripts/run_bayesian_tests.R latent-stress`
   - `Rscript scripts/run_bayesian_tests.R all`
 - The runner loads the package with `devtools::load_all(".")` before executing targeted tests.
 - Full suite still includes a slower Bayesian test file with MCMC runtime and optional `brms` coverage.
@@ -35,7 +38,8 @@ Last updated: 2026-06-12
   - `validate_bias_residual_structure()` now has a regression test for the documented `population_lm` residual option.
   - `test-adjust-coefficient.R` skips one optional `pscl`-dependent case when `pscl` is not installed.
   - the Bayesian draw-summary names mismatch has been fixed in the optional Bayesian test file.
-  - local optional Bayesian smoke checks completed with `rstanarm` and `rstan` installed, including a tiny `stan_latent` repeated-source fit. The optional Bayesian runner is now split into `rstanarm-smoke`, full `rstanarm`, and `latent-smoke` scopes; smoke scopes should pass before opening a ready PR, and full scopes should run before closing #18.
+  - local optional Bayesian smoke checks completed with `rstanarm` and `rstan` installed, including a tiny `stan_latent` repeated-source fit. The optional Bayesian runner is now split into `smoke`, `rstanarm-smoke`, full `rstanarm`, `latent-smoke`, and `latent-stress` scopes; no-argument runner calls default to `smoke`, while `all` includes the full rstanarm file and the latent S3/S4 stress scope. Smoke scopes should pass before opening a ready PR, and hosted/manual `latent-stress` results should be recorded before closing #18 or promoting the latent backend beyond experimental status.
+  - local hardening checks on 2026-06-13 passed with `/Library/Frameworks/R.framework/Resources/bin/Rscript scripts/run_fast_tests.R`, `/Library/Frameworks/R.framework/Resources/bin/Rscript scripts/run_bayesian_tests.R latent-stress`, and no-argument `/Library/Frameworks/R.framework/Resources/bin/Rscript scripts/run_bayesian_tests.R`. The no-argument run selected the new `smoke` default; the latent-stress run completed in about 58 seconds with R 4.5.2, `testthat` 3.3.2, `rstanarm` 2.32.2, and `rstan` 2.32.7.
   - running `test_dir()` without loading package can produce false failures (`function not found`, data object not found).
 
 ## Test Tiers (Recommended)
@@ -65,9 +69,10 @@ Last updated: 2026-06-12
 - `tests/testthat/test-adjust-multilevel-bayes.R`
 - `tests/testthat/test-adjust-multilevel-bayes-rstanarm-smoke.R`
 - `tests/testthat/test-adjust-multilevel-bayes-latent.R`
+- `tests/testthat/test-adjust-multilevel-bayes-latent-stress.R`
 - Requires longer runtime; `rstanarm-smoke` and full `rstanarm` scopes require
-  `rstanarm`, the `latent-smoke` scope requires `rstan`, and `brms` remains
-  optional for extra model families.
+  `rstanarm`, the `latent-smoke` and `latent-stress` scopes require `rstan`,
+  and `brms` remains optional for extra model families.
 
 ## Current Known Test Issues
 
@@ -99,7 +104,8 @@ Rscript scripts/run_dev_tests.R
 
 ```r
 # Optional Bayesian tier
-Rscript scripts/run_bayesian_tests.R
+Rscript scripts/run_bayesian_tests.R smoke
+Rscript scripts/run_bayesian_tests.R latent-stress
 ```
 
 ```bash

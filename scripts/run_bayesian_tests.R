@@ -21,24 +21,36 @@ if (is.na(scope) || !nzchar(scope)) {
   scope <- Sys.getenv("DEBIASR_BAYESIAN_TEST_MODE", unset = NA_character_)
 }
 if (is.na(scope) || !nzchar(scope)) {
-  scope <- if (length(args) >= 1L) args[[1]] else "all"
+  scope <- if (length(args) >= 1L) args[[1]] else "smoke"
 }
 scope <- match.arg(
   scope,
-  choices = c("rstanarm-smoke", "rstanarm", "latent-smoke", "standard", "latent", "all")
+  choices = c(
+    "smoke",
+    "rstanarm-smoke",
+    "rstanarm",
+    "latent-smoke",
+    "latent-stress",
+    "standard",
+    "latent",
+    "all"
+  )
 )
 scope <- switch(
   scope,
   standard = "rstanarm-smoke",
   latent = "latent-smoke",
+  smoke = "smoke",
   scope
 )
 
-if (scope %in% c("rstanarm-smoke", "rstanarm", "all") && !requireNamespace("rstanarm", quietly = TRUE)) {
+if (scope %in% c("smoke", "rstanarm-smoke", "rstanarm", "all") &&
+    !requireNamespace("rstanarm", quietly = TRUE)) {
   stop("The rstanarm Bayesian test scope requires the optional 'rstanarm' package.")
 }
 
-if (scope %in% c("latent-smoke", "all") && !requireNamespace("rstan", quietly = TRUE)) {
+if (scope %in% c("smoke", "latent-smoke", "latent-stress", "all") &&
+    !requireNamespace("rstan", quietly = TRUE)) {
   stop("The latent Bayesian test scope requires the optional 'rstan' package.")
 }
 
@@ -76,16 +88,26 @@ count_test_failures <- function(results) {
 
 test_files <- switch(
   scope,
+  smoke = file.path(
+    "tests",
+    "testthat",
+    c(
+      "test-adjust-multilevel-bayes-rstanarm-smoke.R",
+      "test-adjust-multilevel-bayes-latent.R"
+    )
+  ),
   `rstanarm-smoke` = file.path("tests", "testthat", "test-adjust-multilevel-bayes-rstanarm-smoke.R"),
   rstanarm = file.path("tests", "testthat", "test-adjust-multilevel-bayes.R"),
   `latent-smoke` = file.path("tests", "testthat", "test-adjust-multilevel-bayes-latent.R"),
+  `latent-stress` = file.path("tests", "testthat", "test-adjust-multilevel-bayes-latent-stress.R"),
   all = file.path(
     "tests",
     "testthat",
     c(
       "test-adjust-multilevel-bayes-rstanarm-smoke.R",
       "test-adjust-multilevel-bayes.R",
-      "test-adjust-multilevel-bayes-latent.R"
+      "test-adjust-multilevel-bayes-latent.R",
+      "test-adjust-multilevel-bayes-latent-stress.R"
     )
   )
 )

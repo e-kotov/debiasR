@@ -1,3 +1,20 @@
+# debiasR 0.0.0.9003
+
+### Latent Bayesian hardening
+
+- Added an optional `latent-stress` Bayesian test-runner scope for the custom
+  `stan_latent` backend. The scope fits larger S3 repeated-source and S4
+  source-time complete-grid synthetic fixtures, then checks latent true-flow
+  invariance, observation-scale variation, zero-filled prediction rows, and
+  sampler diagnostics.
+- Updated the manual Bayesian GitHub Actions workflow so maintainers can choose
+  the smoke lane, the latent S3/S4 stress lane, or all optional Bayesian checks.
+- Corrected the custom Stan latent true-flow intercept prior so
+  `latent_intercept_prior_scale` directly controls the intercept scale rather
+  than being multiplied by the coefficient prior scale.
+- Kept `observation_model = "latent_two_level"` experimental pending hosted
+  manual stress-lane results and empirical runtime notes.
+
 # debiasR 0.0.0.9002
 
 ### Latent Bayesian backend

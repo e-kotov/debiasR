@@ -280,17 +280,21 @@ Fast deterministic tests:
 
 Optional Bayesian tests:
 
-- recover known latent flows on tiny simulated S3 and S4 data within broad
-  tolerances;
-- recover source bias direction on simulated repeated-source data;
+- smoke-test a tiny S3 repeated-source `stan_latent` fit through
+  `Rscript scripts/run_bayesian_tests.R latent-smoke`;
+- stress-test larger synthetic/MSOA-like S3 repeated-source and S4 source-time
+  complete-grid fixtures through
+  `Rscript scripts/run_bayesian_tests.R latent-stress`;
 - confirm `flow_mpd_pred` is source/time-specific while `flow_true_pred` is
   source-invariant within OD-time cells;
-- confirm draw output dimensions and metadata;
-- smoke-test posterior diagnostics with intentionally low iterations.
+- confirm zero-filled prediction rows, draw output dimensions, metadata, and
+  posterior diagnostics with intentionally low iterations;
+- keep real `debiasRdata` empirical checks separate from this synthetic stress
+  lane so runtime expectations can be recorded explicitly.
 
-Empirical validation should remain outside the first PR. Use MSOA-scale inputs
-for runtime stress tests and LAD-scale inputs only after the simulated contract
-is stable.
+Empirical validation should remain outside the first hardening pass. Use
+synthetic MSOA-like fixtures for software/runtime stress tests and LAD-scale
+empirical inputs only after the simulated contract is stable.
 
 ## Staged Implementation
 

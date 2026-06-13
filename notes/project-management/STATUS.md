@@ -1,10 +1,10 @@
 # Project Status
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 ## Snapshot
 
-- Project stage: active development (`0.0.0.9002`)
+- Project stage: active development (`0.0.0.9003`)
 - Repository visibility: public on GitHub since 2026-06-04
 - Package scope: OD mobility bias correction methods + Stage 2 validation toolkit + Stage 3 bias residual diagnostics + distributional bias diagnostics
 - API direction: stable adjustment methods use `adjust_*`; validation helpers use `validate_flow_*`
@@ -170,6 +170,22 @@ Last updated: 2026-06-12
   The `0.0.0.9002` latent backend work adds a custom Stan contract and split
   smoke scopes that should pass before opening a ready PR; full optional
   Bayesian scopes should run before closing #18.
+- Latent Bayesian hardening on 2026-06-13 adds an optional
+  `Rscript scripts/run_bayesian_tests.R latent-stress` scope. The scope fits
+  larger S3 repeated-source and S4 source-time complete-grid synthetic
+  fixtures with the custom `stan_latent` backend and checks latent true-flow
+  invariance, observation-scale variation, zero-filled prediction rows, and
+  sampler diagnostics. It also corrects the custom Stan intercept prior scale.
+  Hosted/manual `latent-stress` results still need to be run and recorded
+  before promoting `latent_two_level` beyond experimental status.
+- Verified locally on 2026-06-13 with
+  `/Library/Frameworks/R.framework/Resources/bin/Rscript scripts/run_fast_tests.R`,
+  `/Library/Frameworks/R.framework/Resources/bin/Rscript scripts/run_bayesian_tests.R latent-stress`,
+  and no-argument
+  `/Library/Frameworks/R.framework/Resources/bin/Rscript scripts/run_bayesian_tests.R`
+  after changing the default Bayesian scope to `smoke`.
+- Result: pass. The local latent-stress run used R 4.5.2, `testthat` 3.3.2,
+  `rstanarm` 2.32.2, and `rstan` 2.32.7, and completed in about 58 seconds.
 
 ## Current Risks / Blockers
 
@@ -187,10 +203,11 @@ Last updated: 2026-06-12
 2. Validate the current branch head with local tests and the next GitHub Actions run.
 3. Validate the optional/manual Bayesian workflow behavior on GitHub Actions
    when Bayesian-lane validation is needed; the runner now supports separate
-   `rstanarm-smoke`, full `rstanarm`, and `latent-smoke` scopes.
+   `rstanarm-smoke`, full `rstanarm`, `latent-smoke`, and `latent-stress`
+   scopes.
 4. Keep top-level docs synchronized with exported API (`NAMESPACE`).
 5. Record feasible LAD empirical grid sizes and runtime expectations before promoting Bayesian examples beyond prototype guidance.
 6. Harden enhancement issue #18 beyond the current experimental
-   `latent_two_level` backend with S3/S4 empirical stress tests and prior
-   sensitivity runs.
+   `latent_two_level` backend with hosted/manual S3/S4 stress runs and prior
+   sensitivity notes.
 7. Use MSOA-scale inputs for software/runtime stress tests and LAD-scale inputs for vignettes and teaching material as the S1-S4 scenario work develops.

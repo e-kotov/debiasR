@@ -55,7 +55,13 @@ transformed parameters {
   }
 }
 model {
-  beta_true_raw ~ normal(0, prior_coef_scale);
+  for (k in 1:K_true) {
+    if (k == true_intercept_col) {
+      beta_true_raw[k] ~ normal(0, 1);
+    } else {
+      beta_true_raw[k] ~ normal(0, prior_coef_scale);
+    }
+  }
   beta_bias ~ normal(0, prior_bias_scale);
   z_latent ~ normal(0, 1);
   sigma_latent ~ normal(0, prior_latent_state_scale);
