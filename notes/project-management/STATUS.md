@@ -111,6 +111,12 @@ Last updated: 2026-06-13
   a short S2-S4 repeated source/time callout for the experimental
   `latent_two_level` backend. The advanced Bayesian adjustment vignette remains
   the deeper companion reference for formulas, backend choices, and diagnostics.
+- Issue #56 added a distinct Level 5 spatial/residual structure diagnostics
+  layer to the validation vignette. The new section demonstrates
+  `validate_flow_residual_structure()` with residual-versus-benchmark-flow
+  correlation, optional Moran's I from user-supplied neighbour links, and
+  residual-versus-covariate correlation, while keeping Level 4 focused on
+  origin-conditioned destination-share allocation.
 - Fast core tests passed after replacing the placeholder raking smoke test and removing selection-rate deprecation warnings
 - Stage 2 maintainer review is complete: `validate_flow_residual_structure()` is stable public API; optional diagnostic plots remain inside the validation helpers for now; `sf`-aware mapping remains outside the package; the optional `debiasRdata` companion package is the empirical data source.
 - Stage 3 measure-bias diagnostics now include active-user coverage residuals, optional Moran's I, benchmark origin/destination flow correlations, covariate correlations, map-ready data, and optional plots through `validate_bias_residual_structure()`.
@@ -194,6 +200,15 @@ Last updated: 2026-06-13
   after changing the default Bayesian scope to `smoke`.
 - Result: pass. The local latent-stress run used R 4.5.2, `testthat` 3.3.2,
   `rstanarm` 2.32.2, and `rstan` 2.32.7, and completed in about 58 seconds.
+- Verified issue #56 locally on 2026-06-13 with `git diff --check`, a
+  standalone Quarto render of `vignettes/v07-validation.qmd` to
+  `/private/tmp/debiasr-v07-render-issue56`, a pkgdown-style preview to
+  `/private/tmp/debiasr-pkgdown-preview-issue56` with `NEWS.md` hidden during
+  the build, targeted HTML checks for the Level 5 section and hidden setup, and
+  `/Library/Frameworks/R.framework/Resources/bin/Rscript scripts/run_fast_tests.R`.
+- Result: pass. The rendered validation article includes Level 5 spatial/residual
+  structure diagnostics and keeps Level 4 framed as distributional allocation
+  validation.
 
 ## Current Risks / Blockers
 

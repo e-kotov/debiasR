@@ -36,6 +36,18 @@ The staged track below is intended to be implemented one stage per chat window. 
 
 ## Recently Completed
 
+1. Add spatial/residual structure diagnostics to the validation vignette - `complete`
+- Completed on 2026-06-13 for issue #56.
+- The validation vignette now presents `validate_flow_residual_structure()` as
+  a distinct Level 5 diagnostic layer after distributional allocation
+  validation.
+- The example demonstrates residual-versus-benchmark-flow correlation,
+  optional Moran's I from a user-supplied neighbour-link table, and
+  residual-versus-covariate correlation, while keeping illustrative neighbour
+  setup hidden from the teaching flow.
+- Level 4 remains framed as origin-conditioned destination-share allocation
+  validation rather than individual OD-flow magnitude validation.
+
 1. Document Bayesian adjustment options in the adjustment vignette - `complete`
 - Completed on 2026-06-13 for issue #58.
 - The advanced section of `vignettes/v06-adjusting-biases.qmd` is now the

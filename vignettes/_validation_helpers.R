@@ -228,6 +228,96 @@ validation_display_metrics <- function(metrics) {
   )
 }
 
+validation_display_residual_structure <- function(structure_results) {
+  structure_summary <- dplyr::bind_rows(
+    lapply(
+      names(structure_results),
+      function(method_name) {
+        structure_results[[method_name]]$summary |>
+          dplyr::mutate(
+            method = method_name,
+            method_label = dplyr::coalesce(
+              unname(validation_method_labels[method_name]),
+              method_name
+            )
+          )
+      }
+    )
+  )
+
+  structure_summary |>
+    dplyr::transmute(
+      Method = method_label,
+      `Residual type` = residual_type,
+      `Spatial role` = spatial_role,
+      Aggregation = residual_aggregation,
+      `OD pairs` = n_od_pairs,
+      Areas = n_areas,
+      `Residual vs benchmark-flow r` = round(pearson_residual_benchmark_flow, 3),
+      `Moran's I` = round(moran_i, 3),
+      `Residual vs covariate r` = round(pearson_residual_covariate, 3)
+    ) |>
+    knitr::kable(
+      format = "html",
+      row.names = FALSE,
+      align = c("l", "l", "l", "l", rep("r", 5)),
+      table.attr = 'class="table table-sm"'
+    )
+}
+
+validation_display_residual_structure_areas <- function(structure_results,
+                                                        area_names = NULL,
+                                                        n = 5) {
+  area_summary <- dplyr::bind_rows(
+    lapply(
+      names(structure_results),
+      function(method_name) {
+        structure_results[[method_name]]$area_level |>
+          dplyr::mutate(
+            method = method_name,
+            method_label = dplyr::coalesce(
+              unname(validation_method_labels[method_name]),
+              method_name
+            )
+          )
+      }
+    )
+  )
+
+  if (!is.null(area_names)) {
+    area_summary <- area_summary |>
+      dplyr::left_join(area_names, by = "area")
+  } else {
+    area_summary <- area_summary |>
+      dplyr::mutate(name = area)
+  }
+
+  area_summary |>
+    dplyr::group_by(method_label) |>
+    dplyr::slice_max(
+      order_by = abs(selected_residual),
+      n = n,
+      with_ties = FALSE
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::arrange(method_label, dplyr::desc(abs(selected_residual))) |>
+    dplyr::transmute(
+      Method = method_label,
+      Area = name,
+      `Mean residual` = round(selected_residual, 2),
+      `Mean absolute residual` = round(mean_abs_residual, 2),
+      `Benchmark total` = round(benchmark_flow_sum, 0),
+      `Raw MPD total` = round(mpd_flow_sum, 0),
+      `Adjusted total` = round(adj_flow_sum, 0)
+    ) |>
+    knitr::kable(
+      format = "html",
+      row.names = FALSE,
+      align = c("l", "l", rep("r", 5)),
+      table.attr = 'class="table table-sm"'
+    )
+}
+
 validation_build_flow_comparison <- function(method_results,
                                              mpd_df,
                                              benchmark_df) {
@@ -278,6 +368,25 @@ validation_build_margins <- function(data) {
       ) |>
       dplyr::mutate(level = "destination_marginal", .after = method_label)
   )
+}
+
+validation_build_ring_neighbors <- function(areas) {
+  areas <- sort(unique(areas))
+  if (length(areas) < 2L) {
+    stop("At least two areas are required to build illustrative neighbours.")
+  }
+
+  dplyr::bind_rows(
+    tibble::tibble(
+      area = areas,
+      neighbor = dplyr::lead(areas, default = areas[1])
+    ),
+    tibble::tibble(
+      area = areas,
+      neighbor = dplyr::lag(areas, default = areas[length(areas)])
+    )
+  ) |>
+    dplyr::filter(area != neighbor)
 }
 
 validation_build_pair_scatter <- function(data) {

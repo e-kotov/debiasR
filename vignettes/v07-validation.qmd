@@ -33,11 +33,11 @@ It also enables comparisons between:
   extent of bias before adjustment.
 - raw *versus* adjusted flows, to evaluate the extent of adjustment made to the raw data.
 
-The validation methods included in `debiasR` allow the assessment of adjustment outputs at four levels: overall, OD marginal, individual OD-pair, and distributional allocation validation. The main assessment tools are error metrics, correlation coefficients, visual tools, and distributional allocation metrics. The allocation metrics use KL divergence and Jensen-Shannon divergence for origin-conditioned destination-share distributions. These diagnostics provide flexibility to assess particular dimensions of the data which may vary depending on the target use of the adjusted flows.
+The validation methods included in `debiasR` allow the assessment of adjustment outputs at five levels: overall, OD marginal, individual OD-pair, distributional allocation, and spatial/residual structure validation. The main assessment tools are error metrics, correlation coefficients, visual tools, distributional allocation metrics and residual-structure diagnostics. The allocation metrics use KL divergence and Jensen-Shannon divergence for origin-conditioned destination-share distributions. The residual-structure diagnostics check whether remaining errors retain scale, spatial or covariate-linked patterns. These diagnostics provide flexibility to assess particular dimensions of the data which may vary depending on the target use of the adjusted flows.
 
 ## Intuition
 
-A practical way to think of assessing the output of the various adjustment methods is to adopt an overall system-wide perspective of the flow system, move to an intermediate marginal perspective, then to individual origin-destination pairs, and finally to the allocation of destinations within each origin. We use four levels.
+A practical way to think of assessing the output of the various adjustment methods is to adopt an overall system-wide perspective of the flow system, move to an intermediate marginal perspective, then to individual origin-destination pairs, then to the allocation of destinations within each origin, and finally to the structure of the remaining residuals. We use five levels.
 
 The **Level 1** summarises the performance of flow adjustment methods across the whole origin-destination system.
 
@@ -47,7 +47,9 @@ The **Level 3** provides the performance of flow adjustment methods between indi
 
 The **Level 4** assesses whether each origin allocates its flows across destinations in a similar way to the benchmark, after converting OD flows into destination-share distributions.
 
-Correlation coefficients offer a measure of correspondence between, for example, adjusted and benchmark flows, and they are better interpreted as a general measure. Error measures provide a measure of the level of difference between these sets of flows. They provide a general measure to assess the precision of the flow adjustment across the whole network of flows, but they also offer a way to measure and assess the precision of the flow adjustment for individual origin-destination pairs. Distributional allocation metrics answer a different question: whether the relative allocation of destinations from each origin is preserved, regardless of total scale.
+The **Level 5** checks whether adjusted-minus-benchmark residuals still show structure after adjustment, such as dependence on flow size, spatial clustering across neighbouring areas, or association with known area covariates.
+
+Correlation coefficients offer a measure of correspondence between, for example, adjusted and benchmark flows, and they are better interpreted as a general measure. Error measures provide a measure of the level of difference between these sets of flows. They provide a general measure to assess the precision of the flow adjustment across the whole network of flows, but they also offer a way to measure and assess the precision of the flow adjustment for individual origin-destination pairs. Distributional allocation metrics answer a different question: whether the relative allocation of destinations from each origin is preserved, regardless of total scale. Residual-structure diagnostics ask whether the remaining errors look systematic after adjustment.
 
 ## Validation measures
 
@@ -69,6 +71,9 @@ table uses adjusted-versus-benchmark notation.[^validation-measure-reuse]
 | Spearman's rho | Rank correlation; shows whether the ordering of flows is similar. | $\mathrm{cor}(\mathrm{rank}(F^{adj}_{ij}), \mathrm{rank}(F^{bench}_{ij}))$ |
 | Kullback-Leibler divergence | Level 4 metric. Directional difference between origin-conditioned destination-share distributions. Lower values mean the comparison flow allocates destinations more like the reference flow. | $\sum_i\sum_j p^{ref}_{j\mid i}\log\frac{p^{ref}_{j\mid i}}{p^{comp}_{j\mid i}}$ |
 | Jensen-Shannon divergence | Level 4 metric. Symmetric companion to KL divergence for the same origin-conditioned destination-share distributions. Lower values mean closer allocation. | $\frac{1}{2} KL(p^{ref}\mid\mid m) + \frac{1}{2} KL(p^{comp}\mid\mid m)$ |
+| Residual-versus-benchmark-flow correlation | Level 5 diagnostic. Association between remaining residuals and benchmark flow size. Values near zero suggest less obvious scale dependence. | $\mathrm{cor}(e_{ij}, F^{bench}_{ij})$ |
+| Moran's I | Level 5 diagnostic. Spatial autocorrelation in area-level residuals using user-supplied neighbour links $w_{ik}$. Positive values suggest neighbouring areas have similar residuals. | $\frac{n}{W}\frac{\sum_i\sum_k w_{ik}(\bar e_i-\bar e)(\bar e_k-\bar e)}{\sum_i(\bar e_i-\bar e)^2}$ |
+| Residual-versus-covariate correlation | Level 5 diagnostic. Association between area-level residuals and a selected area covariate $x_i$. Values near zero suggest less obvious covariate-linked error. | $\mathrm{cor}(\bar e_i, x_i)$ |
 
 [^validation-measure-reuse]: The equations are written for
     adjusted-versus-benchmark flows. The same formulas can be reused for
@@ -418,12 +423,83 @@ matters. Jensen-Shannon divergence is symmetric and easier to compare across
 rows. Both metrics evaluate allocation shares, not whether the total number of
 flows is correct.
 
+## Level 5: Spatial/residual structure diagnostics
+
+The previous levels can show that an adjustment improves average error, area
+totals, individual OD pairs and destination-share allocation. Level 5 asks
+whether the remaining residuals still look systematic. After adjustment, large
+residuals should not be strongly concentrated in large benchmark flows, clustered
+across neighbouring areas, or linked to known area characteristics. These checks
+do not prove that residuals are random, but they help identify patterns that may
+need further model development or local review.
+
+`validate_flow_residual_structure()` uses the adjusted-minus-benchmark
+residual by default. It also needs a choice about whether area-level residuals
+should be summarised by origin or by destination. The example below uses origin
+areas and mean residuals. For the optional Moran's I diagnostic, users supply a
+plain neighbour-link table. Here, a hidden setup chunk creates a simple
+illustrative ring-neighbour table from the example LADs. In applied work, this
+should be replaced by real contiguity or distance-based neighbour links.
+
+```{r prepare-residual-structure-inputs, include=FALSE}
+structure_neighbors <- validation_build_ring_neighbors(example_data$covariates$area)
+
+structure_covariates <- example_data$covariates |>
+  dplyr::select(area, per_level4)
+```
+
+```{r}
+residual_structure <- stats::setNames(
+  lapply(
+    names(method_results),
+    function(method_id) {
+      debiasR::validate_flow_residual_structure(
+        adj_df = method_results[[method_id]],
+        benchmark_od_df = benchmark_od,
+        method_name = method_id,
+        residual_type = "adjusted",
+        spatial_role = "origin",
+        residual_aggregation = "mean",
+        area_neighbors = structure_neighbors,
+        covariate_df = structure_covariates,
+        covariate_col = "per_level4"
+      )
+    }
+  ),
+  names(method_results)
+)
+
+validation_display_residual_structure(residual_structure)
+```
+
+The residual-versus-benchmark-flow correlation checks whether remaining errors
+are larger or smaller for large benchmark flows. Moran's I checks whether
+origin-level residuals are similar across the supplied neighbour links. The
+residual-versus-covariate correlation checks whether origin-level residuals are
+associated with the selected area characteristic. In this example, the covariate
+is the percentage of residents with Level 4 qualifications or above
+(`per_level4`). Values close to zero are usually preferable because they suggest
+less obvious residual structure.
+
+We can also inspect the origins with the largest remaining mean residuals. The
+table below ranks origins by the absolute value of the selected mean residual.
+Positive residuals mean the adjusted outflows are larger than the benchmark
+outflows on average; negative residuals mean they are smaller.
+
+```{r}
+validation_display_residual_structure_areas(
+  residual_structure,
+  area_names = area_names,
+  n = 5
+)
+```
+
 ## Recommendation
 
 Our recommendation is to adopt a sequence approach to validation. First, we suggest to analyse the overall metrics to assess
 if the resulting adjusted flows are broadly closer to the benchmark. Second, we recommend evaluating origin
 and destination marginal diagnostics to determine the precision of correction for area totals, and identify systematic under- or over-estimation for specific areas. Third,
-we suggest inspecting individual origin-destinations pairs to evaluate corridors of special interest, such as origin-destinations pairs that typically have large amounts of interaction. Fourth, we recommend checking distributional allocation to assess whether each origin sends similar shares of flow to the same destinations as the benchmark.
+we suggest inspecting individual origin-destination pairs to evaluate corridors of special interest, such as origin-destination pairs that typically have large amounts of interaction. Fourth, we recommend checking distributional allocation to assess whether each origin sends similar shares of flow to the same destinations as the benchmark. Fifth, we recommend checking residual structure to assess whether remaining errors are spatially clustered, flow-scale dependent, or linked to known area covariates.
 
 The validation methods presented here offer quantitative evidence to assist in the selection of which method to use. However, this decision is not binary and depends on a combination of qualitative and quantitative factors:
 

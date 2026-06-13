@@ -1,5 +1,16 @@
 # debiasR 0.0.0.9004
 
+### Validation documentation
+
+- Added a distinct Level 5 spatial/residual structure diagnostics section to
+  the validation vignette, demonstrating `validate_flow_residual_structure()`
+  with residual-versus-benchmark-flow correlation, optional Moran's I, and
+  residual-versus-covariate correlation.
+- Clarified the validation hierarchy so distributional allocation validation
+  remains focused on origin-conditioned destination-share distributions, while
+  spatial/residual structure diagnostics focus on remaining
+  adjusted-minus-benchmark residual patterns.
+
 ### Bayesian adjustment documentation
 
 - Expanded the adjustment vignette advanced section so it is the practical
