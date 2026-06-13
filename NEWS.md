@@ -2,6 +2,8 @@
 
 ### Validation documentation
 
+- Added a concise metadata description to the validation vignette so article
+  listings and previews describe the full validation workflow.
 - Added a distinct Level 5 spatial/residual structure diagnostics section to
   the validation vignette, demonstrating `validate_flow_residual_structure()`
   with residual-versus-benchmark-flow correlation, optional Moran's I, and

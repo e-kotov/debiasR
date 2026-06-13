@@ -1,5 +1,9 @@
 ---
 title: "Validation"
+description: >
+  Compare adjusted mobile-phone-derived origin-destination flows with benchmark
+  flows across overall, marginal, OD-pair, distributional allocation, and
+  residual-structure diagnostics.
 vignette: >
   %\VignetteIndexEntry{Validation}
   %\VignetteEngine{quarto::html}
