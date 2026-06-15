@@ -3,6 +3,18 @@ url: https://de-bias.github.io/debiasR/
 template:
   bootstrap: 5
 
+home:
+  sidebar:
+    structure: [links, license, community, citation, maintainers, dev]
+    components:
+      maintainers:
+        title: Developers
+        text: |
+          Francisco Rowe<br>
+          <small class="roles">Author, package maintainer</small><br><br>
+          Carmen Cabrera<br>
+          <small class="roles">Author, project maintainer</small>
+
 navbar:
   structure:
     left: [home, foundations, measure, adjust, validate, reference]
