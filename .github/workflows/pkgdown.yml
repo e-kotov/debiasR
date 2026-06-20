@@ -48,6 +48,7 @@ jobs:
             any::purrr
             any::patchwork
             any::lme4
+            github::walkerke/mapgl
             github::de-bias/debiasRdata
 
       - name: Install local package

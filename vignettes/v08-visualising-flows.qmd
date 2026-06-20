@@ -14,6 +14,7 @@ execute:
   echo: true
   warning: false
   message: false
+  error: true
 ---
 
 ## Aim
@@ -32,15 +33,20 @@ adjusted flows returned by `debiasR`.
 
 The README shows how to install `debiasR` and the companion `debiasRdata`
 package from GitHub. This vignette also uses `dplyr` for data preparation and
-the experimental flow-map branch of `mapgl` for interactive visualisation.
+the `mapgl` package for interactive visualisation.
 
 ```{r load-packages}
 library(debiasR)
 library(debiasRdata)
 ```
 
-The interactive map uses experimental flow-map support from `mapgl`. If the
-package is not installed, the preparation code below still shows the data
+The interactive map uses the `mapgl` package. You can install it from CRAN with:
+
+```{r eval=FALSE}
+install.packages("mapgl")
+```
+
+If the package is not installed, the preparation code below still shows the data
 structure needed for the map.
 
 ```{r mapgl-availability, include=FALSE}
@@ -147,7 +153,7 @@ mapgl::maplibre(
     flow_max_top_flows_display_num = 10000,
     tooltip = list(
       location = "{name}",
-      flow = "{origin.name} -> {dest.name}<br>{count}"
+      flow = "{origin_name} -> {dest_name}<br>{count}"
     )
   )
 ```
@@ -182,16 +188,8 @@ formal metrics. A map can show where large flows are located, but it does not
 quantify whether adjusted flows are closer to a benchmark. For that, use the
 validation methods in the validation vignette.
 
-## Installation note
+## Alternative visualisation packages
 
-The flow-map functionality used above is currently available from an
-experimental `mapgl` branch. You can install it with:
-
-```{r eval=FALSE}
-# install.packages("pak")
-pak::pak("e-kotov/mapgl@flowmap")
-```
-
-Other packages can also be used for flow visualisation. `flowmapper` is a
-possible route for static flow maps, while `flowmapblue` provides interactive
+Other packages can also be used for flow visualisation. [`{flowmapper}`](https://cran.r-project.org/package=flowmapper) is a
+possible route for static flow maps, while [`{flowmapblue}`](https://flowmapblue.github.io/flowmapblue.R/) provides interactive
 flow maps but is less current than the emerging `mapgl` route.
