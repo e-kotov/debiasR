@@ -101,7 +101,7 @@ locations <- data.frame(
 
 flows <- benchmark_flows |>
   dplyr::filter(origin != destination, flow > 0) |>
-  dplyr::slice_max(order_by = flow, n = 1000, with_ties = FALSE) |>
+  dplyr::slice_max(order_by = flow, n = 10000, with_ties = FALSE) |>
   dplyr::left_join(
     centroids |>
       dplyr::select(origin = area, origin_name = name),
@@ -125,7 +125,7 @@ head(flows)
 ```
 
 The `locations` data frame links LAD codes to coordinates. The `flows` data
-frame stores the OD pairs to display. Here we keep the 1,000 largest
+frame stores the OD pairs to display. Here we keep the 10,000 largest
 between-area Census flows to keep the browser widget responsive.
 
 ## Interactive flow map
@@ -134,8 +134,8 @@ The map below uses `mapgl::add_flowmap()` to display LAD travel-to-work flows.
 The flow layer is interactive: you can zoom, pan and inspect flow corridors in
 the rendered HTML page.
 
-```{r interactive-flow-map, eval=mapgl_available}
-mapgl::maplibre(
+```{r interactive-flow-map, eval=mapgl_available, include=FALSE}
+map <- mapgl::maplibre(
   style = mapgl::carto_style("dark-matter"),
   center = c(-2.0, 54.0),
   zoom = 5
@@ -149,12 +149,23 @@ mapgl::maplibre(
     flow_lines_rendering_mode = "curved",
     flow_line_thickness_scale = 1.1,
     flow_clustering_enabled = TRUE,
-    flow_max_top_flows_display_num = 1000,
+    flow_max_top_flows_display_num = 10000,
     tooltip = list(
       location = "{name}",
       flow = "{origin_name} -> {dest_name}<br>{count}"
     )
   )
+
+# Use selfcontained = FALSE to avoid memory issues during Pandoc compilation
+htmlwidgets::saveWidget(
+  map, 
+  file = "flowmap-10k.html",
+  selfcontained = FALSE
+)
+```
+
+```{r print-iframe, echo=FALSE, results='asis', eval=mapgl_available}
+cat('<iframe src="flowmap-10k.html" width="100%" height="600px" style="border:none;"></iframe>')
 ```
 
 The map highlights major benchmark travel-to-work corridors. This kind of
