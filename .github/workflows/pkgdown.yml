@@ -58,6 +58,8 @@ jobs:
         shell: bash
         run: |
           mv NEWS.md /tmp/debiasR-NEWS.md
+          # Run quarto render manually so we can see any hidden errors in the log
+          quarto render vignettes/v08-visualising-flows.qmd || true
           Rscript -e 'pkgdown::build_site(
             pkg = ".",
             override = list(destination = "site"),
