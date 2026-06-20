@@ -66,12 +66,6 @@ jobs:
             new_process = FALSE,
             install = TRUE
           )'
-          # Manually copy the externally generated widget to the articles directory
-          # since pkgdown ignores files generated dynamically in the vignettes folder
-          if [ -f "vignettes/flowmap-10k.html" ]; then
-            cp vignettes/flowmap-10k.html site/articles/
-            cp -r vignettes/flowmap-10k_files site/articles/
-          fi
 
       - name: Configure GitHub Pages
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
